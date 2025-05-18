@@ -1,0 +1,223 @@
+document.addEventListener('DOMContentLoaded', () => {
+  // Function to fetch and display tokens
+  const fetchAndDisplayTokens = () => {
+    chrome.runtime.sendMessage({action: "getAuthTokens"}, (response) => {
+    const tokensList = document.getElementById('tokens-list');
+    
+    if (!response || !response.authTokens || response.authTokens.length === 0) {
+      tokensList.textContent = "No authentication tokens captured yet. Browse spend.cloud to capture tokens.";
+      return;
+    }
+    
+    // Clear the loading message
+    tokensList.innerHTML = '';
+    
+    // Add each token to the UI
+    response.authTokens.forEach((entry, index) => {
+      const tokenDiv = document.createElement('div');
+      tokenDiv.className = 'token-entry';
+      
+      // Format the timestamp
+      const date = new Date(entry.timestamp);
+      const formattedDate = date.toLocaleString();
+      
+      // Get token validity status
+      let expiryInfo = '';
+      let isExpired = false;
+      
+      if (entry.hasOwnProperty('isValid') && entry.isValid === false) {
+        isExpired = true;
+      }
+      
+      if (entry.expiryDate) {
+        const expiryDate = new Date(entry.expiryDate);
+        const now = new Date();
+        isExpired = expiryDate < now;
+        expiryInfo = `<br>Expires: ${expiryDate.toLocaleString()} (${isExpired ? '<span style="color:red;font-weight:bold">EXPIRED</span>' : '<span style="color:green">Valid</span>'})`;
+      } else {
+        // Try to parse the JWT if expiry info isn't stored
+        try {
+          const payload = JSON.parse(atob(entry.token.split('.')[1]));
+          if (payload.exp) {
+            const expiryDate = new Date(payload.exp * 1000);
+            const now = new Date();
+            isExpired = expiryDate < now;
+            expiryInfo = `<br>Expires: ${expiryDate.toLocaleString()} (${isExpired ? '<span style="color:red;font-weight:bold">EXPIRED</span>' : '<span style="color:green">Valid</span>'})`;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+      
+      tokenDiv.innerHTML = `
+        <div class="token" style="${isExpired ? 'opacity:0.6;' : ''}">${entry.token}</div>
+        <div class="meta">
+          ${isExpired ? '<span style="color:red;font-weight:bold">⚠️ EXPIRED</span> - ' : '<span style="color:green;font-weight:bold">✓ VALID</span> - '}
+          Captured: ${formattedDate}
+          ${expiryInfo}
+          <br>URL: ${entry.url}
+          ${entry.source ? `<br>Source: ${entry.source}` : ''}
+        </div>
+        <button class="copy-btn" data-token="${entry.token}" ${isExpired ? 'title="Warning: This token is expired"' : ''}>
+          Copy Token${isExpired ? ' (Expired)' : ''}
+        </button>
+      `;
+      
+      tokensList.appendChild(tokenDiv);
+    });
+    
+    // Add click handlers for copy buttons
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const token = button.getAttribute('data-token');
+        navigator.clipboard.writeText(token)
+          .then(() => {
+            // Change button text temporarily
+            const originalText = button.textContent;
+            button.textContent = "Copied!";
+            setTimeout(() => {
+              button.textContent = originalText;
+            }, 1500);
+          });
+      });
+    });
+  });
+  };
+  
+  // Initial fetch of tokens
+  fetchAndDisplayTokens();
+  
+  // Set up refresh button
+  document.getElementById('refresh-tokens').addEventListener('click', () => {
+    // Trigger a token check in the active tab
+    chrome.runtime.sendMessage({action: "checkForTokens"}, () => {
+      // After checking, refresh the displayed tokens
+      fetchAndDisplayTokens();
+    });
+  });
+  
+  // Function to extract and pre-fill card details from the active tab URL
+  function fillCardDetailsFromActiveTab() {
+    console.log('Attempting to fill card details from active tab');
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].url) {
+        const url = tabs[0].url;
+        console.log('Current URL:', url);
+        
+        // Match pattern for card URLs - match both /cards/[id]/settings and /cards/[id]
+        const cardUrlPattern = /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/settings|$)/;
+        const match = url.match(cardUrlPattern);
+        console.log('URL match result:', match);
+        
+        if (match) {
+          const customerDomain = match[1];
+          const cardId = match[2];
+          console.log('Extracted customer domain:', customerDomain);
+          console.log('Extracted card ID:', cardId);
+          
+          // Make sure the elements exist
+          const domainInput = document.getElementById('customer-domain');
+          const cardInput = document.getElementById('card-id');
+          
+          if (domainInput && cardInput) {
+            // Fill the form fields
+            domainInput.value = customerDomain;
+            cardInput.value = cardId;
+            console.log('Form fields populated successfully');
+            
+            // Auto-switch to the card tab if we're on a card page
+            switchToTab('card');
+          }
+        }
+      }
+    });
+  }
+  
+  // Call this when the popup is opened with a slight delay to ensure DOM is ready
+  setTimeout(fillCardDetailsFromActiveTab, 100);
+  
+  // Tab switching functionality
+  function switchToTab(tabId) {
+    // Hide all sections
+    document.getElementById('tokens-section').style.display = 'none';
+    document.getElementById('tools-section').style.display = 'none';
+    document.getElementById('card-section').style.display = 'none';
+    
+    // Remove active class from all tabs
+    document.getElementById('tokens-tab').classList.remove('active');
+    document.getElementById('tools-tab').classList.remove('active');
+    document.getElementById('card-tab').classList.remove('active');
+    
+    // Show the selected section and activate the tab
+    document.getElementById(tabId + '-section').style.display = 'block';
+    document.getElementById(tabId + '-tab').classList.add('active');
+  }
+  
+  document.getElementById('tokens-tab').addEventListener('click', () => switchToTab('tokens'));
+  document.getElementById('tools-tab').addEventListener('click', () => switchToTab('tools'));
+  document.getElementById('card-tab').addEventListener('click', () => switchToTab('card'));
+  
+  // Card details functionality
+  document.getElementById('fetch-card-btn').addEventListener('click', () => {
+    const customerDomain = document.getElementById('customer-domain').value.trim();
+    const cardId = document.getElementById('card-id').value.trim();
+    
+    if (!customerDomain || !cardId) {
+      showCardResult('Please enter both customer domain and card ID', false);
+      return;
+    }
+    
+    // Show loading state
+    const button = document.getElementById('fetch-card-btn');
+    const originalText = button.textContent;
+    button.textContent = 'Loading...';
+    button.disabled = true;
+    
+    // Request the card details and open Adyen in a single step
+    chrome.runtime.sendMessage({
+      action: "fetchCardDetails",
+      customer: customerDomain,
+      cardId: cardId
+    }, (response) => {
+      // Reset button
+      button.textContent = originalText;
+      button.disabled = false;
+      
+      if (!response) {
+        showCardResult('No response from background script', false);
+        return;
+      }
+      
+      if (!response.success) {
+        showCardResult(`Error: ${response.error || 'Failed to fetch card details'}`, false);
+        return;
+      }
+      
+      const paymentInstrumentId = response.paymentInstrumentId;
+      if (paymentInstrumentId) {
+        // Open Adyen directly in a new tab
+        const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${paymentInstrumentId}`;
+        chrome.tabs.create({ url: adyenUrl });
+        showCardResult(`Opening card in Adyen dashboard...`, true);
+      } else {
+        showCardResult('No payment instrument ID found for this card', false);
+      }
+    });
+  });
+  
+  function showCardResult(message, isSuccess) {
+    const resultBox = document.getElementById('card-result');
+    const resultContent = document.getElementById('card-result-content');
+    
+    resultBox.style.display = 'block';
+    
+    // Allow HTML in error messages for better formatting
+    if (message.includes('Error:')) {
+      resultContent.innerHTML = `<div style="color: #d32f2f; font-weight: bold;">${message}</div>`;
+    } else {
+      resultContent.textContent = message;
+    }
+    
+    resultContent.style.backgroundColor = isSuccess ? '#e8f5e9' : '#ffebee';
+  }
+});

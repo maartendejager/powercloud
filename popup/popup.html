@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PowerCloud</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h2>PowerCloud Developer Tool</h2>
+  
+  <div class="tabs">
+    <div class="tab active" id="tokens-tab">Auth Tokens</div>
+    <div class="tab" id="tools-tab">Tools</div>
+    <div class="tab" id="card-tab">Card Info</div>
+  </div>
+  
+  <div id="tokens-section">
+    <h3>Recent Authentication Tokens <button id="refresh-tokens" title="Refresh tokens">🔄</button></h3>
+    <div id="tokens-list">
+      Loading tokens...
+    </div>
+  </div>
+  
+  <div id="tools-section" style="display: none;">
+    <h3>Developer Tools</h3>
+    <p>Tools will be added here in future updates.</p>
+  </div>
+  
+  <div id="card-section" style="display: none;">
+    <h3>Card Management</h3>
+    <p>View card details in Adyen dashboard.</p>
+    
+    <div class="form-group">
+      <label for="customer-domain">Customer Domain:</label>
+      <input type="text" id="customer-domain" placeholder="customer" class="input-field">
+      <small>.spend.cloud</small>
+    </div>
+    
+    <div class="form-group">
+      <label for="card-id">Card ID:</label>
+      <input type="text" id="card-id" placeholder="card-id" class="input-field">
+    </div>
+    
+    <button id="fetch-card-btn" class="action-button">View Card at Adyen</button>
+    
+    <div id="card-result" class="result-box" style="display: none;">
+      <h4>Result:</h4>
+      <div id="card-result-content"></div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
