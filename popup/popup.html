@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>PowerCloud</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -14,7 +15,7 @@
   </div>
   
   <div id="tokens-section">
-    <h3>Recent Authentication Tokens <button id="refresh-tokens" title="Refresh tokens">🔄</button></h3>
+    <h3>Recent Authentication Tokens <button id="refresh-tokens" title="Refresh tokens">↻</button></h3>
     <div id="tokens-list">
       Loading tokens...
     </div>
@@ -31,7 +32,7 @@
     
     <div class="form-group">
       <label for="customer-domain">Customer Domain:</label>
-      <input type="text" id="customer-domain" placeholder="customer" class="input-field">
+      <input type="text" id="customer-domain" placeholder="customer" class="input-field" disabled>
       <small>.spend.cloud</small>
     </div>
     
