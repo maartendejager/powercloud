@@ -26,43 +26,80 @@ function checkCurrentPage() {
 // Function to add a button to request card payment instrument ID
 function addCardInfoButton(customer, cardId) {
   // Check if button already exists
-  if (document.getElementById('powercloud-card-info-btn')) {
+  if (document.getElementById('powercloud-shadow-host')) {
     return;
   }
 
+  // Create shadow DOM host element
+  const shadowHost = document.createElement('div');
+  shadowHost.id = 'powercloud-shadow-host'; 
+  
+  // Position the host element with inline styles that won't leak to other elements
+  shadowHost.style.position = 'fixed';
+  shadowHost.style.bottom = '20px';
+  shadowHost.style.right = '20px';
+  shadowHost.style.zIndex = '9999';
+  
+  // Attach a shadow DOM tree to completely isolate our styles
+  const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
+  
+  // Add comprehensive styles to shadow DOM
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Base container style */
+    .powercloud-container {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #333;
+      background-color: transparent;
+    }
+    
+    /* Button styling */
+    .powercloud-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background-color 0.3s;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      text-align: center;
+    }
+    
+    .powercloud-button:hover {
+      background-color: #3e8e41;
+    }
+    
+    .powercloud-button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    /* Button container */
+    .powercloud-button-container {
+      margin: 0;
+      padding: 0;
+    }
+  `;
+  shadowRoot.appendChild(style);
+
   // Create button container with styling
   const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'powercloud-button-container';
+  buttonContainer.className = 'powercloud-container powercloud-button-container';
   buttonContainer.id = 'powercloud-button-container';
-  buttonContainer.style.position = 'fixed';
-  buttonContainer.style.bottom = '20px';
-  buttonContainer.style.right = '20px';
-  buttonContainer.style.zIndex = '9999';
 
   // Create the button
   const button = document.createElement('button');
   button.id = 'powercloud-card-info-btn';
   button.className = 'powercloud-button';
   button.innerHTML = '🔍 View Card at Adyen';
-  button.style.backgroundColor = '#4CAF50';
-  button.style.color = 'white';
-  button.style.padding = '10px 15px';
-  button.style.border = 'none';
-  button.style.borderRadius = '4px';
-  button.style.cursor = 'pointer';
-  button.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-  
-  // Add hover effect
-  button.onmouseover = function() {
-    this.style.backgroundColor = '#3e8e41';
-  };
-  button.onmouseout = function() {
-    this.style.backgroundColor = '#4CAF50';
-  };
 
   // Add click event - directly open Adyen page
   button.addEventListener('click', () => {
-    const button = document.getElementById('powercloud-card-info-btn');
     const originalText = button.innerHTML;
     button.innerHTML = '⏳ Loading...';
     button.disabled = true;
@@ -101,9 +138,12 @@ function addCardInfoButton(customer, cardId) {
     );
   });
 
-  // Add button to container and container to page
+  // Add button to container and container to shadow DOM
   buttonContainer.appendChild(button);
-  document.body.appendChild(buttonContainer);
+  shadowRoot.appendChild(buttonContainer);
+  
+  // Add shadow host to the page
+  document.body.appendChild(shadowHost);
 }
 
 // Function to show the result (used for error messages)
@@ -111,36 +151,98 @@ function addCardInfoButton(customer, cardId) {
 // Function to show the result
 function showCardInfoResult(message, paymentId = null) {
   // Remove any existing result box
-  const existingResult = document.getElementById('powercloud-result');
-  if (existingResult) {
-    existingResult.remove();
+  const existingHost = document.getElementById('powercloud-result-host');
+  if (existingHost) {
+    existingHost.remove();
   }
+  
+  // Create a shadow DOM host element
+  const shadowHost = document.createElement('div');
+  shadowHost.id = 'powercloud-result-host';
+  shadowHost.style.position = 'fixed';
+  shadowHost.style.bottom = '80px';
+  shadowHost.style.right = '20px';
+  shadowHost.style.zIndex = '9999';
+  
+  // Attach a shadow DOM tree
+  const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
+  
+  // Add comprehensive styles to shadow DOM
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Base container style */
+    .powercloud-container {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #333;
+      background-color: white;
+      padding: 15px;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      max-width: 350px;
+      word-break: break-all;
+      position: relative;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    
+    /* Button styling */
+    .powercloud-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      text-align: center;
+      transition: background-color 0.2s;
+    }
+    
+    .powercloud-button:hover {
+      background-color: #3e8e41;
+    }
+    
+    .powercloud-button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    /* Close button styling */
+    .powercloud-button-close {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      border: none;
+      background: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      margin: 0;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    
+    .powercloud-button-close:hover {
+      color: #333;
+    }
+  `;
+  shadowRoot.appendChild(style);
   
   // Create result box
   const resultBox = document.createElement('div');
+  resultBox.className = 'powercloud-container';
   resultBox.id = 'powercloud-result';
-  resultBox.style.position = 'fixed';
-  resultBox.style.bottom = '80px';
-  resultBox.style.right = '20px';
-  resultBox.style.backgroundColor = 'white';
-  resultBox.style.padding = '15px';
-  resultBox.style.borderRadius = '4px';
-  resultBox.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-  resultBox.style.zIndex = '9999';
-  resultBox.style.maxWidth = '350px';
-  resultBox.style.wordBreak = 'break-all';
   
   // Add close button
   const closeBtn = document.createElement('button');
+  closeBtn.className = 'powercloud-button-close';
   closeBtn.innerHTML = '&times;';
-  closeBtn.style.position = 'absolute';
-  closeBtn.style.top = '5px';
-  closeBtn.style.right = '5px';
-  closeBtn.style.border = 'none';
-  closeBtn.style.background = 'none';
-  closeBtn.style.fontSize = '16px';
-  closeBtn.style.cursor = 'pointer';
-  closeBtn.onclick = () => resultBox.remove();
+  closeBtn.onclick = () => shadowHost.remove();
 
   // Add content container
   const contentDiv = document.createElement('div');
@@ -150,14 +252,8 @@ function showCardInfoResult(message, paymentId = null) {
   let copyBtn = null;
   if (paymentId && paymentId !== 'Not found') {
     copyBtn = document.createElement('button');
+    copyBtn.className = 'powercloud-button';
     copyBtn.innerHTML = 'Copy Adyen ID';
-    copyBtn.style.marginTop = '10px';
-    copyBtn.style.padding = '5px 10px';
-    copyBtn.style.backgroundColor = '#4CAF50';
-    copyBtn.style.color = 'white';
-    copyBtn.style.border = 'none';
-    copyBtn.style.borderRadius = '3px';
-    copyBtn.style.cursor = 'pointer';
     copyBtn.onclick = () => {
       navigator.clipboard.writeText(paymentId).then(() => {
         copyBtn.innerHTML = 'Copied!';
@@ -175,13 +271,14 @@ function showCardInfoResult(message, paymentId = null) {
     resultBox.appendChild(copyBtn);
   }
   
-  // Add to page
-  document.body.appendChild(resultBox);
+  // Add to shadow root and then to page
+  shadowRoot.appendChild(resultBox);
+  document.body.appendChild(shadowHost);
   
   // Auto-dismiss after 15 seconds
   setTimeout(() => {
-    if (document.body.contains(resultBox)) {
-      resultBox.remove();
+    if (document.body.contains(shadowHost)) {
+      shadowHost.remove();
     }
   }, 15000);
 }
@@ -258,15 +355,16 @@ function setupMessageListener() {
 
 // Function to remove the card info button if it exists
 function removeCardInfoButton() {
-  const buttonContainer = document.getElementById('powercloud-button-container');
-  if (buttonContainer) {
-    buttonContainer.remove();
+  // Remove the shadow host for the button
+  const shadowHost = document.getElementById('powercloud-shadow-host');
+  if (shadowHost) {
+    shadowHost.remove();
   }
   
-  // Also remove any result box that might be showing
-  const resultBox = document.getElementById('powercloud-result');
-  if (resultBox) {
-    resultBox.remove();
+  // Also remove any result shadow host that might be showing
+  const resultHost = document.getElementById('powercloud-result-host');
+  if (resultHost) {
+    resultHost.remove();
   }
 }
 

@@ -1,5 +1,5 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
-import { setToken, getAllTokens, getToken } from '../shared/auth.js';
+import { setToken, getAllTokens, getToken, isValidJWT } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails } from '../shared/api.js';
 import { testApiService } from './api-test.js';
 
@@ -59,8 +59,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const promises = [];
     
     message.tokens.forEach(({ token, source }) => {
-      // Validate if it looks like a JWT (contains 2 dots and has 3 parts)
-      if (token.split('.').length === 3) {
+      // Use shared isValidJWT function to validate the token
+      if (isValidJWT(token)) {
         // Store token using shared auth module
         const promise = setToken(token, {
           url: message.url,

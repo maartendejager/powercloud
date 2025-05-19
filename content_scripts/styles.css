@@ -1,45 +1,16 @@
-body {
-    background-color: #f0f0f0;
-    font-family: Arial, sans-serif;
-}
+/* All styles are scoped with .powercloud-container or powercloud specific IDs/classes */
+/* No global styles that could affect the page */
 
-h1, h2, h3 {
+/* PowerCloud extension custom styles - Properly scoped */
+/* Main container for all PowerCloud elements */
+.powercloud-container {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
     color: #333;
 }
 
-.button {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.button:hover {
-    background-color: #0056b3;
-}
-
-.alert {
-    padding: 15px;
-    margin: 10px 0;
-    border: 1px solid transparent;
-    border-radius: 5px;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
-}
-
-.alert-error {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
-
-/* PowerCloud extension custom styles */
+/* Button styling */
 .powercloud-button {
     background-color: #4CAF50;
     color: white;
@@ -49,6 +20,8 @@ h1, h2, h3 {
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     transition: background-color 0.3s;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
 }
 
 .powercloud-button:hover {
@@ -60,6 +33,7 @@ h1, h2, h3 {
     cursor: not-allowed;
 }
 
+/* Result container styling */
 #powercloud-result {
     background-color: white;
     border: 1px solid #e0e0e0;
@@ -70,4 +44,36 @@ h1, h2, h3 {
     font-family: Arial, sans-serif;
     font-size: 14px;
     line-height: 1.4;
+}
+
+/* Alert styling for PowerCloud elements */
+.powercloud-alert {
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+}
+
+.powercloud-alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.powercloud-alert-error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+/* Close button styling */
+.powercloud-button-close {
+    font-family: Arial, sans-serif;
+    color: #666;
+    transition: color 0.3s;
+}
+
+.powercloud-button-close:hover {
+    color: #333;
 }
