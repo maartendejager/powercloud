@@ -4,26 +4,127 @@
  * and provide additional functionality
  */
 
-// Function to check current URL and add or remove custom UI elements as needed
-function checkCurrentPage() {
-  const url = window.location.href;
+/**
+ * Feature registry for different page types
+ * Each entry represents a feature with:
+ * - urlPattern: RegExp to match the URL
+ * - init: Function to initialize the feature
+ * - cleanup: Function to clean up the feature when page changes (optional)
+ */
+const features = [
+  {
+    name: 'tokenDetection',
+    urlPattern: /.*\.spend\.cloud.*/,  // Run on all spend.cloud pages
+    init: initTokenDetection,
+    cleanup: null  // No cleanup needed
+  },
+  {
+    name: 'cardInfo',
+    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+    init: initCardFeature,
+    cleanup: removeCardInfoButton
+  }
+  // Additional features can be registered here
+];
+
+/**
+ * Initialize the token detection feature
+ * Detects and reports tokens found in localStorage or sessionStorage
+ */
+function initTokenDetection() {
+  // Run an initial check
+  checkForTokensInStorage();
   
-  // Check if we're on any card page
-  const cardSettingsMatch = url.match(/https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/);
+  // Periodically check for tokens
+  setInterval(checkForTokensInStorage, 30000);
   
-  // First, remove any existing button to ensure we don't have stale buttons
-  removeCardInfoButton();
+  // Set up message listener for token detection requests
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'checkPageForTokens') {
+      checkForTokensInStorage();
+      sendResponse({ status: 'Checked for tokens' });
+    }
+    return true;
+  });
   
-  // If we're on a card page, add the button with updated card info
-  if (cardSettingsMatch) {
-    const customer = cardSettingsMatch[1]; // Extract customer subdomain
-    const cardId = cardSettingsMatch[2]; // Extract the actual card ID from URL
-    console.log(`Found card page. Customer: ${customer}, Card ID: ${cardId}`);
-    addCardInfoButton(customer, cardId);
+  console.log('Token detection feature initialized');
+}
+
+/**
+ * Initialize the card feature
+ * Adds functionality specific to card pages
+ * @param {object} match - The URL match result containing capture groups
+ */
+function initCardFeature(match) {
+  if (!match || match.length < 3) return;
+  
+  const customer = match[1]; // Extract customer subdomain
+  const cardId = match[2];   // Extract the actual card ID from URL
+  
+  console.log(`Found card page. Customer: ${customer}, Card ID: ${cardId}`);
+  addCardInfoButton(customer, cardId);
+}
+
+// Function to check for tokens in localStorage or sessionStorage
+function checkForTokensInStorage() {
+  const storageLocations = [
+    { type: 'localStorage', storage: localStorage },
+    { type: 'sessionStorage', storage: sessionStorage }
+  ];
+  
+  let foundTokens = [];
+  
+  // Common key names for auth tokens
+  const possibleTokenKeys = [
+    'token', 
+    'authToken', 
+    'jwt', 
+    'accessToken', 
+    'auth_token', 
+    'id_token',
+    'x_authorization_token'
+  ];
+  
+  // Check each storage type
+  storageLocations.forEach(({ type, storage }) => {
+    // Try to find tokens in common key patterns
+    possibleTokenKeys.forEach(key => {
+      try {
+        // Check for exact key match
+        if (storage[key]) {
+          foundTokens.push({
+            token: storage[key],
+            source: `${type}:${key}`
+          });
+        }
+        
+        // Check for keys containing the token name
+        Object.keys(storage).forEach(storageKey => {
+          if (storageKey.toLowerCase().includes(key) && !foundTokens.some(t => t.token === storage[storageKey])) {
+            foundTokens.push({
+              token: storage[storageKey],
+              source: `${type}:${storageKey}`
+            });
+          }
+        });
+      } catch (e) {
+        // Ignore errors, could be security restrictions
+      }
+    });
+  });
+  
+  // If we found tokens, send them to the background script
+  if (foundTokens.length > 0) {
+    chrome.runtime.sendMessage({
+      action: 'foundTokensInPage',
+      tokens: foundTokens,
+      url: window.location.href,
+      timestamp: new Date().toISOString()
+    });
   }
 }
 
-// Function to add a button to request card payment instrument ID
+// Card feature functions
 function addCardInfoButton(customer, cardId) {
   // Check if button already exists
   if (document.getElementById('powercloud-shadow-host')) {
@@ -283,76 +384,6 @@ function showCardInfoResult(message, paymentId = null) {
   }, 15000);
 }
 
-// Function to check for tokens in localStorage or sessionStorage
-function checkForTokensInStorage() {
-  const storageLocations = [
-    { type: 'localStorage', storage: localStorage },
-    { type: 'sessionStorage', storage: sessionStorage }
-  ];
-  
-  let foundTokens = [];
-  
-  // Common key names for auth tokens
-  const possibleTokenKeys = [
-    'token', 
-    'authToken', 
-    'jwt', 
-    'accessToken', 
-    'auth_token', 
-    'id_token',
-    'x_authorization_token'
-  ];
-  
-  // Check each storage type
-  storageLocations.forEach(({ type, storage }) => {
-    // Try to find tokens in common key patterns
-    possibleTokenKeys.forEach(key => {
-      try {
-        // Check for exact key match
-        if (storage[key]) {
-          foundTokens.push({
-            token: storage[key],
-            source: `${type}:${key}`
-          });
-        }
-        
-        // Check for keys containing the token name
-        Object.keys(storage).forEach(storageKey => {
-          if (storageKey.toLowerCase().includes(key) && !foundTokens.some(t => t.token === storage[storageKey])) {
-            foundTokens.push({
-              token: storage[storageKey],
-              source: `${type}:${storageKey}`
-            });
-          }
-        });
-      } catch (e) {
-        // Ignore errors, could be security restrictions
-      }
-    });
-  });
-  
-  // If we found tokens, send them to the background script
-  if (foundTokens.length > 0) {
-    chrome.runtime.sendMessage({
-      action: 'foundTokensInPage',
-      tokens: foundTokens,
-      url: window.location.href,
-      timestamp: new Date().toISOString()
-    });
-  }
-}
-
-// Function to add a message listener for page-level token inspection
-function setupMessageListener() {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'checkPageForTokens') {
-      checkForTokensInStorage();
-      sendResponse({ status: 'Checked for tokens' });
-    }
-    return true;
-  });
-}
-
 // Function to remove the card info button if it exists
 function removeCardInfoButton() {
   // Remove the shadow host for the button
@@ -368,55 +399,94 @@ function removeCardInfoButton() {
   }
 }
 
-// Initialize the content script
-function init() {
-  // Run token check on page load
-  checkForTokensInStorage();
+/**
+ * Feature Manager
+ * Handles loading and unloading features based on page URL
+ */
+class FeatureManager {
+  constructor() {
+    this.activeFeatures = new Set();
+    this.lastUrl = window.location.href;
+  }
   
-  // Check current page for potential card settings
-  checkCurrentPage();
-  
-  // Set up listener for messages from extension
-  setupMessageListener();
-  
-  // Periodically check for tokens (every 30 seconds)
-  setInterval(checkForTokensInStorage, 30000);
-  
-  // Set up listener for URL changes (Single Page Apps)
-  let lastUrl = window.location.href;
-  
-  // Create a more robust URL change detection
-  const urlChangeObserver = new MutationObserver(() => {
-    const currentUrl = window.location.href;
-    if (lastUrl !== currentUrl) {
-      console.log(`URL changed from ${lastUrl} to ${currentUrl}`);
-      lastUrl = currentUrl;
-      
-      // Check and update UI based on new URL
-      checkCurrentPage();
+  /**
+   * Check current page and load appropriate features
+   */
+  checkPage() {
+    const url = window.location.href;
+    console.log(`Checking page: ${url}`);
+    
+    // Clean up features if URL changed
+    if (url !== this.lastUrl) {
+      this.cleanup();
+      this.lastUrl = url;
     }
-  });
+    
+    // Load features that match the current URL
+    features.forEach(feature => {
+      const match = url.match(feature.urlPattern);
+      if (match && !this.activeFeatures.has(feature.name)) {
+        console.log(`Initializing feature: ${feature.name}`);
+        feature.init(match);
+        this.activeFeatures.add(feature.name);
+      }
+    });
+  }
   
-  // Observe the entire document for changes that might indicate navigation
-  urlChangeObserver.observe(document, { 
-    subtree: true, 
-    childList: true,
-    attributes: true, 
-    characterData: false 
-  });
+  /**
+   * Clean up active features
+   */
+  cleanup() {
+    features.forEach(feature => {
+      if (this.activeFeatures.has(feature.name) && feature.cleanup) {
+        console.log(`Cleaning up feature: ${feature.name}`);
+        feature.cleanup();
+        this.activeFeatures.delete(feature.name);
+      }
+    });
+  }
   
-  // Also set up a regular check every 1 second as a fallback for SPAs
-  setInterval(() => {
-    const currentUrl = window.location.href;
-    if (lastUrl !== currentUrl) {
-      console.log(`URL change detected by interval: ${lastUrl} to ${currentUrl}`);
-      lastUrl = currentUrl;
-      checkCurrentPage();
-    }
-  }, 1000);
+  /**
+   * Set up URL change detection
+   */
+  setupUrlChangeDetection() {
+    // Use MutationObserver for SPA detection
+    const urlChangeObserver = new MutationObserver(() => {
+      const currentUrl = window.location.href;
+      if (this.lastUrl !== currentUrl) {
+        console.log(`URL changed from ${this.lastUrl} to ${currentUrl}`);
+        this.checkPage();
+      }
+    });
+    
+    // Observe the entire document for changes
+    urlChangeObserver.observe(document, { 
+      subtree: true, 
+      childList: true,
+      attributes: true, 
+      characterData: false 
+    });
+    
+    // Additional fallback check for SPAs that don't trigger DOM mutations
+    setInterval(() => {
+      const currentUrl = window.location.href;
+      if (this.lastUrl !== currentUrl) {
+        console.log(`URL change detected by interval: ${this.lastUrl} to ${currentUrl}`);
+        this.checkPage();
+      }
+    }, 1000);
+  }
   
-  console.log('PowerCloud extension initialized on page');
+  /**
+   * Initialize the feature manager
+   */
+  init() {
+    this.checkPage();
+    this.setupUrlChangeDetection();
+    console.log('PowerCloud feature manager initialized');
+  }
 }
 
-// Start the content script
-init();
+// Initialize the extension
+const featureManager = new FeatureManager();
+featureManager.init();

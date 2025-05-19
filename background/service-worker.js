@@ -6,12 +6,13 @@ import { testApiService } from './api-test.js';
 // Keep a local reference to tokens for quicker access
 let authTokens = [];
 
-// Listen for requests to spend.cloud domains
+// Listen for requests to spend.cloud API domains only
 chrome.webRequest.onSendHeaders.addListener(
   (details) => {
-    // Filter out proactive-frame requests
-    if (details.url.includes('/proactive-frame/')) {
-      return;
+    // Check if the URL is an API route
+    const isApiRoute = details.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
+    if (!isApiRoute) {
+      return; // Skip non-API routes
     }
     
     // Look for Authorization header
@@ -36,7 +37,7 @@ chrome.webRequest.onSendHeaders.addListener(
         });
     }
   },
-  { urls: ["*://*.spend.cloud/*"] },
+  { urls: ["*://*.spend.cloud/api/*"] }, // Only monitor API routes
   ["requestHeaders", "extraHeaders"]
 );
 
