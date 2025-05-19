@@ -55,6 +55,13 @@ function initTokenDetection() {
     if (message.action === 'checkPageForTokens') {
       checkForTokensInStorage();
       sendResponse({ status: 'Checked for tokens' });
+    } else if (message.action === 'updateButtonVisibility') {
+      // Handle toggling button visibility
+      const buttonHost = document.getElementById('powercloud-shadow-host');
+      if (buttonHost) {
+        buttonHost.style.display = message.showButtons ? 'block' : 'none';
+      }
+      sendResponse({ status: 'Updated button visibility' });
     }
     return true;
   });
@@ -75,23 +82,33 @@ function initCardFeature(match) {
   
   console.log(`Found card page. Customer: ${customer}, Card ID: ${cardId}`);
   
-  // First fetch card details to determine vendor before adding button
-  chrome.runtime.sendMessage(
-    { 
-      action: "fetchCardDetails", 
-      customer: customer, 
-      cardId: cardId 
-    },
-    (response) => {
-      if (response && response.success) {
-        const isAdyenCard = response.vendor === 'adyen';
-        addCardInfoButton(customer, cardId, isAdyenCard, response.vendor);
-      } else {
-        // If we can't determine vendor, add button with default behavior
-        addCardInfoButton(customer, cardId, true);
-      }
+  // Check if buttons should be shown before fetching card details
+  chrome.storage.local.get('showButtons', (result) => {
+    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+    
+    if (!showButtons) {
+      console.log('Buttons are disabled. Skipping button creation.');
+      return;
     }
-  );
+    
+    // First fetch card details to determine vendor before adding button
+    chrome.runtime.sendMessage(
+      { 
+        action: "fetchCardDetails", 
+        customer: customer, 
+        cardId: cardId 
+      },
+      (response) => {
+        if (response && response.success) {
+          const isAdyenCard = response.vendor === 'adyen';
+          addCardInfoButton(customer, cardId, isAdyenCard, response.vendor);
+        } else {
+          // If we can't determine vendor, add button with default behavior
+          addCardInfoButton(customer, cardId, true);
+        }
+      }
+    );
+  });
 }
 
 // Function to check for tokens in localStorage or sessionStorage
@@ -176,6 +193,12 @@ function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) 
   shadowHost.style.bottom = '20px';
   shadowHost.style.right = '20px';
   shadowHost.style.zIndex = '9999';
+  
+  // Check if buttons should be hidden by default
+  chrome.storage.local.get('showButtons', (result) => {
+    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+    shadowHost.style.display = showButtons ? 'block' : 'none';
+  });
   
   // Attach a shadow DOM tree to completely isolate our styles
   const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });

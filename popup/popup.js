@@ -1,4 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Load and set toggle state for showing buttons
+  chrome.storage.local.get('showButtons', (result) => {
+    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+    document.getElementById('show-buttons-toggle').checked = showButtons;
+  });
+
+  // Add event listener for the toggle
+  document.getElementById('show-buttons-toggle').addEventListener('change', (e) => {
+    const showButtons = e.target.checked;
+    chrome.storage.local.set({ showButtons: showButtons });
+    
+    // Notify all tabs to update button visibility
+    chrome.tabs.query({ url: "*://*.spend.cloud/*" }, (tabs) => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, { action: 'updateButtonVisibility', showButtons });
+      });
+    });
+  });
+  
   // Function to fetch and display tokens
   const fetchAndDisplayTokens = () => {
     chrome.runtime.sendMessage({action: "getAuthTokens"}, (response) => {
