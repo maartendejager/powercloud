@@ -117,10 +117,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = tabs[0].url;
         console.log('Current URL:', url);
         
-        // Match pattern for card URLs - match both /cards/[id]/settings and /cards/[id]
-        const cardUrlPattern = /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/;
-        const match = url.match(cardUrlPattern);
-        console.log('URL match result:', match);
+        // Define all the URL patterns that might contain card information
+        const patterns = [
+          // Standard card URL
+          { pattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, name: 'standard' },
+          // Proactive single card update URL
+          { pattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, name: 'proactive' },
+          // Kasboek passen show URL
+          { pattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, name: 'kasboek' }
+        ];
+        
+        // Try each pattern until we find a match
+        let match = null;
+        let matchType = null;
+        
+        for (const patternObj of patterns) {
+          const result = url.match(patternObj.pattern);
+          if (result) {
+            match = result;
+            matchType = patternObj.name;
+            break;
+          }
+        }
+        
+        console.log('URL match result:', match, 'Type:', matchType);
         
         // Show or hide the card tab based on whether we're on a card page
         const cardTab = document.getElementById('card-tab');
@@ -128,8 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
           cardTab.style.display = 'block';
           const customerDomain = match[1];
           const cardId = match[2];
-          console.log('Extracted customer domain:', customerDomain);
-          console.log('Extracted card ID:', cardId);
+          console.log(`Extracted customer domain: ${customerDomain}, card ID: ${cardId} from ${matchType} URL`);
           
           // Make sure the elements exist
           const domainInput = document.getElementById('customer-domain');
@@ -179,9 +198,18 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0] && tabs[0].url) {
         const url = tabs[0].url;
-        const cardUrlPattern = /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/;
-        const match = url.match(cardUrlPattern);
-        if (match) {
+        
+        // Check all supported card URL patterns
+        const cardUrlPatterns = [
+          /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+          /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+          /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
+        ];
+        
+        // Check if any of the patterns match
+        const isCardPage = cardUrlPatterns.some(pattern => pattern.test(url));
+        
+        if (isCardPage) {
           switchToTab('card');
         }
       }
@@ -221,6 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (!response.success) {
         showCardResult(`Error: ${response.error || 'Failed to fetch card details'}`, false);
+        return;
+      }
+      
+      // Check if the card is from Adyen
+      const vendor = response.vendor ? response.vendor.toLowerCase() : null;
+      if (vendor && vendor !== 'adyen') {
+        showCardResult(`This is a non-Adyen card (vendor: ${vendor}). Cannot view in Adyen dashboard.`, false);
         return;
       }
       

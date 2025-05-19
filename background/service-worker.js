@@ -132,9 +132,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           paymentInstrumentId = data.adyenPaymentInstrumentId;
         }
         
+        // Check for vendor information in the response
+        let vendor = null;
+        if (data?.data?.attributes?.vendor) {
+          vendor = data.data.attributes.vendor;
+        } else if (data?.attributes?.vendor) {
+          vendor = data.attributes.vendor;
+        } else if (data?.vendor) {
+          vendor = data.vendor;
+        }
+        
+        // Convert vendor to lowercase if it exists for case-insensitive comparison
+        if (vendor) {
+          vendor = vendor.toLowerCase();
+        }
+        
         sendResponse({
           success: true,
           paymentInstrumentId: paymentInstrumentId,
+          vendor: vendor,
           data: data.data || data
         });
       })

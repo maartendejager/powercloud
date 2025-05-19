@@ -23,6 +23,18 @@ const features = [
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
     init: initCardFeature,
     cleanup: removeCardInfoButton
+  },
+  {
+    name: 'cardInfoProactive',
+    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+    init: initCardFeature,
+    cleanup: removeCardInfoButton
+  },
+  {
+    name: 'cardInfoKasboek',
+    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
+    init: initCardFeature,
+    cleanup: removeCardInfoButton
   }
   // Additional features can be registered here
 ];
@@ -62,7 +74,24 @@ function initCardFeature(match) {
   const cardId = match[2];   // Extract the actual card ID from URL
   
   console.log(`Found card page. Customer: ${customer}, Card ID: ${cardId}`);
-  addCardInfoButton(customer, cardId);
+  
+  // First fetch card details to determine vendor before adding button
+  chrome.runtime.sendMessage(
+    { 
+      action: "fetchCardDetails", 
+      customer: customer, 
+      cardId: cardId 
+    },
+    (response) => {
+      if (response && response.success) {
+        const isAdyenCard = response.vendor === 'adyen';
+        addCardInfoButton(customer, cardId, isAdyenCard, response.vendor);
+      } else {
+        // If we can't determine vendor, add button with default behavior
+        addCardInfoButton(customer, cardId, true);
+      }
+    }
+  );
 }
 
 // Function to check for tokens in localStorage or sessionStorage
@@ -132,7 +161,7 @@ function checkForTokensInStorage() {
 }
 
 // Card feature functions
-function addCardInfoButton(customer, cardId) {
+function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) {
   // Check if button already exists
   if (document.getElementById('powercloud-shadow-host')) {
     return;
@@ -204,47 +233,64 @@ function addCardInfoButton(customer, cardId) {
   const button = document.createElement('button');
   button.id = 'powercloud-card-info-btn';
   button.className = 'powercloud-button';
-  button.innerHTML = '🔍 View Card at Adyen';
-
-  // Add click event - directly open Adyen page
-  button.addEventListener('click', () => {
-    const originalText = button.innerHTML;
-    button.innerHTML = '⏳ Loading...';
+  
+  // Set button text and state based on vendor
+  if (isAdyenCard) {
+    button.innerHTML = '🔍 View Card at Adyen';
+    button.disabled = false;
+  } else {
+    button.innerHTML = '⚠️ Non Adyen Card';
     button.disabled = true;
     
-    console.log(`Fetching card details for customer: ${customer}, cardId: ${cardId}`);
-    
-    // Get card details and navigate directly to Adyen
-    chrome.runtime.sendMessage(
-      { 
-        action: "fetchCardDetails", 
-        customer: customer, 
-        cardId: cardId 
-      }, 
-      (response) => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-        
-        console.log('Card details response:', response);
-        
-        if (!response || !response.success) {
-          showCardInfoResult(`Error: ${response?.error || 'Failed to fetch card details'}`);
-          return;
+    // Show more info if we know the vendor
+    if (vendor) {
+      button.title = `This card is issued by ${vendor}, not Adyen`;
+    } else {
+      button.title = 'This card is not issued by Adyen';
+    }
+  }
+
+  // Add click event only if it's an Adyen card
+  if (isAdyenCard) {
+    button.addEventListener('click', () => {
+      const originalText = button.innerHTML;
+      button.innerHTML = '⏳ Loading...';
+      button.disabled = true;
+      
+      console.log(`Fetching card details for customer: ${customer}, cardId: ${cardId}`);
+      
+      // Get card details and navigate directly to Adyen
+      chrome.runtime.sendMessage(
+        { 
+          action: "fetchCardDetails", 
+          customer: customer, 
+          cardId: cardId 
+        }, 
+        (response) => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+          
+          console.log('Card details response:', response);
+          
+          if (!response || !response.success) {
+            showCardInfoResult(`Error: ${response?.error || 'Failed to fetch card details'}`);
+            return;
+          }
+          
+          if (!response.paymentInstrumentId) {
+            showCardInfoResult('No Adyen Payment Instrument ID found for this card. This card may not be linked to an Adyen account yet.');
+            return;
+          }
+          
+          // Open Adyen directly in a new tab
+          const paymentInstrumentId = response.paymentInstrumentId;
+          console.log(`Opening Adyen with payment instrument ID: ${paymentInstrumentId}`);
+          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${paymentInstrumentId}`;
+          window.open(adyenUrl, '_blank');
         }
-        
-        if (!response.paymentInstrumentId) {
-          showCardInfoResult('No Adyen Payment Instrument ID found for this card. This card may not be linked to an Adyen account yet.');
-          return;
-        }
-        
-        // Open Adyen directly in a new tab
-        const paymentInstrumentId = response.paymentInstrumentId;
-        console.log(`Opening Adyen with payment instrument ID: ${paymentInstrumentId}`);
-        const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${paymentInstrumentId}`;
-        window.open(adyenUrl, '_blank');
-      }
-    );
-  });
+      );
+    });
+  }
 
   // Add button to container and container to shadow DOM
   buttonContainer.appendChild(button);
