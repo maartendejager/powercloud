@@ -105,11 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Current URL:', url);
         
         // Match pattern for card URLs - match both /cards/[id]/settings and /cards/[id]
-        const cardUrlPattern = /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/settings|$)/;
+        const cardUrlPattern = /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/;
         const match = url.match(cardUrlPattern);
         console.log('URL match result:', match);
         
+        // Show or hide the card tab based on whether we're on a card page
+        const cardTab = document.getElementById('card-tab');
         if (match) {
+          cardTab.style.display = 'block';
           const customerDomain = match[1];
           const cardId = match[2];
           console.log('Extracted customer domain:', customerDomain);
@@ -128,6 +131,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Auto-switch to the card tab if we're on a card page
             switchToTab('card');
           }
+        } else {
+          cardTab.style.display = 'none';
+          // If we're not on a card page and the card tab is active, switch to tokens tab
+          if (document.getElementById('card-section').style.display !== 'none') {
+            switchToTab('tokens');
+          }
         }
       }
     });
@@ -140,12 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function switchToTab(tabId) {
     // Hide all sections
     document.getElementById('tokens-section').style.display = 'none';
-    document.getElementById('tools-section').style.display = 'none';
     document.getElementById('card-section').style.display = 'none';
     
     // Remove active class from all tabs
     document.getElementById('tokens-tab').classList.remove('active');
-    document.getElementById('tools-tab').classList.remove('active');
     document.getElementById('card-tab').classList.remove('active');
     
     // Show the selected section and activate the tab
@@ -154,8 +161,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   document.getElementById('tokens-tab').addEventListener('click', () => switchToTab('tokens'));
-  document.getElementById('tools-tab').addEventListener('click', () => switchToTab('tools'));
-  document.getElementById('card-tab').addEventListener('click', () => switchToTab('card'));
+  document.getElementById('card-tab').addEventListener('click', () => {
+    // Only allow clicking the card tab if we're on a card page
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].url) {
+        const url = tabs[0].url;
+        const cardUrlPattern = /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/;
+        const match = url.match(cardUrlPattern);
+        if (match) {
+          switchToTab('card');
+        }
+      }
+    });
+  });
   
   // Card details functionality
   document.getElementById('fetch-card-btn').addEventListener('click', () => {
