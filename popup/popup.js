@@ -5,9 +5,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const tokensList = document.getElementById('tokens-list');
     
     if (!response || !response.authTokens || response.authTokens.length === 0) {
-      tokensList.textContent = "No authentication tokens captured yet. Browse spend.cloud to capture tokens.";
+      tokensList.textContent = "No authentication tokens captured yet. Browse spend.cloud/api/ routes to capture tokens.";
       return;
     }
+    
+    // Additional filtering in case any non-API tokens are still present
+    const apiTokens = response.authTokens.filter(token => 
+      token.url && token.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//)
+    );
+    
+    if (apiTokens.length === 0) {
+      tokensList.textContent = "No API authentication tokens captured yet. Browse spend.cloud/api/ routes to capture tokens.";
+      return;
+    }
+    
+    // Use filtered tokens
+    response.authTokens = apiTokens;
     
     // Clear the loading message
     tokensList.innerHTML = '';

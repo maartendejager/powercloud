@@ -82,6 +82,12 @@ async function setToken(token, metadata = {}) {
     return;
   }
   
+  // Only accept tokens from API routes
+  if (metadata.url && !metadata.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//)) {
+    console.log('Skipping token from non-API URL:', metadata.url);
+    return;
+  }
+  
   // Get existing tokens
   let authTokens = await getAllTokens();
   
@@ -199,5 +205,6 @@ export {
   clearTokens,
   removeToken,
   getAllTokens,
-  isValidJWT
+  isValidJWT,
+  saveTokens
 };

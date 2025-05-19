@@ -67,6 +67,13 @@ function initCardFeature(match) {
 
 // Function to check for tokens in localStorage or sessionStorage
 function checkForTokensInStorage() {
+  // First, check if we're on an API page
+  const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
+  if (!isApiRoute) {
+    console.log('Not an API route, skipping token detection');
+    return;
+  }
+  
   const storageLocations = [
     { type: 'localStorage', storage: localStorage },
     { type: 'sessionStorage', storage: sessionStorage }

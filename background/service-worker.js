@@ -1,5 +1,5 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
-import { setToken, getAllTokens, getToken, isValidJWT } from '../shared/auth.js';
+import { setToken, getAllTokens, getToken, isValidJWT, saveTokens } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails } from '../shared/api.js';
 import { testApiService } from './api-test.js';
 
@@ -44,8 +44,22 @@ chrome.webRequest.onSendHeaders.addListener(
 // Initialize from storage on startup
 chrome.runtime.onInstalled.addListener(() => {
   getAllTokens().then(tokens => {
-    authTokens = tokens;
-    console.log('Auth tokens initialized:', authTokens.length);
+    // Filter out non-API tokens
+    const apiTokens = tokens.filter(token => 
+      token.url && token.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//)
+    );
+    
+    if (apiTokens.length !== tokens.length) {
+      console.log(`Filtered out ${tokens.length - apiTokens.length} non-API tokens`);
+      // Save the filtered tokens
+      saveTokens(apiTokens).then(() => {
+        authTokens = apiTokens;
+        console.log('Auth tokens initialized:', authTokens.length);
+      });
+    } else {
+      authTokens = tokens;
+      console.log('Auth tokens initialized:', authTokens.length);
+    }
   }).catch(error => {
     console.error('Error initializing tokens:', error);
   });
@@ -58,6 +72,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "foundTokensInPage") {
     // Handle tokens found by content script
     const promises = [];
+    
+    // Check if the URL is an API route
+    const isApiRoute = message.url && message.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
+    if (!isApiRoute) {
+      console.log('Skipping tokens from non-API URL:', message.url);
+      sendResponse({ status: 'Skipped non-API URL tokens' });
+      return true;
+    }
     
     message.tokens.forEach(({ token, source }) => {
       // Use shared isValidJWT function to validate the token
