@@ -195,8 +195,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Extract the necessary fields
         const bookType = bookData?.bookType;
         const adyenBalanceAccountId = bookData?.adyenBalanceAccountId;
-        const administrationId = bookData?.administrationId;
+        let administrationId = bookData?.administrationId;
         const balanceAccountReference = bookData?.balanceAccountReference;
+        
+        // Extract administration ID from relationships if available
+        // Path: data->relationships->administration->data->id
+        if (!administrationId && data?.data?.relationships?.administration?.data?.id) {
+          administrationId = data.data.relationships.administration.data.id;
+          console.log('Found administration ID in relationships:', administrationId);
+        } 
+        // Also check for other possible paths
+        else if (!administrationId && data?.relationships?.administration?.data?.id) {
+          administrationId = data.relationships.administration.data.id;
+          console.log('Found administration ID in alternative relationships path:', administrationId);
+        }
+        
+        // Log full data to help debugging
+        if (bookData?.bookType === 'monetary_account_book') {
+          console.log('Monetary account book found. Full relationships data:', 
+                      JSON.stringify(data?.data?.relationships || data?.relationships || {}));
+        }
         
         sendResponse({
           success: true,

@@ -47,9 +47,26 @@ function initBookFeature(match) {
           // Log more details for monetary_account_book type
           if (bookType === 'monetary_account_book') {
             console.log('Special book type detected: monetary_account_book');
+            
+            // Check and log administration ID from relationships
             if (administrationId) {
-              console.log(`Administration ID: ${administrationId}`);
+              console.log(`%c ADMINISTRATION ID: ${administrationId} `, 'background: #FF9800; color: white; font-size: 14px; font-weight: bold;');
+              console.log(`The administration ID for this monetary account book is: ${administrationId}`);
+              console.log(`Path to administration ID in response: data->relationships->administration->data->id`);
+              
+              // Add expanded object for easy inspection
+              console.log('Administration ID details:', {
+                id: administrationId,
+                bookId: bookId,
+                customer: customer,
+                bookType: bookType,
+                foundIn: 'data.relationships.administration.data.id',
+                timestamp: new Date().toISOString()
+              });
+            } else {
+              console.warn('No Administration ID found for this monetary_account_book');
             }
+            
             if (adyenBalanceAccountId) {
               console.log(`Balance Account ID: ${adyenBalanceAccountId}`);
               if (balanceAccountReference) {
@@ -146,7 +163,8 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
     if (administrationId) {
       const adminBadge = document.createElement('div');
       adminBadge.className = 'powercloud-admin-badge';
-      adminBadge.textContent = `Admin ID: ${administrationId}`;
+      adminBadge.textContent = `Administration ID: ${administrationId}`;
+      adminBadge.title = "The administration ID from the book's relationships";
       buttonContainer.appendChild(adminBadge);
     }
   }
