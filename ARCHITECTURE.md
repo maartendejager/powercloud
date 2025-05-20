@@ -62,17 +62,8 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 
 *   **Purpose**: Contains JavaScript modules with common logic used by different parts of the extension (e.g., background, popup).
 *   **Examples**:
-    *   `api.js`: Likely contains functions for making API calls.
-    *   `auth.js`: Likely contains functions for authentication, token handling, etc.
-    *   **Note**: There's also a `js/` directory with `api.js` and `auth.js`. It's important to clarify if these are duplicates, older versions, or serve a different purpose (e.g., `js/` for popup-specific logic and `shared/` for truly universal logic). *Self-correction: Based on the file structure, `js/` seems to be older or less organized. `shared/` is the preferred location for common modules.*
-
-### 6. Utility/Helper Scripts (`js/`)
-
-*   **Purpose**: May contain older utility scripts or scripts specific to a context not covered by `shared/`.
-*   **Files**:
-    *   `api.js`
-    *   `auth.js`
-    *   **Action**: Review and refactor these into `shared/` or a more specific location if they are still in use and provide general utility. If they are popup-specific, they might belong in the `popup/` directory or a subdirectory thereof.
+    *   `api.js`: Contains functions for making API calls.
+    *   `auth.js`: Contains functions for authentication token management.
 
 ## Communication Flow
 
@@ -109,6 +100,5 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 *   **Error Handling**: Implement robust error handling in all components.
 *   **Testing**: Consider adding unit tests for shared logic and integration tests for key features.
 *   **Code Clarity**: Ensure JSDoc comments or similar are used for all functions and modules, especially in `shared/` and `background/`.
-*   **Refactor `js/` directory**: Clarify the purpose of `js/api.js` and `js/auth.js`. If they are redundant or outdated, remove them. If they serve a specific purpose (e.g., only for the popup and not shared), consider moving them into the `popup/` directory to make their scope clearer.
 
 This document should be updated as the extension evolves.

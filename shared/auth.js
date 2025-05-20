@@ -199,6 +199,26 @@ function isValidJWT(token) {
   }
 }
 
+/**
+ * Gets the decoded payload from a JWT token
+ * @param {string} token - JWT token string
+ * @returns {Object|null} Decoded payload or null if invalid
+ */
+function getTokenPayload(token) {
+  if (!isValidJWT(token)) {
+    return null;
+  }
+  
+  try {
+    const payloadBase64 = token.split('.')[1];
+    const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch (e) {
+    console.error("Error decoding token payload:", e);
+    return null;
+  }
+}
+
 export {
   getToken,
   setToken,
@@ -206,5 +226,6 @@ export {
   removeToken,
   getAllTokens,
   isValidJWT,
-  saveTokens
+  saveTokens,
+  getTokenPayload
 };
