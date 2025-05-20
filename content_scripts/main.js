@@ -44,9 +44,10 @@ console.log('%c TESTING FEATURE SCRIPT LOADING', 'background: #9c27b0; color: wh
 // Load feature scripts immediately to ensure they're available before URL matching happens
 console.log('Attempting to load feature scripts for testing...');
 
-// Load the feature script for adyen-book.js only since adyen-card.js is loaded via manifest
+// Load the feature scripts
 Promise.all([
-  loadScript('content_scripts/features/adyen-book.js')
+  loadScript('content_scripts/features/adyen-book.js'),
+  loadScript('content_scripts/features/token-detector.js')
 ]).then(() => {
   console.log('%c ✅ Feature scripts loaded successfully!', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
   
@@ -61,6 +62,12 @@ Promise.all([
     console.log('%c ✓ window.adyenCardInit is available', 'background: #4caf50; color: white');
   } else {
     console.log('%c ✗ window.adyenCardInit is NOT available', 'background: #f44336; color: white');
+  }
+  
+  if (window.tokenDetector) {
+    console.log('%c ✓ window.tokenDetector is available', 'background: #4caf50; color: white');
+  } else {
+    console.log('%c ✗ window.tokenDetector is NOT available', 'background: #f44336; color: white');
   }
 }).catch(error => {
   console.error('Error loading feature scripts:', error);
@@ -82,6 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     console.log('%c ✗ window.adyenCardInit is NOT available after DOM load', 'background: #f44336; color: white');
   }
+  
+  if (window.tokenDetector) {
+    console.log('%c ✓ window.tokenDetector is available after DOM load', 'background: #4caf50; color: white');
+  } else {
+    console.log('%c ✗ window.tokenDetector is NOT available after DOM load', 'background: #f44336; color: white');
+  }
 });
 
 /**
@@ -95,7 +108,14 @@ const features = [
   {
     name: 'tokenDetection',
     urlPattern: /.*\.spend\.cloud.*/,  // Run on all spend.cloud pages
-    init: initTokenDetection,
+    init: function() {
+      // Use the init function from token-detector.js if available, otherwise fallback to local function
+      if (window.tokenDetector && typeof window.tokenDetector.init === 'function') {
+        return window.tokenDetector.init();
+      } else {
+        console.error('Error: tokenDetector.init function not found in token-detector.js');
+      }
+    },
     cleanup: null  // No cleanup needed
   },
   {
@@ -124,35 +144,6 @@ const features = [
   }
   // Additional features can be registered here
 ];
-
-/**
- * Initialize the token detection feature
- * Detects and reports tokens found in localStorage or sessionStorage
- */
-function initTokenDetection() {
-  // Run an initial check
-  checkForTokensInStorage();
-  
-  // Periodically check for tokens
-  setInterval(checkForTokensInStorage, 30000);
-  
-  // Set up message listener for token detection requests
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'checkPageForTokens') {
-      checkForTokensInStorage();
-      sendResponse({ status: 'Checked for tokens' });      } else if (message.action === 'updateButtonVisibility') {
-        // Handle toggling button visibility
-        const buttonHost = document.getElementById('powercloud-shadow-host');
-        if (buttonHost) {
-          buttonHost.className = message.showButtons ? 'powercloud-visible' : 'powercloud-hidden';
-        }
-        sendResponse({ status: 'Updated button visibility' });
-      }
-    return true;
-  });
-  
-  console.log('Token detection feature initialized');
-}
 
 /**
  * Initialize the card feature - uses implementation from adyen-card.js
@@ -253,74 +244,6 @@ function loadBookFeature(match) {
       }
     );
   });
-}
-
-/**
- * Check for tokens in localStorage or sessionStorage
- */
-function checkForTokensInStorage() {
-  // First, check if we're on an API page
-  const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
-  if (!isApiRoute) {
-    console.log('Not an API route, skipping token detection');
-    return;
-  }
-  
-  const storageLocations = [
-    { type: 'localStorage', storage: localStorage },
-    { type: 'sessionStorage', storage: sessionStorage }
-  ];
-  
-  let foundTokens = [];
-  
-  // Common key names for auth tokens
-  const possibleTokenKeys = [
-    'token', 
-    'authToken', 
-    'jwt', 
-    'accessToken', 
-    'auth_token', 
-    'id_token',
-    'x_authorization_token'
-  ];
-  
-  // Check each storage type
-  storageLocations.forEach(({ type, storage }) => {
-    // Try to find tokens in common key patterns
-    possibleTokenKeys.forEach(key => {
-      try {
-        // Check for exact key match
-        if (storage[key]) {
-          foundTokens.push({
-            token: storage[key],
-            source: `${type}:${key}`
-          });
-        }
-        
-        // Check for keys containing the token name
-        Object.keys(storage).forEach(storageKey => {
-          if (storageKey.toLowerCase().includes(key) && !foundTokens.some(t => t.token === storage[storageKey])) {
-            foundTokens.push({
-              token: storage[storageKey],
-              source: `${type}:${storageKey}`
-            });
-          }
-        });
-      } catch (e) {
-        // Ignore errors, could be security restrictions
-      }
-    });
-  });
-  
-  // If we found tokens, send them to the background script
-  if (foundTokens.length > 0) {
-    chrome.runtime.sendMessage({
-      action: 'foundTokensInPage',
-      tokens: foundTokens,
-      url: window.location.href,
-      timestamp: new Date().toISOString()
-    });
-  }
 }
 
 // Card feature functions are now imported from adyen-card.js
