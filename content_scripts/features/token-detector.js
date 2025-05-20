@@ -29,8 +29,6 @@ function initTokenDetection() {
     }
     return true;
   });
-  
-  console.log('Token detection feature initialized');
 }
 
 /**
@@ -40,7 +38,6 @@ function checkForTokensInStorage() {
   // First, check if we're on an API page
   const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
   if (!isApiRoute) {
-    console.log('Not an API route, skipping token detection');
     return;
   }
   

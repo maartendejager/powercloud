@@ -15,14 +15,11 @@ function loadScript(src, retries = 3, delay = 500) {
       script.src = chrome.runtime.getURL(src);
       
       script.onload = () => {
-        console.log(`Successfully loaded script: ${src.split('/').pop()}`);
         resolve();
       };
       
       script.onerror = (err) => {
-        console.error(`Error loading script: ${src}`, err);
         if (attemptsLeft > 0) {
-          console.log(`Retrying script load (${attemptsLeft} attempts left)...`);
           setTimeout(() => attemptLoad(attemptsLeft - 1), delay);
         } else {
           reject(new Error(`Failed to load script: ${src} after multiple attempts`));
@@ -38,63 +35,19 @@ function loadScript(src, retries = 3, delay = 500) {
   });
 }
 
-// Test Loading of Feature Scripts
-console.log('%c TESTING FEATURE SCRIPT LOADING', 'background: #9c27b0; color: white; font-size: 16px; font-weight: bold;');
-
 // Load feature scripts immediately to ensure they're available before URL matching happens
-console.log('Attempting to load feature scripts for testing...');
-
 // Load the feature scripts
 Promise.all([
   loadScript('content_scripts/features/adyen-book.js'),
   loadScript('content_scripts/features/token-detector.js')
-]).then(() => {
-  console.log('%c ✅ Feature scripts loaded successfully!', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
-  
-  // Debug check: see if the window functions are available
-  if (window.initBookFeature) {
-    console.log('%c ✓ window.initBookFeature is available', 'background: #4caf50; color: white');
-  } else {
-    console.log('%c ✗ window.initBookFeature is NOT available', 'background: #f44336; color: white');
-  }
-  
-  if (window.adyenCardInit) {
-    console.log('%c ✓ window.adyenCardInit is available', 'background: #4caf50; color: white');
-  } else {
-    console.log('%c ✗ window.adyenCardInit is NOT available', 'background: #f44336; color: white');
-  }
-  
-  if (window.tokenDetector) {
-    console.log('%c ✓ window.tokenDetector is available', 'background: #4caf50; color: white');
-  } else {
-    console.log('%c ✗ window.tokenDetector is NOT available', 'background: #f44336; color: white');
-  }
-}).catch(error => {
+]).catch(error => {
+  // Keep only critical errors
   console.error('Error loading feature scripts:', error);
 });
 
 // Also try loading when DOM is ready as a fallback
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM Content Loaded - Checking if feature scripts were successfully loaded');
-  
-  // Debug check: see if the window functions are available after DOM is loaded
-  if (window.initBookFeature) {
-    console.log('%c ✓ window.initBookFeature is available after DOM load', 'background: #4caf50; color: white');
-  } else {
-    console.log('%c ✗ window.initBookFeature is NOT available after DOM load', 'background: #f44336; color: white');
-  }
-  
-  if (window.adyenCardInit) {
-    console.log('%c ✓ window.adyenCardInit is available after DOM load', 'background: #4caf50; color: white');
-  } else {
-    console.log('%c ✗ window.adyenCardInit is NOT available after DOM load', 'background: #f44336; color: white');
-  }
-  
-  if (window.tokenDetector) {
-    console.log('%c ✓ window.tokenDetector is available after DOM load', 'background: #4caf50; color: white');
-  } else {
-    console.log('%c ✗ window.tokenDetector is NOT available after DOM load', 'background: #f44336; color: white');
-  }
+  // Fallback loading check is done silently
 });
 
 /**
@@ -112,8 +65,6 @@ const features = [
       // Use the init function from token-detector.js if available, otherwise fallback to local function
       if (window.tokenDetector && typeof window.tokenDetector.init === 'function') {
         return window.tokenDetector.init();
-      } else {
-        console.error('Error: tokenDetector.init function not found in token-detector.js');
       }
     },
     cleanup: null  // No cleanup needed
@@ -157,8 +108,6 @@ function initCardFeature(match) {
   // Call the implementation from adyen-card.js
   if (typeof adyenCardInit === 'function') {
     return adyenCardInit(match);
-  } else {
-    console.error('Error: adyenCardInit function not found in adyen-card.js');
   }
 }
 
@@ -168,50 +117,28 @@ function initCardFeature(match) {
  */
 function loadBookFeature(match) {
   if (!match || match.length < 3) {
-    console.error('Invalid match for book feature:', match);
     return;
   }
   
-  console.log('%c 🔍 TESTING: loadBookFeature called from main.js', 'background: #673ab7; color: white; font-size: 14px; font-weight: bold;');
-  
-  // Check for the external implementation with detailed logging
+  // Check for the external implementation
   if (typeof window.initBookFeature === 'function') {
-    console.log('%c ✅ Using external initBookFeature from adyen-book.js', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
-    
-    // Log the source of the function if possible
     try {
-      console.log('Function source check:', {
-        exists: 'Yes',
-        type: typeof window.initBookFeature,
-        stringified: window.initBookFeature.toString().substring(0, 100) + '...',
-        timestamp: new Date().toISOString()
-      });
-      
       // Call the external implementation and return to exit this function
       return window.initBookFeature(match);
     } catch (err) {
-      console.error('Error using external initBookFeature:', err);
+      // Silent fallback to local implementation
     }
   }
   
-  // If external implementation doesn't exist, use local implementation with detailed debug info
-  console.log('%c ⚠️ External initBookFeature not found, using local implementation', 'background: #ff9800; color: white; font-size: 14px; font-weight: bold;');
-  console.log('Debug info:', {
-    windowFunctions: Object.keys(window).filter(key => key.includes('init') || key.includes('Feature')),
-    timestamp: new Date().toISOString()
-  });
-  
+  // If external implementation doesn't exist, use local implementation
   const customer = match[1]; // Extract customer subdomain
   const bookId = match[2];   // Extract the actual book ID from URL
-  
-  console.log(`Found book page. Customer: ${customer}, Book ID: ${bookId}`);
   
   // Check if buttons should be shown before fetching book details
   chrome.storage.local.get('showButtons', (result) => {
     const showButtons = result.showButtons === undefined ? true : result.showButtons;
     
     if (!showButtons) {
-      console.log('Buttons are disabled. Skipping button creation.');
       return;
     }
     
@@ -229,17 +156,7 @@ function loadBookFeature(match) {
           const administrationId = response.administrationId;
           const balanceAccountReference = response.balanceAccountReference;
           
-          console.log(`Book Details: Type=${bookType}, AdministrationId=${administrationId || 'N/A'}`);
-          
-          // Log more details for monetary_account_book type
-          if (bookType === 'monetary_account_book') {
-            console.log('Special book type detected: monetary_account_book');
-          }
-          
           addAdyenBookInfoButton(customer, bookId, bookType, adyenBalanceAccountId, administrationId, balanceAccountReference);
-        } else {
-          const errorMessage = response?.error || 'Failed to fetch book details';
-          console.error(`Error fetching book details: ${errorMessage}`);
         }
       }
     );
@@ -256,7 +173,6 @@ function showCardInfoResult(message) {
   if (window.showCardInfoResult) {
     return window.showCardInfoResult(message);
   } else {
-    console.error('Error: showCardInfoResult function not found in adyen-card.js');
     // Show a basic alert as fallback
     alert(message);
   }
@@ -275,7 +191,6 @@ function showCardInfoResult(message) {
 function addAdyenBookInfoButton(customer, bookId, bookType, balanceAccountId, administrationId, balanceAccountReference) {
   // Only show button for monetary_account_book type
   if (bookType !== 'monetary_account_book') {
-    console.log(`Book type is '${bookType}', not 'monetary_account_book'. No button will be added.`);
     return;
   }
   
@@ -374,8 +289,6 @@ function removeCardInfoButton() {
   if (window.removeCardInfoButton) {
     return window.removeCardInfoButton();
   } else {
-    console.error('Error: removeCardInfoButton function not found in adyen-card.js');
-    
     // Fallback implementation if the function is not available from adyen-card.js
     const shadowHost = document.getElementById('powercloud-shadow-host');
     if (shadowHost) {

@@ -18,7 +18,6 @@ class FeatureManager {
    */
   checkPage() {
     const url = window.location.href;
-    console.log(`Checking page: ${url}`);
     
     // Clean up features if URL changed
     if (url !== this.lastUrl) {
@@ -30,7 +29,6 @@ class FeatureManager {
     this.features.forEach(feature => {
       const match = url.match(feature.urlPattern);
       if (match && !this.activeFeatures.has(feature.name)) {
-        console.log(`Initializing feature: ${feature.name}`);
         feature.init(match);
         this.activeFeatures.add(feature.name);
       }
@@ -43,7 +41,6 @@ class FeatureManager {
   cleanup() {
     this.features.forEach(feature => {
       if (this.activeFeatures.has(feature.name) && feature.cleanup) {
-        console.log(`Cleaning up feature: ${feature.name}`);
         feature.cleanup();
         this.activeFeatures.delete(feature.name);
       }
@@ -58,7 +55,6 @@ class FeatureManager {
     const urlChangeObserver = new MutationObserver(() => {
       const currentUrl = window.location.href;
       if (this.lastUrl !== currentUrl) {
-        console.log(`URL changed from ${this.lastUrl} to ${currentUrl}`);
         this.checkPage();
       }
     });
@@ -75,7 +71,6 @@ class FeatureManager {
     setInterval(() => {
       const currentUrl = window.location.href;
       if (this.lastUrl !== currentUrl) {
-        console.log(`URL change detected by interval: ${this.lastUrl} to ${currentUrl}`);
         this.checkPage();
       }
     }, 1000);
@@ -87,7 +82,6 @@ class FeatureManager {
   init() {
     this.checkPage();
     this.setupUrlChangeDetection();
-    console.log('PowerCloud feature manager initialized');
     return this; // Enable method chaining
   }
 }
