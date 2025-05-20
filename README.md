@@ -37,7 +37,6 @@ For technical details on how the extension is structured and how to add new feat
 3. The extension will automatically capture authentication tokens sent in requests
 4. View captured tokens in the popup window
 5. Click the "Copy" button to copy a token to your clipboard
-6. Use the refresh button to trigger a manual check for tokens on the current page
 
 ### Card Payment Instrument ID
 There are two ways to get a card's Adyen Payment Instrument ID:

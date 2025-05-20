@@ -106,14 +106,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     
     return true; // Keep message channel open for async response
-  } else if (message.action === "checkForTokens") {
-    // Trigger token check in active tab
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0] && tabs[0].url.includes('spend.cloud')) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'checkPageForTokens' });
-      }
-    });
-    sendResponse({ status: 'Token check initiated' });
   } else if (message.action === "fetchCardDetails") {
     // Fetch card details using the shared API module
     const { customer, cardId } = message;

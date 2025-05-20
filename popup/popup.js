@@ -119,15 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial fetch of tokens
   fetchAndDisplayTokens();
   
-  // Set up refresh button
-  document.getElementById('refresh-tokens').addEventListener('click', () => {
-    // Trigger a token check in the active tab
-    chrome.runtime.sendMessage({action: "checkForTokens"}, () => {
-      // After checking, refresh the displayed tokens
-      fetchAndDisplayTokens();
-    });
-  });
-  
   // Function to extract and pre-fill card details from the active tab URL
   function fillCardDetailsFromActiveTab() {
     console.log('Attempting to fill card details from active tab');

@@ -17,12 +17,9 @@ function initTokenDetection() {
   // Periodically check for tokens
   setInterval(checkForTokensInStorage, 30000);
   
-  // Set up message listener for token detection requests
+  // Set up message listener for button visibility
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'checkPageForTokens') {
-      checkForTokensInStorage();
-      sendResponse({ status: 'Checked for tokens' });
-    } else if (message.action === 'updateButtonVisibility') {
+    if (message.action === 'updateButtonVisibility') {
       // Handle toggling button visibility
       const buttonHost = document.getElementById('powercloud-shadow-host');
       if (buttonHost) {
