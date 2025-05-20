@@ -1,6 +1,6 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
 import { setToken, getAllTokens, getToken, isValidJWT, saveTokens } from '../shared/auth.js';
-import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails } from '../shared/api.js';
+import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails } from '../shared/api.js';
 import { testApiService } from './api-test.js';
 
 // Keep a local reference to tokens for quicker access
@@ -173,6 +173,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse(result);
       })
       .catch(error => {
+        sendResponse({
+          success: false,
+          error: error.message
+        });
+      });
+    
+    return true; // Keep message channel open for async response
+  } else if (message.action === "fetchBookDetails") {
+    // Fetch book details using the shared API module
+    const { customer, bookId } = message;
+    
+    // Get book details using our API module
+    apiGetBookDetails(customer, bookId)
+      .then(data => {
+        console.log('Book API response:', JSON.stringify(data));
+        
+        // Extract book data from the response
+        const bookData = data?.data?.attributes || data?.attributes || data;
+        
+        // Extract the necessary fields
+        const bookType = bookData?.bookType;
+        const adyenBalanceAccountId = bookData?.adyenBalanceAccountId;
+        const administrationId = bookData?.administrationId;
+        const balanceAccountReference = bookData?.balanceAccountReference;
+        
+        sendResponse({
+          success: true,
+          bookType: bookType,
+          adyenBalanceAccountId: adyenBalanceAccountId,
+          administrationId: administrationId,
+          balanceAccountReference: balanceAccountReference,
+          data: data.data || data
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching book details:', error);
         sendResponse({
           success: false,
           error: error.message

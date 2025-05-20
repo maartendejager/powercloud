@@ -130,6 +130,17 @@ async function getCardDetails(customer, cardId) {
   return get(url);
 }
 
+/**
+ * Fetches book details from the API
+ * @param {string} customer - The customer subdomain
+ * @param {string} bookId - The book ID to fetch
+ * @returns {Promise<Object>} The book details
+ */
+async function getBookDetails(customer, bookId) {
+  const url = buildApiUrl(customer, `/books/${bookId}`);
+  return get(url);
+}
+
 export { 
   makeAuthenticatedRequest, 
   get, 
@@ -137,5 +148,6 @@ export {
   put, 
   del, 
   buildApiUrl,
-  getCardDetails 
+  getCardDetails,
+  getBookDetails
 };

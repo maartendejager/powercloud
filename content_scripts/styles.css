@@ -8,6 +8,15 @@
     font-size: 14px;
     line-height: 1.4;
     color: #333;
+    background-color: transparent;
+}
+
+/* Shadow host styling */
+#powercloud-shadow-host {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
 }
 
 /* Button styling */
@@ -22,6 +31,10 @@
     transition: background-color 0.3s;
     font-family: Arial, sans-serif;
     font-size: 14px;
+    text-align: center;
+    margin-bottom: 5px;
+    display: block;
+    width: 100%;
 }
 
 .powercloud-button:hover {
@@ -31,6 +44,12 @@
 .powercloud-button:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
+}
+
+/* Button container */
+.powercloud-button-container {
+    margin: 0;
+    padding: 0;
 }
 
 /* Result container styling */
@@ -76,4 +95,52 @@
 
 .powercloud-button-close:hover {
     color: #333;
+}
+
+/* Info badge */
+.powercloud-info-badge {
+    background-color: #2196F3;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 12px;
+    text-align: center;
+    max-width: 250px;
+}
+
+/* Admin badge */
+.powercloud-admin-badge {
+    background-color: #FF9800;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 12px;
+    text-align: center;
+    max-width: 250px;
+}
+
+/* Balance account badge */
+.powercloud-balance-badge {
+    background-color: #009688;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 12px;
+    text-align: center;
+    max-width: 250px;
+}
+
+/* Monetary account badge */
+.powercloud-monetary-badge {
+    background-color: #673AB7;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 12px;
+    text-align: center;
+    max-width: 250px;
 }

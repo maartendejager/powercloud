@@ -4,6 +4,37 @@
  * and provide additional functionality
  */
 
+// Load styles for PowerCloud UI components
+function loadPowerCloudStyles() {
+  // Check if styles are already loaded
+  if (document.getElementById('powercloud-styles')) {
+    return;
+  }
+
+  // Create stylesheet link
+  const link = document.createElement('link');
+  link.id = 'powercloud-styles';
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = chrome.runtime.getURL('content_scripts/styles.css');
+  document.head.appendChild(link);
+}
+
+// Load CSS styles immediately
+loadPowerCloudStyles();
+
+// Load adyen-book.js using a script tag dynamically instead of import
+// This approach works with or without module support
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL(src);
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
 /**
  * Feature registry for different page types
  * Each entry represents a feature with:
@@ -35,6 +66,12 @@ const features = [
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: removeCardInfoButton
+  },
+  {
+    name: 'bookInfo',
+    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
+    init: loadBookFeature,
+    cleanup: removeCardInfoButton  // We can reuse the same cleanup function
   }
   // Additional features can be registered here
 ];
@@ -111,7 +148,64 @@ function initCardFeature(match) {
   });
 }
 
-// Function to check for tokens in localStorage or sessionStorage
+/**
+ * Load and initialize the book feature
+ * @param {object} match - The URL match result containing capture groups  
+ */
+function loadBookFeature(match) {
+  if (!match || match.length < 3) {
+    console.error('Invalid match for book feature:', match);
+    return;
+  }
+  
+  const customer = match[1]; // Extract customer subdomain
+  const bookId = match[2];   // Extract the actual book ID from URL
+  
+  console.log(`Found book page. Customer: ${customer}, Book ID: ${bookId}`);
+  
+  // Check if buttons should be shown before fetching book details
+  chrome.storage.local.get('showButtons', (result) => {
+    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+    
+    if (!showButtons) {
+      console.log('Buttons are disabled. Skipping button creation.');
+      return;
+    }
+    
+    // First fetch book details to determine book type before adding button
+    chrome.runtime.sendMessage(
+      { 
+        action: "fetchBookDetails", 
+        customer: customer, 
+        bookId: bookId 
+      },
+      (response) => {
+        if (response && response.success) {
+          const bookType = response.bookType;
+          const adyenBalanceAccountId = response.adyenBalanceAccountId;
+          const administrationId = response.administrationId;
+          const balanceAccountReference = response.balanceAccountReference;
+          
+          console.log(`Book Details: Type=${bookType}, AdministrationId=${administrationId || 'N/A'}`);
+          
+          // Log more details for monetary_account_book type
+          if (bookType === 'monetary_account_book') {
+            console.log('Special book type detected: monetary_account_book');
+          }
+          
+          addAdyenBookInfoButton(customer, bookId, bookType, adyenBalanceAccountId, administrationId, balanceAccountReference);
+        } else {
+          const errorMessage = response?.error || 'Failed to fetch book details';
+          console.error(`Error fetching book details: ${errorMessage}`);
+        }
+      }
+    );
+  });
+}
+
+/**
+ * Check for tokens in localStorage or sessionStorage
+ */
 function checkForTokensInStorage() {
   // First, check if we're on an API page
   const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
@@ -323,144 +417,111 @@ function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) 
   document.body.appendChild(shadowHost);
 }
 
-// Function to show the result (used for error messages)
-
-// Function to show the result
-function showCardInfoResult(message, paymentId = null) {
-  // Remove any existing result box
-  const existingHost = document.getElementById('powercloud-result-host');
-  if (existingHost) {
-    existingHost.remove();
+// Book feature functions
+/**
+ * Adds a button to view balance account at Adyen if it's a monetary_account_book
+ * @param {string} customer - The customer subdomain
+ * @param {string} bookId - The book ID
+ * @param {string} bookType - The type of book
+ * @param {string} balanceAccountId - The Adyen balance account ID if available
+ * @param {string} administrationId - The administration ID if available
+ * @param {string} balanceAccountReference - Optional reference/name for the balance account
+ */
+function addAdyenBookInfoButton(customer, bookId, bookType, balanceAccountId, administrationId, balanceAccountReference) {
+  // Only show button for monetary_account_book type
+  if (bookType !== 'monetary_account_book') {
+    console.log(`Book type is '${bookType}', not 'monetary_account_book'. No button will be added.`);
+    return;
   }
   
-  // Create a shadow DOM host element
+  // Check if button already exists
+  if (document.getElementById('powercloud-shadow-host')) {
+    return;
+  }
+
+  // Create shadow DOM host element
   const shadowHost = document.createElement('div');
-  shadowHost.id = 'powercloud-result-host';
-  shadowHost.style.position = 'fixed';
-  shadowHost.style.bottom = '80px';
-  shadowHost.style.right = '20px';
-  shadowHost.style.zIndex = '9999';
+  shadowHost.id = 'powercloud-shadow-host'; 
+  // The positioning styles are now in the CSS file
   
-  // Attach a shadow DOM tree
+  // Check if buttons should be hidden by default
+  chrome.storage.local.get('showButtons', (result) => {
+    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+    shadowHost.style.display = showButtons ? 'block' : 'none';
+  });
+  
+  // Attach a shadow DOM tree to completely isolate our styles
   const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
   
-  // Add comprehensive styles to shadow DOM
-  const style = document.createElement('style');
-  style.textContent = `
-    /* Base container style */
-    .powercloud-container {
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.4;
-      color: #333;
-      background-color: white;
-      padding: 15px;
-      border-radius: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      max-width: 350px;
-      word-break: break-all;
-      position: relative;
-      margin: 0;
-      box-sizing: border-box;
-    }
-    
-    /* Button styling */
-    .powercloud-button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      margin-top: 10px;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      text-align: center;
-      transition: background-color 0.2s;
-    }
-    
-    .powercloud-button:hover {
-      background-color: #3e8e41;
-    }
-    
-    .powercloud-button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
-    }
-    
-    /* Close button styling */
-    .powercloud-button-close {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      border: none;
-      background: none;
-      font-size: 16px;
-      cursor: pointer;
-      color: #666;
-      padding: 0;
-      margin: 0;
-      line-height: 1;
-      transition: color 0.2s;
-    }
-    
-    .powercloud-button-close:hover {
-      color: #333;
-    }
-  `;
-  shadowRoot.appendChild(style);
-  
-  // Create result box
-  const resultBox = document.createElement('div');
-  resultBox.className = 'powercloud-container';
-  resultBox.id = 'powercloud-result';
-  
-  // Add close button
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'powercloud-button-close';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.onclick = () => shadowHost.remove();
+  // Add link to our external stylesheet in shadow DOM
+  const linkElem = document.createElement('link');
+  linkElem.rel = 'stylesheet';
+  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+  shadowRoot.appendChild(linkElem);
 
-  // Add content container
-  const contentDiv = document.createElement('div');
-  contentDiv.innerHTML = message;
+  // Create button container with styling
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'powercloud-container powercloud-button-container';
+  buttonContainer.id = 'powercloud-button-container';
+
+  // Create the button
+  const button = document.createElement('button');
+  button.id = 'powercloud-book-info-btn';
+  button.className = 'powercloud-button';
   
-  // Add copy button if payment ID is provided and valid
-  let copyBtn = null;
-  if (paymentId && paymentId !== 'Not found') {
-    copyBtn = document.createElement('button');
-    copyBtn.className = 'powercloud-button';
-    copyBtn.innerHTML = 'Copy Adyen ID';
-    copyBtn.onclick = () => {
-      navigator.clipboard.writeText(paymentId).then(() => {
-        copyBtn.innerHTML = 'Copied!';
-        setTimeout(() => {
-          copyBtn.innerHTML = 'Copy Adyen ID';
-        }, 1500);
-      });
-    };
+  // Set button text to "Monetary Account Book"
+  button.innerHTML = 'Monetary Account Book';
+  
+  // If we have administration ID, display it
+  if (administrationId) {
+    const adminBadge = document.createElement('div');
+    adminBadge.className = 'powercloud-admin-badge';
+    adminBadge.textContent = `Admin ID: ${administrationId}`;
+    buttonContainer.appendChild(adminBadge);
   }
   
-  // Add message and buttons to result box
-  resultBox.appendChild(closeBtn);
-  resultBox.appendChild(contentDiv);
-  if (copyBtn) {
-    resultBox.appendChild(copyBtn);
-  }
-  
-  // Add to shadow root and then to page
-  shadowRoot.appendChild(resultBox);
-  document.body.appendChild(shadowHost);
-  
-  // Auto-dismiss after 15 seconds
-  setTimeout(() => {
-    if (document.body.contains(shadowHost)) {
-      shadowHost.remove();
+  // Set button state based on balance account availability
+  if (balanceAccountId) {
+    // Create badge for balance account reference if available
+    if (balanceAccountReference) {
+      const refBadge = document.createElement('div');
+      refBadge.className = 'powercloud-balance-badge';
+      refBadge.textContent = `Balance Account: ${balanceAccountReference}`;
+      buttonContainer.appendChild(refBadge);
     }
-  }, 15000);
+    
+    button.disabled = false;
+    button.title = `View balance account details at Adyen`;
+    
+    // Add click event to open Adyen balance account page
+    button.addEventListener('click', () => {
+      const originalText = button.innerHTML;
+      button.innerHTML = '⏳ Loading...';
+      button.disabled = true;
+      
+      // Open Adyen directly in a new tab
+      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${balanceAccountId}`;
+      window.open(adyenUrl, '_blank');
+      
+      // Restore button text
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+      }, 1500);
+    });
+  } else {
+    button.disabled = true;
+    button.title = `This monetary account book doesn't have a linked Adyen balance account`;
+  }
+
+  // Add button to container and container to shadow DOM
+  buttonContainer.appendChild(button);
+  shadowRoot.appendChild(buttonContainer);
+  
+  // Add shadow host to the page
+  document.body.appendChild(shadowHost);
 }
 
-// Function to remove the card info button if it exists
 function removeCardInfoButton() {
   // Remove the shadow host for the button
   const shadowHost = document.getElementById('powercloud-shadow-host');
