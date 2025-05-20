@@ -91,7 +91,13 @@ const features = [
     name: 'bookInfo',
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
     init: loadBookFeature,
-    cleanup: removeCardInfoButton  // We can reuse the same cleanup function
+    cleanup: function() {
+      // Use the book-specific cleanup function if available, otherwise fall back to the card cleanup
+      if (window.removeBookInfoButton) {
+        return window.removeBookInfoButton();
+      }
+      return removeCardInfoButton();
+    }
   }
   // Additional features can be registered here
 ];
@@ -116,51 +122,14 @@ function initCardFeature(match) {
  * @param {object} match - The URL match result containing capture groups  
  */
 function loadBookFeature(match) {
-  if (!match || match.length < 3) {
-    return;
-  }
-  
-  // Check for the external implementation
+  // Directly use the implementation from adyen-book.js
   if (typeof window.initBookFeature === 'function') {
-    try {
-      // Call the external implementation and return to exit this function
-      return window.initBookFeature(match);
-    } catch (err) {
-      // Silent fallback to local implementation
-    }
+    return window.initBookFeature(match);
   }
   
-  // If external implementation doesn't exist, use local implementation
-  const customer = match[1]; // Extract customer subdomain
-  const bookId = match[2];   // Extract the actual book ID from URL
-  
-  // Check if buttons should be shown before fetching book details
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    
-    if (!showButtons) {
-      return;
-    }
-    
-    // First fetch book details to determine book type before adding button
-    chrome.runtime.sendMessage(
-      { 
-        action: "fetchBookDetails", 
-        customer: customer, 
-        bookId: bookId 
-      },
-      (response) => {
-        if (response && response.success) {
-          const bookType = response.bookType;
-          const adyenBalanceAccountId = response.adyenBalanceAccountId;
-          const administrationId = response.administrationId;
-          const balanceAccountReference = response.balanceAccountReference;
-          
-          addAdyenBookInfoButton(customer, bookId, bookType, adyenBalanceAccountId, administrationId, balanceAccountReference);
-        }
-      }
-    );
-  });
+  // If for some reason the external implementation is not available,
+  // log an error but don't try to use a local implementation
+  console.error('Book feature implementation not found');
 }
 
 // Card feature functions are now imported from adyen-card.js
@@ -178,112 +147,11 @@ function showCardInfoResult(message) {
   }
 }
 
-// Book feature functions
-/**
- * Adds a button to view balance account at Adyen if it's a monetary_account_book
- * @param {string} customer - The customer subdomain
- * @param {string} bookId - The book ID
- * @param {string} bookType - The type of book
- * @param {string} balanceAccountId - The Adyen balance account ID if available
- * @param {string} administrationId - The administration ID if available
- * @param {string} balanceAccountReference - Optional reference/name for the balance account
- */
-function addAdyenBookInfoButton(customer, bookId, bookType, balanceAccountId, administrationId, balanceAccountReference) {
-  // Only show button for monetary_account_book type
-  if (bookType !== 'monetary_account_book') {
-    return;
-  }
-  
-  // Check if button already exists
-  if (document.getElementById('powercloud-shadow-host')) {
-    return;
-  }
-
-  // Create shadow DOM host element
-  const shadowHost = document.createElement('div');
-  shadowHost.id = 'powercloud-shadow-host'; 
-  // The positioning styles are now in the CSS file
-  
-  // Check if buttons should be hidden by default
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
-  });
-  
-  // Attach a shadow DOM tree to completely isolate our styles
-  const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
-  
-  // Add link to our external stylesheet in shadow DOM
-  const linkElem = document.createElement('link');
-  linkElem.rel = 'stylesheet';
-  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
-  shadowRoot.appendChild(linkElem);
-
-  // Create button container with styling
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'powercloud-container powercloud-button-container';
-  buttonContainer.id = 'powercloud-button-container';
-
-  // Create the button
-  const button = document.createElement('button');
-  button.id = 'powercloud-book-info-btn';
-  button.className = 'powercloud-button';
-  
-  // Set button text to "Monetary Account Book"
-  button.innerHTML = 'Monetary Account Book';
-  
-  // If we have administration ID, display it
-  if (administrationId) {
-    const adminBadge = document.createElement('div');
-    adminBadge.className = 'powercloud-admin-badge';
-    adminBadge.textContent = `Admin ID: ${administrationId}`;
-    buttonContainer.appendChild(adminBadge);
-  }
-  
-  // Set button state based on balance account availability
-  if (balanceAccountId) {
-    // Create badge for balance account reference if available
-    if (balanceAccountReference) {
-      const refBadge = document.createElement('div');
-      refBadge.className = 'powercloud-balance-badge';
-      refBadge.textContent = `Balance Account: ${balanceAccountReference}`;
-      buttonContainer.appendChild(refBadge);
-    }
-    
-    button.disabled = false;
-    button.title = `View balance account details at Adyen`;
-    
-    // Add click event to open Adyen balance account page
-    button.addEventListener('click', () => {
-      const originalText = button.innerHTML;
-      button.innerHTML = '⏳ Loading...';
-      button.disabled = true;
-      
-      // Open Adyen directly in a new tab
-      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${balanceAccountId}`;
-      window.open(adyenUrl, '_blank');
-      
-      // Restore button text
-      setTimeout(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-      }, 1500);
-    });
-  } else {
-    button.disabled = true;
-    button.title = `This monetary account book doesn't have a linked Adyen balance account`;
-  }
-
-  // Add button to container and container to shadow DOM
-  buttonContainer.appendChild(button);
-  shadowRoot.appendChild(buttonContainer);
-  
-  // Add shadow host to the page
-  document.body.appendChild(shadowHost);
-}
+// Book feature functions are now imported from adyen-book.js
 
 /**
- * Remove card info button - uses implementation from adyen-card.js
+ * Remove UI elements - uses implementation from adyen-card.js
+ * This function is used as cleanup for both card and book features
  */
 function removeCardInfoButton() {
   if (window.removeCardInfoButton) {

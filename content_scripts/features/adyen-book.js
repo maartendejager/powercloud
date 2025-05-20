@@ -246,6 +246,22 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
   document.body.appendChild(shadowHost);
 }
 
-// Make the initBookFeature function available globally
+/**
+ * Remove book info button and related UI elements
+ */
+function removeBookInfoButton() {
+  const shadowHost = document.getElementById('powercloud-shadow-host');
+  if (shadowHost) {
+    shadowHost.remove();
+  }
+  
+  const resultHost = document.getElementById('powercloud-result-host');
+  if (resultHost) {
+    resultHost.remove();
+  }
+}
+
+// Make the functions available globally
 // This approach works even when ES modules aren't available
 window.initBookFeature = initBookFeature;
+window.removeBookInfoButton = removeBookInfoButton;
