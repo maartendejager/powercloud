@@ -320,3 +320,8 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
 // Make the initBookFeature function available globally
 // This approach works even when ES modules aren't available
 window.initBookFeature = initBookFeature;
+
+// Add detailed test logs to check if and when this file is loaded
+console.log('%c 🔍 ADYEN-BOOK.JS TEST: This file has been loaded!', 'background: #ff5722; color: white; font-size: 14px; font-weight: bold;');
+console.log('📝 ADYEN-BOOK.JS: window.initBookFeature is ' + (typeof window.initBookFeature === 'function' ? 'DEFINED' : 'UNDEFINED'));
+console.log('📌 ADYEN-BOOK.JS: Script loaded at ' + new Date().toISOString());

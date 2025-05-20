@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.spend.cloud/*"],
-      "js": ["content_scripts/main.js"]
+      "js": ["content_scripts/main.js", "content_scripts/features/adyen-card.js", "content_scripts/features/adyen-book.js"]
     }
   ],
   "web_accessible_resources": [

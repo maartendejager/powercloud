@@ -25,15 +25,76 @@ loadPowerCloudStyles();
 
 // Load adyen-book.js using a script tag dynamically instead of import
 // This approach works with or without module support
-function loadScript(src) {
+function loadScript(src, retries = 3, delay = 500) {
   return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL(src);
-    script.onload = resolve;
-    script.onerror = reject;
-    document.head.appendChild(script);
+    const attemptLoad = (attemptsLeft) => {
+      const script = document.createElement('script');
+      script.src = chrome.runtime.getURL(src);
+      
+      script.onload = () => {
+        console.log(`Successfully loaded script: ${src.split('/').pop()}`);
+        resolve();
+      };
+      
+      script.onerror = (err) => {
+        console.error(`Error loading script: ${src}`, err);
+        if (attemptsLeft > 0) {
+          console.log(`Retrying script load (${attemptsLeft} attempts left)...`);
+          setTimeout(() => attemptLoad(attemptsLeft - 1), delay);
+        } else {
+          reject(new Error(`Failed to load script: ${src} after multiple attempts`));
+        }
+      };
+      
+      // Add to document
+      document.head.appendChild(script);
+    };
+    
+    // Start loading with specified number of retries
+    attemptLoad(retries);
   });
 }
+
+// Test Loading of Feature Scripts
+console.log('%c TESTING FEATURE SCRIPT LOADING', 'background: #9c27b0; color: white; font-size: 16px; font-weight: bold;');
+
+// Load feature scripts immediately to ensure they're available before URL matching happens
+console.log('Attempting to load feature scripts for testing...');
+
+// Load the feature scripts with correct paths
+Promise.all([
+  loadScript(chrome.runtime.getURL('content_scripts/features/adyen-card.js')),
+  loadScript(chrome.runtime.getURL('content_scripts/features/adyen-book.js'))
+]).then(() => {
+  console.log('%c ✅ Feature scripts loaded successfully!', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
+  
+  // Debug check: see if the window functions are available
+  if (window.initBookFeature) {
+    console.log('%c ✓ window.initBookFeature is available', 'background: #4caf50; color: white');
+  } else {
+    console.log('%c ✗ window.initBookFeature is NOT available', 'background: #f44336; color: white');
+  }
+  
+  if (window.initCardFeature) {
+    console.log('%c ✓ window.initCardFeature is available', 'background: #4caf50; color: white');
+  } else {
+    console.log('%c ✗ window.initCardFeature is NOT available', 'background: #f44336; color: white');
+  }
+}).catch(error => {
+  console.error('Error loading feature scripts:', error);
+});
+
+// Also try loading when DOM is ready as a fallback
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM Content Loaded - Checking if feature scripts were successfully loaded');
+  
+  // Debug check: see if the window functions are available after DOM is loaded
+  if (window.initBookFeature) {
+    console.log('%c ✓ window.initBookFeature is available after DOM load', 'background: #4caf50; color: white');
+  } else {
+    console.log('%c ✗ window.initBookFeature is NOT available after DOM load', 'background: #f44336; color: white');
+  }
+});
 
 /**
  * Feature registry for different page types
@@ -156,6 +217,35 @@ function loadBookFeature(match) {
     console.error('Invalid match for book feature:', match);
     return;
   }
+  
+  console.log('%c 🔍 TESTING: loadBookFeature called from main.js', 'background: #673ab7; color: white; font-size: 14px; font-weight: bold;');
+  
+  // Check for the external implementation with detailed logging
+  if (typeof window.initBookFeature === 'function') {
+    console.log('%c ✅ Using external initBookFeature from adyen-book.js', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
+    
+    // Log the source of the function if possible
+    try {
+      console.log('Function source check:', {
+        exists: 'Yes',
+        type: typeof window.initBookFeature,
+        stringified: window.initBookFeature.toString().substring(0, 100) + '...',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Call the external implementation and return to exit this function
+      return window.initBookFeature(match);
+    } catch (err) {
+      console.error('Error using external initBookFeature:', err);
+    }
+  }
+  
+  // If external implementation doesn't exist, use local implementation with detailed debug info
+  console.log('%c ⚠️ External initBookFeature not found, using local implementation', 'background: #ff9800; color: white; font-size: 14px; font-weight: bold;');
+  console.log('Debug info:', {
+    windowFunctions: Object.keys(window).filter(key => key.includes('init') || key.includes('Feature')),
+    timestamp: new Date().toISOString()
+  });
   
   const customer = match[1]; // Extract customer subdomain
   const bookId = match[2];   // Extract the actual book ID from URL

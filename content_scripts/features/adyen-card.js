@@ -181,3 +181,9 @@ function removeCardInfoButton() {
 // Make functions available globally for main.js
 window.initCardFeature = initCardFeature;
 window.removeCardInfoButton = removeCardInfoButton;
+
+// Add detailed test logs to check if and when this file is loaded
+console.log('%c 🔍 ADYEN-CARD.JS TEST: This file has been loaded!', 'background: #2196f3; color: white; font-size: 14px; font-weight: bold;');
+console.log('📝 ADYEN-CARD.JS: window.initCardFeature is ' + (typeof window.initCardFeature === 'function' ? 'DEFINED' : 'UNDEFINED'));
+console.log('📝 ADYEN-CARD.JS: window.removeCardInfoButton is ' + (typeof window.removeCardInfoButton === 'function' ? 'DEFINED' : 'UNDEFINED'));
+console.log('📌 ADYEN-CARD.JS: Script loaded at ' + new Date().toISOString());
