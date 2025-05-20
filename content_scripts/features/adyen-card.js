@@ -18,14 +18,11 @@ function initCardFeature(match) {
   const customer = match[1]; // Extract customer subdomain
   const cardId = match[2];   // Extract the actual card ID from URL
 
-  console.log(`Found card page. Customer: ${customer}, Card ID: ${cardId}`);
-
   // Check if buttons should be shown before fetching card details
   chrome.storage.local.get('showButtons', (result) => {
     const showButtons = result.showButtons === undefined ? true : result.showButtons;
 
     if (!showButtons) {
-      console.log('Buttons are disabled. Skipping button creation.');
       return;
     }
 
@@ -114,8 +111,6 @@ function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) 
       button.innerHTML = '⏳ Loading...';
       button.disabled = true;
 
-      console.log(`Fetching card details for customer: ${customer}, cardId: ${cardId}`);
-
       // Get card details and navigate directly to Adyen
       chrome.runtime.sendMessage(
         {
@@ -127,23 +122,18 @@ function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) 
           button.innerHTML = originalText;
           button.disabled = false;
 
-          console.log('Card details response:', response);
-
           if (!response || !response.success) {
-            console.error(`Error: ${response?.error || 'Failed to fetch card details'}`);
             showCardInfoResult(`Error: ${response?.error || 'Failed to fetch card details'}`);
             return;
           }
 
           if (!response.paymentInstrumentId) {
-            console.warn('No Adyen Payment Instrument ID found for this card.');
             showCardInfoResult('No Adyen Payment Instrument ID found for this card. This card may not be linked to an Adyen account yet.');
             return;
           }
 
           // Open Adyen directly in a new tab
           const paymentInstrumentId = response.paymentInstrumentId;
-          console.log(`Opening Adyen with payment instrument ID: ${paymentInstrumentId}`);
           const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${paymentInstrumentId}`;
           window.open(adyenUrl, '_blank');
         }
@@ -239,10 +229,3 @@ function showCardInfoResult(message) {
 window.adyenCardInit = initCardFeature; // Use a unique name to avoid recursion
 window.removeCardInfoButton = removeCardInfoButton;
 window.showCardInfoResult = showCardInfoResult;
-
-// Add detailed test logs to check if and when this file is loaded
-console.log('%c 🔍 ADYEN-CARD.JS TEST: This file has been loaded!', 'background: #2196f3; color: white; font-size: 14px; font-weight: bold;');
-console.log('📝 ADYEN-CARD.JS: window.adyenCardInit is ' + (typeof window.adyenCardInit === 'function' ? 'DEFINED' : 'UNDEFINED'));
-console.log('📝 ADYEN-CARD.JS: window.removeCardInfoButton is ' + (typeof window.removeCardInfoButton === 'function' ? 'DEFINED' : 'UNDEFINED'));
-console.log('📝 ADYEN-CARD.JS: window.showCardInfoResult is ' + (typeof window.showCardInfoResult === 'function' ? 'DEFINED' : 'UNDEFINED'));
-console.log('📌 ADYEN-CARD.JS: Script loaded at ' + new Date().toISOString());
