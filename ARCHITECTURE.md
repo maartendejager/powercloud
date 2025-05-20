@@ -37,7 +37,7 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
         *   Loads feature-specific modules from `content_scripts/features/`.
         *   Communicates with the background service worker (`chrome.runtime.sendMessage`).
         *   Manipulates the DOM of the web page to add UI elements or extract information.
-        *   Loads shared styles from `content_scripts/styles.css`.
+        *   Uses the styles defined in `content_scripts/styles.css`, which are loaded automatically via the manifest.
 
 *   **Feature Scripts (`content_scripts/features/*.js`)**:
     *   **Purpose**: Implement specific functionalities on certain pages.

@@ -2,26 +2,9 @@
  * PowerCloud Content Script
  * Runs on spend.cloud pages to capture authentication tokens
  * and provide additional functionality
+ *
+ * Note: CSS is loaded via the manifest.json content_scripts configuration
  */
-
-// Load styles for PowerCloud UI components
-function loadPowerCloudStyles() {
-  // Check if styles are already loaded
-  if (document.getElementById('powercloud-styles')) {
-    return;
-  }
-
-  // Create stylesheet link
-  const link = document.createElement('link');
-  link.id = 'powercloud-styles';
-  link.rel = 'stylesheet';
-  link.type = 'text/css';
-  link.href = chrome.runtime.getURL('content_scripts/styles.css');
-  document.head.appendChild(link);
-}
-
-// Load CSS styles immediately
-loadPowerCloudStyles();
 
 // Load adyen-book.js using a script tag dynamically instead of import
 // This approach works with or without module support

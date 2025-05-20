@@ -2,6 +2,8 @@
 
 A Chrome extension that provides extra functionality for developers working with the spend.cloud platform. This extension captures and displays authentication tokens to assist with troubleshooting and development tasks.
 
+For technical details on how the extension is structured and how to add new features, please see [ARCHITECTURE.md](./ARCHITECTURE.md).
+
 ## Features
 
 - **Authentication Token Capture**: Automatically captures JWT tokens sent in requests to spend.cloud domains
