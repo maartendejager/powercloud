@@ -63,7 +63,7 @@ console.log('Attempting to load feature scripts for testing...');
 
 // Load the feature script for adyen-book.js only since adyen-card.js is loaded via manifest
 Promise.all([
-  loadScript(chrome.runtime.getURL('content_scripts/features/adyen-book.js'))
+  loadScript('content_scripts/features/adyen-book.js')
 ]).then(() => {
   console.log('%c ✅ Feature scripts loaded successfully!', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
   
@@ -92,6 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('%c ✓ window.initBookFeature is available after DOM load', 'background: #4caf50; color: white');
   } else {
     console.log('%c ✗ window.initBookFeature is NOT available after DOM load', 'background: #f44336; color: white');
+  }
+  
+  if (window.adyenCardInit) {
+    console.log('%c ✓ window.adyenCardInit is available after DOM load', 'background: #4caf50; color: white');
+  } else {
+    console.log('%c ✗ window.adyenCardInit is NOT available after DOM load', 'background: #f44336; color: white');
   }
 });
 

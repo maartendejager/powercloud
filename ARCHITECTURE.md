@@ -45,7 +45,11 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
         *   `adyen-book.js`: Adds functionality related to Adyen booking on specific book pages.
         *   `adyen-card.js`: Adds functionality related to Adyen card details on card settings pages.
         *   `token-detector.js`: Likely involved in detecting and extracting JWT tokens from the page or network requests.
-    *   **Loading**: Dynamically loaded by `content_scripts/main.js` based on the current page URL or content.
+    *   **Loading**: 
+        *   Scripts can be loaded in two ways:
+            1. Via manifest declaration (like `adyen-card.js`) - specified in the `content_scripts` section of manifest.json, loaded before main.js executes.
+            2. Dynamically loaded by `content_scripts/main.js` using the `loadScript()` function (like `adyen-book.js`).
+        *   To avoid naming conflicts, feature scripts should use unique global function names (e.g., `adyenCardInit` instead of `initCardFeature`).
 
 ### 4. Popup (`popup/`)
 
@@ -126,19 +130,20 @@ There are two ways to load feature scripts in this extension:
   {
     "matches": ["*://*.spend.cloud/*"],
     "js": [
-      "content_scripts/main.js",
-      "content_scripts/features/your-new-feature.js"
+      "content_scripts/features/adyen-card.js",
+      "content_scripts/features/adyen-book.js",
+      "content_scripts/main.js"
     ]
   }
 ]
 ```
 
-2. Ensure your feature script exports necessary functions by attaching them to the `window` object:
+2. Ensure your feature script exports necessary functions by attaching them to the `window` object with unique names:
 
 ```javascript
-// Make functions available globally
-window.yourFeatureInitFunction = yourFeatureInitFunction;
-window.yourFeatureCleanupFunction = yourFeatureCleanupFunction;
+// Use a unique name to avoid collisions with functions in main.js
+window.yourFeatureInit = yourFeatureInitFunction;
+window.yourFeatureCleanup = yourFeatureCleanupFunction;
 ```
 
 3. Register your feature in the `features` array in `main.js`:
@@ -149,8 +154,8 @@ const features = [
   {
     name: 'yourFeature',
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/your-feature-pattern/,
-    init: window.yourFeatureInitFunction,
-    cleanup: window.yourFeatureCleanupFunction
+    init: yourFeatureInitFunction,
+    cleanup: yourFeatureCleanupFunction
   }
 ];
 ```
