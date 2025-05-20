@@ -61,9 +61,8 @@ console.log('%c TESTING FEATURE SCRIPT LOADING', 'background: #9c27b0; color: wh
 // Load feature scripts immediately to ensure they're available before URL matching happens
 console.log('Attempting to load feature scripts for testing...');
 
-// Load the feature scripts with correct paths
+// Load the feature script for adyen-book.js only since adyen-card.js is loaded via manifest
 Promise.all([
-  loadScript(chrome.runtime.getURL('content_scripts/features/adyen-card.js')),
   loadScript(chrome.runtime.getURL('content_scripts/features/adyen-book.js'))
 ]).then(() => {
   console.log('%c ✅ Feature scripts loaded successfully!', 'background: #4caf50; color: white; font-size: 14px; font-weight: bold;');
@@ -75,10 +74,10 @@ Promise.all([
     console.log('%c ✗ window.initBookFeature is NOT available', 'background: #f44336; color: white');
   }
   
-  if (window.initCardFeature) {
-    console.log('%c ✓ window.initCardFeature is available', 'background: #4caf50; color: white');
+  if (window.adyenCardInit) {
+    console.log('%c ✓ window.adyenCardInit is available', 'background: #4caf50; color: white');
   } else {
-    console.log('%c ✗ window.initCardFeature is NOT available', 'background: #f44336; color: white');
+    console.log('%c ✗ window.adyenCardInit is NOT available', 'background: #f44336; color: white');
   }
 }).catch(error => {
   console.error('Error loading feature scripts:', error);
@@ -167,45 +166,20 @@ function initTokenDetection() {
 }
 
 /**
- * Initialize the card feature
+ * Initialize the card feature - uses implementation from adyen-card.js
  * Adds functionality specific to card pages
  * @param {object} match - The URL match result containing capture groups
  */
 function initCardFeature(match) {
-  if (!match || match.length < 3) return;
+  // Store the external reference using a different name to avoid recursion
+  const adyenCardInit = window.adyenCardInit;
   
-  const customer = match[1]; // Extract customer subdomain
-  const cardId = match[2];   // Extract the actual card ID from URL
-  
-  console.log(`Found card page. Customer: ${customer}, Card ID: ${cardId}`);
-  
-  // Check if buttons should be shown before fetching card details
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    
-    if (!showButtons) {
-      console.log('Buttons are disabled. Skipping button creation.');
-      return;
-    }
-    
-    // First fetch card details to determine vendor before adding button
-    chrome.runtime.sendMessage(
-      { 
-        action: "fetchCardDetails", 
-        customer: customer, 
-        cardId: cardId 
-      },
-      (response) => {
-        if (response && response.success) {
-          const isAdyenCard = response.vendor === 'adyen';
-          addCardInfoButton(customer, cardId, isAdyenCard, response.vendor);
-        } else {
-          // If we can't determine vendor, add button with default behavior
-          addCardInfoButton(customer, cardId, true);
-        }
-      }
-    );
-  });
+  // Call the implementation from adyen-card.js
+  if (typeof adyenCardInit === 'function') {
+    return adyenCardInit(match);
+  } else {
+    console.error('Error: adyenCardInit function not found in adyen-card.js');
+  }
 }
 
 /**
@@ -360,106 +334,20 @@ function checkForTokensInStorage() {
   }
 }
 
-// Card feature functions
-function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) {
-  // Check if button already exists
-  if (document.getElementById('powercloud-shadow-host')) {
-    return;
-  }
+// Card feature functions are now imported from adyen-card.js
 
-  // Create shadow DOM host element
-  const shadowHost = document.createElement('div');
-  shadowHost.id = 'powercloud-shadow-host'; 
-  
-  // Check if buttons should be hidden by default
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
-  });
-  
-  // Attach a shadow DOM tree to completely isolate our styles
-  const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
-  
-  // Add external stylesheet to shadow DOM
-  const linkElem = document.createElement('link');
-  linkElem.rel = 'stylesheet';
-  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
-  shadowRoot.appendChild(linkElem);
-
-  // Create button container with styling
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'powercloud-container powercloud-button-container';
-  buttonContainer.id = 'powercloud-button-container';
-
-  // Create the button
-  const button = document.createElement('button');
-  button.id = 'powercloud-card-info-btn';
-  button.className = 'powercloud-button';
-  
-  // Set button text and state based on vendor
-  if (isAdyenCard) {
-    button.innerHTML = '🔍 View Card at Adyen';
-    button.disabled = false;
+/**
+ * Shows a result message for card info operations - uses implementation from adyen-card.js
+ * @param {string} message - The message to display 
+ */
+function showCardInfoResult(message) {
+  if (window.showCardInfoResult) {
+    return window.showCardInfoResult(message);
   } else {
-    button.innerHTML = '⚠️ Non Adyen Card';
-    button.disabled = true;
-    
-    // Show more info if we know the vendor
-    if (vendor) {
-      button.title = `This card is issued by ${vendor}, not Adyen`;
-    } else {
-      button.title = 'This card is not issued by Adyen';
-    }
+    console.error('Error: showCardInfoResult function not found in adyen-card.js');
+    // Show a basic alert as fallback
+    alert(message);
   }
-
-  // Add click event only if it's an Adyen card
-  if (isAdyenCard) {
-    button.addEventListener('click', () => {
-      const originalText = button.innerHTML;
-      button.innerHTML = '⏳ Loading...';
-      button.disabled = true;
-      
-      console.log(`Fetching card details for customer: ${customer}, cardId: ${cardId}`);
-      
-      // Get card details and navigate directly to Adyen
-      chrome.runtime.sendMessage(
-        { 
-          action: "fetchCardDetails", 
-          customer: customer, 
-          cardId: cardId 
-        }, 
-        (response) => {
-          button.innerHTML = originalText;
-          button.disabled = false;
-          
-          console.log('Card details response:', response);
-          
-          if (!response || !response.success) {
-            showCardInfoResult(`Error: ${response?.error || 'Failed to fetch card details'}`);
-            return;
-          }
-          
-          if (!response.paymentInstrumentId) {
-            showCardInfoResult('No Adyen Payment Instrument ID found for this card. This card may not be linked to an Adyen account yet.');
-            return;
-          }
-          
-          // Open Adyen directly in a new tab
-          const paymentInstrumentId = response.paymentInstrumentId;
-          console.log(`Opening Adyen with payment instrument ID: ${paymentInstrumentId}`);
-          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${paymentInstrumentId}`;
-          window.open(adyenUrl, '_blank');
-        }
-      );
-    });
-  }
-
-  // Add button to container and container to shadow DOM
-  buttonContainer.appendChild(button);
-  shadowRoot.appendChild(buttonContainer);
-  
-  // Add shadow host to the page
-  document.body.appendChild(shadowHost);
 }
 
 // Book feature functions
@@ -567,17 +455,25 @@ function addAdyenBookInfoButton(customer, bookId, bookType, balanceAccountId, ad
   document.body.appendChild(shadowHost);
 }
 
+/**
+ * Remove card info button - uses implementation from adyen-card.js
+ */
 function removeCardInfoButton() {
-  // Remove the shadow host for the button
-  const shadowHost = document.getElementById('powercloud-shadow-host');
-  if (shadowHost) {
-    shadowHost.remove();
-  }
-  
-  // Also remove any result shadow host that might be showing
-  const resultHost = document.getElementById('powercloud-result-host');
-  if (resultHost) {
-    resultHost.remove();
+  if (window.removeCardInfoButton) {
+    return window.removeCardInfoButton();
+  } else {
+    console.error('Error: removeCardInfoButton function not found in adyen-card.js');
+    
+    // Fallback implementation if the function is not available from adyen-card.js
+    const shadowHost = document.getElementById('powercloud-shadow-host');
+    if (shadowHost) {
+      shadowHost.remove();
+    }
+    
+    const resultHost = document.getElementById('powercloud-result-host');
+    if (resultHost) {
+      resultHost.remove();
+    }
   }
 }
 

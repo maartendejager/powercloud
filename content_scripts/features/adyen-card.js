@@ -130,16 +130,14 @@ function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) 
           console.log('Card details response:', response);
 
           if (!response || !response.success) {
-            // It's better to have a dedicated function in main.js or a shared UI module
-            // to show messages, but for now, we'll log to console.
             console.error(`Error: ${response?.error || 'Failed to fetch card details'}`);
-            alert(`Error: ${response?.error || 'Failed to fetch card details'}`);
+            showCardInfoResult(`Error: ${response?.error || 'Failed to fetch card details'}`);
             return;
           }
 
           if (!response.paymentInstrumentId) {
             console.warn('No Adyen Payment Instrument ID found for this card.');
-            alert('No Adyen Payment Instrument ID found for this card. This card may not be linked to an Adyen account yet.');
+            showCardInfoResult('No Adyen Payment Instrument ID found for this card. This card may not be linked to an Adyen account yet.');
             return;
           }
 
@@ -182,8 +180,69 @@ function removeCardInfoButton() {
 window.initCardFeature = initCardFeature;
 window.removeCardInfoButton = removeCardInfoButton;
 
+/**
+ * Shows a result message for card info operations
+ * @param {string} message - The message to display
+ */
+function showCardInfoResult(message) {
+  // Check if result display already exists
+  const existingResult = document.getElementById('powercloud-result-host');
+  if (existingResult) {
+    existingResult.remove();
+  }
+
+  // Create shadow DOM host for result
+  const resultHost = document.createElement('div');
+  resultHost.id = 'powercloud-result-host';
+  
+  // Attach a shadow DOM tree
+  const shadowRoot = resultHost.attachShadow({ mode: 'closed' });
+  
+  // Add link to our external stylesheet in shadow DOM
+  const linkElem = document.createElement('link');
+  linkElem.rel = 'stylesheet';
+  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+  shadowRoot.appendChild(linkElem);
+  
+  // Create result container
+  const resultContainer = document.createElement('div');
+  resultContainer.className = 'powercloud-result-container';
+  
+  // Add message
+  const messageElem = document.createElement('div');
+  messageElem.className = 'powercloud-result-message';
+  messageElem.textContent = message;
+  resultContainer.appendChild(messageElem);
+  
+  // Add close button
+  const closeButton = document.createElement('button');
+  closeButton.className = 'powercloud-result-close';
+  closeButton.textContent = '×';
+  closeButton.addEventListener('click', () => resultHost.remove());
+  resultContainer.appendChild(closeButton);
+  
+  // Add container to shadow DOM
+  shadowRoot.appendChild(resultContainer);
+  
+  // Add to page
+  document.body.appendChild(resultHost);
+  
+  // Auto-remove after 10 seconds
+  setTimeout(() => {
+    if (document.body.contains(resultHost)) {
+      resultHost.remove();
+    }
+  }, 10000);
+}
+
+// Make functions available globally for main.js
+window.adyenCardInit = initCardFeature; // Use a unique name to avoid recursion
+window.removeCardInfoButton = removeCardInfoButton;
+window.showCardInfoResult = showCardInfoResult;
+
 // Add detailed test logs to check if and when this file is loaded
 console.log('%c 🔍 ADYEN-CARD.JS TEST: This file has been loaded!', 'background: #2196f3; color: white; font-size: 14px; font-weight: bold;');
-console.log('📝 ADYEN-CARD.JS: window.initCardFeature is ' + (typeof window.initCardFeature === 'function' ? 'DEFINED' : 'UNDEFINED'));
+console.log('📝 ADYEN-CARD.JS: window.adyenCardInit is ' + (typeof window.adyenCardInit === 'function' ? 'DEFINED' : 'UNDEFINED'));
 console.log('📝 ADYEN-CARD.JS: window.removeCardInfoButton is ' + (typeof window.removeCardInfoButton === 'function' ? 'DEFINED' : 'UNDEFINED'));
+console.log('📝 ADYEN-CARD.JS: window.showCardInfoResult is ' + (typeof window.showCardInfoResult === 'function' ? 'DEFINED' : 'UNDEFINED'));
 console.log('📌 ADYEN-CARD.JS: Script loaded at ' + new Date().toISOString());

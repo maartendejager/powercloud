@@ -3,3 +3,4 @@ Try to keep files small and focused on a single task. If a file is getting too l
 Identify the main components of the code and understand how they interact with each other.
 Use CSS for styling and layout. Avoid using inline styles for layout.
 Create and maintain documentation for your code. This will help you and others understand the code in the future. See ARCHITECTURE.md and README.md.
+Always start by looking at ARCHITECTURE.md and manifest.json. 
