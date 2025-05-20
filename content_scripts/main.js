@@ -73,19 +73,37 @@ const features = [
     name: 'cardInfo',
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
     init: initCardFeature,
-    cleanup: removeCardInfoButton
+    cleanup: function() {
+      // Use the card-specific cleanup function directly
+      if (window.removeCardInfoButton) {
+        return window.removeCardInfoButton();
+      }
+      return removeCardInfoButton();
+    }
   },
   {
     name: 'cardInfoProactive',
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
     init: initCardFeature,
-    cleanup: removeCardInfoButton
+    cleanup: function() {
+      // Use the card-specific cleanup function directly
+      if (window.removeCardInfoButton) {
+        return window.removeCardInfoButton();
+      }
+      return removeCardInfoButton();
+    }
   },
   {
     name: 'cardInfoKasboek',
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
     init: initCardFeature,
-    cleanup: removeCardInfoButton
+    cleanup: function() {
+      // Use the card-specific cleanup function directly
+      if (window.removeCardInfoButton) {
+        return window.removeCardInfoButton();
+      }
+      return removeCardInfoButton();
+    }
   },
   {
     name: 'bookInfo',
@@ -133,40 +151,35 @@ function loadBookFeature(match) {
 }
 
 // Card feature functions are now imported from adyen-card.js
-
-/**
- * Shows a result message for card info operations - uses implementation from adyen-card.js
- * @param {string} message - The message to display 
- */
-function showCardInfoResult(message) {
-  if (window.showCardInfoResult) {
-    return window.showCardInfoResult(message);
-  } else {
-    // Show a basic alert as fallback
-    alert(message);
-  }
-}
-
 // Book feature functions are now imported from adyen-book.js
 
 /**
- * Remove UI elements - uses implementation from adyen-card.js
+ * Generic cleanup utility for UI elements
+ * Delegates to feature-specific implementations when available (from adyen-card.js or adyen-book.js)
  * This function is used as cleanup for both card and book features
  */
 function removeCardInfoButton() {
+  // For card features, use the implementation from adyen-card.js
   if (window.removeCardInfoButton) {
     return window.removeCardInfoButton();
-  } else {
-    // Fallback implementation if the function is not available from adyen-card.js
-    const shadowHost = document.getElementById('powercloud-shadow-host');
-    if (shadowHost) {
-      shadowHost.remove();
-    }
-    
-    const resultHost = document.getElementById('powercloud-result-host');
-    if (resultHost) {
-      resultHost.remove();
-    }
+  }
+  
+  // For book features, use the implementation from adyen-book.js
+  if (window.removeBookInfoButton) {
+    return window.removeBookInfoButton();
+  }
+  
+  // As a last resort, perform generic cleanup if neither implementation is available
+  console.warn('No feature-specific cleanup implementation found, using generic cleanup');
+  
+  const shadowHost = document.getElementById('powercloud-shadow-host');
+  if (shadowHost) {
+    shadowHost.remove();
+  }
+  
+  const resultHost = document.getElementById('powercloud-result-host');
+  if (resultHost) {
+    resultHost.remove();
   }
 }
 

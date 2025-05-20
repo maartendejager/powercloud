@@ -159,16 +159,14 @@ function removeCardInfoButton() {
     shadowHost.remove();
   }
 
-  // Also remove any result shadow host that might be showing (if you implement a result display)
-  // const resultHost = document.getElementById('powercloud-result-host');
-  // if (resultHost) {
-  //   resultHost.remove();
-  // }
+  // Also remove any result shadow host that might be showing
+  const resultHost = document.getElementById('powercloud-result-host');
+  if (resultHost) {
+    resultHost.remove();
+  }
 }
 
-// Make functions available globally for main.js
-window.initCardFeature = initCardFeature;
-window.removeCardInfoButton = removeCardInfoButton;
+// Functions will be made available globally at the end of the file
 
 /**
  * Shows a result message for card info operations
