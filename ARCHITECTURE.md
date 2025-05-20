@@ -102,3 +102,108 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 *   **Code Clarity**: Ensure JSDoc comments or similar are used for all functions and modules, especially in `shared/` and `background/`.
 
 This document should be updated as the extension evolves.
+
+## Adding New Feature Scripts
+
+When adding new feature scripts to the extension, follow these guidelines to ensure proper integration:
+
+### 1. Script Creation and Organization
+
+1. **File Location**: Place all feature scripts in the `content_scripts/features/` directory.
+2. **Naming Convention**: Use descriptive names that indicate the feature's functionality (e.g., `feature-name.js`).
+3. **Structure**: Each feature script should be self-contained with well-defined entry points.
+
+### 2. Script Loading Options
+
+There are two ways to load feature scripts in this extension:
+
+#### Option A: Direct Loading via Manifest (Recommended)
+
+1. Add the script path to the `content_scripts` section in `manifest.json`:
+
+```json
+"content_scripts": [
+  {
+    "matches": ["*://*.spend.cloud/*"],
+    "js": [
+      "content_scripts/main.js",
+      "content_scripts/features/your-new-feature.js"
+    ]
+  }
+]
+```
+
+2. Ensure your feature script exports necessary functions by attaching them to the `window` object:
+
+```javascript
+// Make functions available globally
+window.yourFeatureInitFunction = yourFeatureInitFunction;
+window.yourFeatureCleanupFunction = yourFeatureCleanupFunction;
+```
+
+3. Register your feature in the `features` array in `main.js`:
+
+```javascript
+const features = [
+  // ...existing features
+  {
+    name: 'yourFeature',
+    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/your-feature-pattern/,
+    init: window.yourFeatureInitFunction,
+    cleanup: window.yourFeatureCleanupFunction
+  }
+];
+```
+
+#### Option B: Dynamic Loading (Alternative)
+
+1. Add the script path to the `web_accessible_resources` section in `manifest.json` if not already included:
+
+```json
+"web_accessible_resources": [
+  {
+    "resources": ["content_scripts/styles.css", "content_scripts/features/*.js"],
+    "matches": ["*://*.spend.cloud/*"]
+  }
+]
+```
+
+2. Use the `loadScript` function in `main.js` to dynamically load your feature:
+
+```javascript
+// In main.js
+function initYourFeature(match) {
+  loadScript('content_scripts/features/your-new-feature.js')
+    .then(() => {
+      if (window.yourFeatureInitFunction) {
+        window.yourFeatureInitFunction(match);
+      }
+    })
+    .catch(error => console.error('Failed to load feature script:', error));
+}
+```
+
+3. Register your feature in the `features` array using this init function.
+
+### 3. Testing Your Feature Script
+
+1. Add console logs to verify loading:
+
+```javascript
+console.log('Feature script loaded:', 'your-new-feature.js');
+```
+
+2. Verify in the browser console that your script is loaded when visiting matching URLs.
+3. Look for potential conflicts with existing features or scripts.
+
+### 4. Script Communication
+
+1. For communication with the background script, use:
+
+```javascript
+chrome.runtime.sendMessage({ action: "yourAction", data: yourData }, response => {
+  // Handle response
+});
+```
+
+2. For communication between features, use the shared window functions or messaging through the background script.
