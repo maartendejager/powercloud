@@ -21,13 +21,13 @@
   "content_scripts": [
     {
       "matches": ["*://*.spend.cloud/*"],
-      "js": ["content_scripts/features/adyen-card.js", "content_scripts/features/adyen-book.js", "content_scripts/main.js"],
+      "js": ["content_scripts/features/adyen-card.js", "content_scripts/features/adyen-book.js", "content_scripts/feature-manager.js", "content_scripts/main.js"],
       "css": ["content_scripts/styles.css"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content_scripts/styles.css", "content_scripts/features/*.js"],
+      "resources": ["content_scripts/styles.css", "content_scripts/features/*.js", "content_scripts/feature-manager.js"],
       "matches": ["*://*.spend.cloud/*"]
     }
   ],
