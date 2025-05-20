@@ -77,8 +77,99 @@ function initBookFeature(match) {
             }
           }
           
-          // Add the button only if it has a bookType
-          if (bookType) {
+          // If we have an administration ID but no balance account ID, fetch administration details
+          if (bookType === 'monetary_account_book' && administrationId && !adyenBalanceAccountId) {
+            console.log(`%c FETCHING ADMINISTRATION DETAILS: ${administrationId} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
+            console.log(`Fetching administration details for administrationId: ${administrationId}`);
+            console.log(`URL that will be used: https://${customer}.spend.cloud/api/administrations/${administrationId}`);
+            
+            // Verify we have all required parameters for the message
+            console.log(`Debug - Message values - customer: ${customer}, administrationId: ${administrationId}`);
+            
+            // Create a unique request ID to track this specific request in logs
+            const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+            console.log(`Request tracking ID: ${requestId}`);
+            
+            // Fetch administration details to check for balance account ID
+            try {
+              console.log(`Sending message to background script with requestId: ${requestId}`);
+              
+              chrome.runtime.sendMessage(
+                { 
+                  action: "fetchAdministrationDetails", 
+                  customer: customer, 
+                  administrationId: administrationId,
+                  requestId: requestId
+                },
+                (adminResponse) => {
+                  console.log(`%c ADMINISTRATION RESPONSE RECEIVED (${requestId}) `, 'background: #673AB7; color: white; font-size: 14px; font-weight: bold;');
+                  console.log('Administration response:', adminResponse);
+                  
+                  if (adminResponse && adminResponse.success) {
+                    const balanceAccountIdFromAdmin = adminResponse.balanceAccountId;
+                    
+                    // Examine raw data for debugging
+                    const rawData = adminResponse.data;
+                    console.log('Raw administration data:', rawData);
+                    
+                    // Log full relationships data for debugging
+                    const relationships = rawData?.relationships || rawData?.data?.relationships;
+                    if (relationships) {
+                      console.log('Full relationships data:', relationships);
+                      if (relationships.balanceAccount) {
+                        console.log('Balance account relationship:', relationships.balanceAccount);
+                      }
+                    }
+                    
+                    if (balanceAccountIdFromAdmin) {
+                      console.log(`%c BALANCE ACCOUNT ID FOUND: ${balanceAccountIdFromAdmin} `, 'background: #009688; color: white; font-size: 14px; font-weight: bold;');
+                      console.log(`The balance account ID for this administration is: ${balanceAccountIdFromAdmin}`);
+                      console.log(`Path to balance account ID in response: data->relationships->balanceAccount->data->id`);
+                      
+                      // Now add the button with the balance account ID
+                      addBookInfoButton(customer, bookId, bookType, balanceAccountIdFromAdmin, administrationId, balanceAccountReference);
+                    } else {
+                      console.warn('No balance account ID found in administration details');
+                      
+                      // Try to extract it manually from the raw data
+                      let extractedBalanceAccountId = null;
+                      
+                      // Check various possible paths for the balance account ID
+                      if (rawData?.data?.relationships?.balanceAccount?.data?.id) {
+                        extractedBalanceAccountId = rawData.data.relationships.balanceAccount.data.id;
+                      } else if (rawData?.relationships?.balanceAccount?.data?.id) {
+                        extractedBalanceAccountId = rawData.relationships.balanceAccount.data.id;
+                      } else if (rawData?.attributes?.balanceAccountId) {
+                        extractedBalanceAccountId = rawData.attributes.balanceAccountId;
+                      } else if (rawData?.data?.attributes?.balanceAccountId) {
+                        extractedBalanceAccountId = rawData.data.attributes.balanceAccountId;
+                      }
+                      
+                      if (extractedBalanceAccountId) {
+                        console.log(`%c BALANCE ACCOUNT ID EXTRACTED MANUALLY: ${extractedBalanceAccountId} `, 'background: #FF9800; color: white; font-size: 14px; font-weight: bold;');
+                        addBookInfoButton(customer, bookId, bookType, extractedBalanceAccountId, administrationId, balanceAccountReference);
+                      } else {
+                        // Add button without balance account ID
+                        addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
+                      }
+                    }
+                  } else {
+                    const errorMessage = adminResponse?.error || 'Failed to fetch administration details';
+                    console.error(`Error fetching administration details: ${errorMessage}`);
+                    // Add button without balance account ID
+                    addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
+                  }
+                }
+              );
+            } catch (error) {
+              console.error(`Exception when sending message to fetch administration details (${requestId}):`, error);
+              console.error('Error stack:', error.stack);
+              // Add button without balance account ID as a fallback
+              addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
+            }
+          } 
+          // Add the button directly if we already have a balance account ID or if it's a different book type
+          else if (bookType) {
             addBookInfoButton(customer, bookId, bookType, adyenBalanceAccountId, administrationId, balanceAccountReference);
           } else {
             console.log('Book type not found, not showing button');
@@ -121,7 +212,7 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
   // Check if buttons should be hidden by default
   chrome.storage.local.get('showButtons', (result) => {
     const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.style.display = showButtons ? 'block' : 'none';
+    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
   });
   
   // Attach a shadow DOM tree to completely isolate our styles
@@ -185,6 +276,13 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
       refBadge.className = 'powercloud-balance-badge';
       refBadge.textContent = `Balance Account: ${balanceAccountReference}`;
       buttonContainer.appendChild(refBadge);
+    } else {
+      // Create a badge for the balance account ID
+      const balanceBadge = document.createElement('div');
+      balanceBadge.className = 'powercloud-balance-badge';
+      balanceBadge.textContent = `Balance Account ID: ${balanceAccountId.substring(0, 8)}...`;
+      balanceBadge.title = balanceAccountId;
+      buttonContainer.appendChild(balanceBadge);
     }
     
     button.disabled = false;

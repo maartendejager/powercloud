@@ -52,6 +52,14 @@ There are two ways to get a card's Adyen Payment Instrument ID:
 4. Click "View Card at Adyen" button
 5. The card details will open directly in Adyen's dashboard in a new tab
 
+### Monetary Account Books
+For monetary account books, the extension provides a feature to view the balance account at Adyen:
+
+1. Navigate to a book page (https://[customer].spend.cloud/proactive/kasboek.boekingen/[book-id]/*)
+2. If the book is a monetary account book, a button will appear in the bottom-right corner
+3. The extension will automatically check for an administration ID and associated balance account ID
+4. If a balance account ID is found, the button will be enabled, allowing you to view the account in Adyen
+
 ## Permissions
 
 This extension requires the following permissions:

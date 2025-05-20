@@ -141,6 +141,70 @@ async function getBookDetails(customer, bookId) {
   return get(url);
 }
 
+/**
+ * Fetches administration details from the API
+ * @param {string} customer - The customer subdomain
+ * @param {string} administrationId - The administration ID to fetch
+ * @returns {Promise<Object>} The administration details
+ */
+async function getAdministrationDetails(customer, administrationId) {
+  console.log(`%c FETCHING ADMINISTRATION DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, ID: ${administrationId}, Timestamp: ${new Date().toISOString()}`);
+  
+  if (!customer || !administrationId) {
+    console.error('Invalid parameters for getAdministrationDetails');
+    console.trace('Trace for invalid parameters');
+    throw new Error(`Invalid parameters: customer=${customer}, administrationId=${administrationId}`);
+  }
+  
+  // Try both API endpoints since we're not sure which one is correct
+  // First, try the /administrations/ endpoint as specified in the requirements
+  const url = buildApiUrl(customer, `/administrations/${administrationId}`);
+  console.log(`Primary Administration API URL: ${url}`);
+  
+  // For debugging, add details about token
+  try {
+    const token = await getToken();
+    if (token) {
+      console.log('Token available for API request:', { 
+        tokenLength: token.length,
+        tokenStart: token.substring(0, 10) + '...',
+        tokenEnd: '...' + token.substring(token.length - 10)
+      });
+    } else {
+      console.warn('No token available for administration API request!');
+    }
+  } catch (error) {
+    console.error('Error checking token:', error);
+  }
+  
+  console.log('Making administration API request...');
+  try {
+    const response = await get(url);
+    console.log('Administration API request completed successfully');
+    
+    // Check if the response has the expected structure
+    if (response?.data?.relationships?.balanceAccount?.data?.id) {
+      console.log('Found balance account ID in response data');
+    }
+    
+    return response;
+  } catch (primaryError) {
+    console.error(`Primary administration API request failed: ${primaryError.message}`);
+    
+    // Try fallback endpoint in case the primary fails
+    try {
+      console.log('Trying alternative API endpoint...');
+      const alternateUrl = buildApiUrl(customer, `/api/v1/administrations/${administrationId}`);
+      console.log(`Alternative Administration API URL: ${alternateUrl}`);
+      return await get(alternateUrl);
+    } catch (fallbackError) {
+      console.error(`Alternative administration API request also failed: ${fallbackError.message}`);
+      throw primaryError; // Throw the original error
+    }
+  }
+}
+
 export { 
   makeAuthenticatedRequest, 
   get, 
@@ -149,5 +213,6 @@ export {
   del, 
   buildApiUrl,
   getCardDetails,
-  getBookDetails
+  getBookDetails,
+  getAdministrationDetails
 };

@@ -91,15 +91,14 @@ function initTokenDetection() {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'checkPageForTokens') {
       checkForTokensInStorage();
-      sendResponse({ status: 'Checked for tokens' });
-    } else if (message.action === 'updateButtonVisibility') {
-      // Handle toggling button visibility
-      const buttonHost = document.getElementById('powercloud-shadow-host');
-      if (buttonHost) {
-        buttonHost.style.display = message.showButtons ? 'block' : 'none';
+      sendResponse({ status: 'Checked for tokens' });      } else if (message.action === 'updateButtonVisibility') {
+        // Handle toggling button visibility
+        const buttonHost = document.getElementById('powercloud-shadow-host');
+        if (buttonHost) {
+          buttonHost.className = message.showButtons ? 'powercloud-visible' : 'powercloud-hidden';
+        }
+        sendResponse({ status: 'Updated button visibility' });
       }
-      sendResponse({ status: 'Updated button visibility' });
-    }
     return true;
   });
   
@@ -282,64 +281,20 @@ function addCardInfoButton(customer, cardId, isAdyenCard = true, vendor = null) 
   const shadowHost = document.createElement('div');
   shadowHost.id = 'powercloud-shadow-host'; 
   
-  // Position the host element with inline styles that won't leak to other elements
-  shadowHost.style.position = 'fixed';
-  shadowHost.style.bottom = '20px';
-  shadowHost.style.right = '20px';
-  shadowHost.style.zIndex = '9999';
-  
   // Check if buttons should be hidden by default
   chrome.storage.local.get('showButtons', (result) => {
     const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.style.display = showButtons ? 'block' : 'none';
+    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
   });
   
   // Attach a shadow DOM tree to completely isolate our styles
   const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
   
-  // Add comprehensive styles to shadow DOM
-  const style = document.createElement('style');
-  style.textContent = `
-    /* Base container style */
-    .powercloud-container {
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.4;
-      color: #333;
-      background-color: transparent;
-    }
-    
-    /* Button styling */
-    .powercloud-button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      transition: background-color 0.3s;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      text-align: center;
-    }
-    
-    .powercloud-button:hover {
-      background-color: #3e8e41;
-    }
-    
-    .powercloud-button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
-    }
-    
-    /* Button container */
-    .powercloud-button-container {
-      margin: 0;
-      padding: 0;
-    }
-  `;
-  shadowRoot.appendChild(style);
+  // Add external stylesheet to shadow DOM
+  const linkElem = document.createElement('link');
+  linkElem.rel = 'stylesheet';
+  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+  shadowRoot.appendChild(linkElem);
 
   // Create button container with styling
   const buttonContainer = document.createElement('div');
@@ -447,7 +402,7 @@ function addAdyenBookInfoButton(customer, bookId, bookType, balanceAccountId, ad
   // Check if buttons should be hidden by default
   chrome.storage.local.get('showButtons', (result) => {
     const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.style.display = showButtons ? 'block' : 'none';
+    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
   });
   
   // Attach a shadow DOM tree to completely isolate our styles
