@@ -34,26 +34,32 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 *   **Main Content Script (`content_scripts/main.js`)**:
     *   **Purpose**: Injected into all `spend.cloud` pages. Acts as the primary bridge between the web page and the extension's background/popup.
     *   **Functionality**:
-        *   Loads feature-specific modules from `content_scripts/features/`.
+        *   Initializes the Feature Manager (`content_scripts/feature-manager.js`) to handle loading/unloading of features.
         *   Communicates with the background service worker (`chrome.runtime.sendMessage`).
         *   Manipulates the DOM of the web page to add UI elements or extract information.
         *   Uses the styles defined in `content_scripts/styles.css`, which are loaded automatically via the manifest.
         *   Defines features and registers them with the Feature Manager.
 
 *   **Feature Manager (`content_scripts/feature-manager.js`)**:
-    *   **Purpose**: Manages the loading and unloading of features based on URL patterns.
+    *   **Purpose**: Manages the loading and unloading of features based on URL patterns. It is instantiated in `main.js`.
     *   **Functionality**:
-        *   Handles URL change detection for single-page applications.
-        *   Initializes appropriate features when URLs match their patterns.
-        *   Cleans up features when navigating away from matched URLs.
-        *   Provides a consistent API for feature management across the extension.
+        *   Tracks active features on the current page.
+        *   Handles URL change detection for single-page applications (SPAs) by observing `popstate` and `hashchange` events, as well as `history.pushState` and `history.replaceState` via monkey-patching if necessary.
+        *   Initializes appropriate features when URLs match their patterns by calling their `init` function.
+        *   Cleans up features by calling their `cleanup` function when navigating away from matched URLs.
+        *   Provides a consistent API for feature management.
+        *   Key methods include `checkPage()` to analyze the current URL and manage features, and `init()` to set up listeners.
 
 *   **Feature Scripts (`content_scripts/features/*.js`)**:
-    *   **Purpose**: Implement specific functionalities on certain pages.
+    *   **Purpose**: Implement specific functionalities on certain pages. Each feature script should be self-contained.
+    *   **Structure**:
+        *   Export public functions by attaching them to the `window` object (e.g., `window.myFeatureInit = () => { ... };`).
+        *   Include debugging logs for troubleshooting.
+        *   Focus on a single concern.
     *   **Examples**:
         *   `adyen-book.js`: Adds functionality related to Adyen booking on specific book pages.
         *   `adyen-card.js`: Adds functionality related to Adyen card details on card settings pages.
-        *   `token-detector.js`: Likely involved in detecting and extracting JWT tokens from the page or network requests.
+        *   `token-detector.js`: Scans `localStorage` and `sessionStorage` for authentication tokens (JWTs) on `spend.cloud` pages. It looks for common key patterns like `token`, `authToken`, `jwt`, etc. Found tokens are reported to the background script. It runs an initial check and then periodically checks for new tokens. It is registered in `main.js` to run on all `spend.cloud` pages.
     *   **Loading**: 
         *   Scripts can be loaded in two ways:
             1. Via manifest declaration (like `adyen-card.js`) - specified in the `content_scripts` section of manifest.json, loaded before main.js executes.
