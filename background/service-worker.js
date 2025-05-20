@@ -1,7 +1,6 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
 import { setToken, getAllTokens, getToken, isValidJWT, saveTokens } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails } from '../shared/api.js';
-import { testApiService } from './api-test.js';
 
 // Keep a local reference to tokens for quicker access
 let authTokens = [];
@@ -74,8 +73,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const promises = [];
     
     // Check if the URL is an API route
-    const isApiRoute = message.url && message.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
-    if (!isApiRoute) {
+    const isApiRouteFromMessage = message.url && message.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
+    if (!isApiRouteFromMessage) {
       console.log('Skipping tokens from non-API URL:', message.url);
       sendResponse({ status: 'Skipped non-API URL tokens' });
       return true;
@@ -156,22 +155,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // Return true to indicate we will send a response asynchronously
     return true;
-  } else if (message.action === "testApiService") {
-    // Test our API service
-    const { customer, cardId } = message;
-    
-    testApiService(customer, cardId)
-      .then(result => {
-        sendResponse(result);
-      })
-      .catch(error => {
-        sendResponse({
-          success: false,
-          error: error.message
-        });
-      });
-    
-    return true; // Keep message channel open for async response
   } else if (message.action === "fetchBookDetails") {
     // Fetch book details using the shared API module
     const { customer, bookId } = message;

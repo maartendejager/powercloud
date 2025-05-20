@@ -261,7 +261,11 @@ function removeBookInfoButton() {
   }
 }
 
-// Make the functions available globally
-// This approach works even when ES modules aren't available
-window.initBookFeature = initBookFeature;
-window.removeBookInfoButton = removeBookInfoButton;
+// Create namespace for PowerCloud features if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+
+// Register book feature functions in the PowerCloud namespace
+window.PowerCloudFeatures.book = {
+  init: initBookFeature,
+  cleanup: removeBookInfoButton
+};

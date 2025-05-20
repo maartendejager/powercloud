@@ -36,19 +36,28 @@ function loadScript(src, retries = 3, delay = 500) {
 }
 
 // Load feature scripts immediately to ensure they're available before URL matching happens
-// Load the feature scripts
-Promise.all([
-  loadScript('content_scripts/features/adyen-book.js'),
-  loadScript('content_scripts/features/token-detector.js')
-]).catch(error => {
-  // Keep only critical errors
-  console.error('Error loading feature scripts:', error);
-});
+// Note: We check if the script-specific functions exist first to prevent duplicate loading
+// if the script was already loaded via manifest
+const scriptsToLoad = [];
 
-// Also try loading when DOM is ready as a fallback
-document.addEventListener('DOMContentLoaded', () => {
-  // Fallback loading check is done silently
-});
+// Only load adyen-book.js if its namespace doesn't already exist
+if (!window.PowerCloudFeatures?.book?.init) {
+  scriptsToLoad.push(loadScript('content_scripts/features/adyen-book.js'));
+}
+
+// Only load token-detector.js if its namespace doesn't already exist
+if (!window.PowerCloudFeatures?.tokenDetector?.init) {
+  scriptsToLoad.push(loadScript('content_scripts/features/token-detector.js'));
+}
+
+if (scriptsToLoad.length > 0) {
+  Promise.all(scriptsToLoad).catch(error => {
+    console.error('Error loading feature scripts:', error);
+  });
+}
+
+// Initialize the PowerCloudFeatures namespace if it doesn't exist already
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
 /**
  * Feature registry for different page types
@@ -62,9 +71,9 @@ const features = [
     name: 'tokenDetection',
     urlPattern: /.*\.spend\.cloud.*/,  // Run on all spend.cloud pages
     init: function() {
-      // Use the init function from token-detector.js if available, otherwise fallback to local function
-      if (window.tokenDetector && typeof window.tokenDetector.init === 'function') {
-        return window.tokenDetector.init();
+      // Use the init function from token-detector.js using the PowerCloudFeatures namespace
+      if (window.PowerCloudFeatures?.tokenDetector?.init) {
+        return window.PowerCloudFeatures.tokenDetector.init();
       }
     },
     cleanup: null  // No cleanup needed
@@ -74,9 +83,9 @@ const features = [
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
     init: initCardFeature,
     cleanup: function() {
-      // Use the card-specific cleanup function directly
-      if (window.removeCardInfoButton) {
-        return window.removeCardInfoButton();
+      // Use the card-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.card?.cleanup) {
+        return window.PowerCloudFeatures.card.cleanup();
       }
       return removeCardInfoButton();
     }
@@ -86,9 +95,9 @@ const features = [
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: function() {
-      // Use the card-specific cleanup function directly
-      if (window.removeCardInfoButton) {
-        return window.removeCardInfoButton();
+      // Use the card-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.card?.cleanup) {
+        return window.PowerCloudFeatures.card.cleanup();
       }
       return removeCardInfoButton();
     }
@@ -98,9 +107,9 @@ const features = [
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: function() {
-      // Use the card-specific cleanup function directly
-      if (window.removeCardInfoButton) {
-        return window.removeCardInfoButton();
+      // Use the card-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.card?.cleanup) {
+        return window.PowerCloudFeatures.card.cleanup();
       }
       return removeCardInfoButton();
     }
@@ -110,9 +119,9 @@ const features = [
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
     init: loadBookFeature,
     cleanup: function() {
-      // Use the book-specific cleanup function if available, otherwise fall back to the card cleanup
-      if (window.removeBookInfoButton) {
-        return window.removeBookInfoButton();
+      // Use the book-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.book?.cleanup) {
+        return window.PowerCloudFeatures.book.cleanup();
       }
       return removeCardInfoButton();
     }
@@ -126,12 +135,9 @@ const features = [
  * @param {object} match - The URL match result containing capture groups
  */
 function initCardFeature(match) {
-  // Store the external reference using a different name to avoid recursion
-  const adyenCardInit = window.adyenCardInit;
-  
-  // Call the implementation from adyen-card.js
-  if (typeof adyenCardInit === 'function') {
-    return adyenCardInit(match);
+  // Call the implementation from adyen-card.js using the PowerCloudFeatures namespace
+  if (window.PowerCloudFeatures?.card?.init) {
+    return window.PowerCloudFeatures.card.init(match);
   }
 }
 
@@ -140,9 +146,9 @@ function initCardFeature(match) {
  * @param {object} match - The URL match result containing capture groups  
  */
 function loadBookFeature(match) {
-  // Directly use the implementation from adyen-book.js
-  if (typeof window.initBookFeature === 'function') {
-    return window.initBookFeature(match);
+  // Use the implementation from adyen-book.js using the PowerCloudFeatures namespace
+  if (window.PowerCloudFeatures?.book?.init) {
+    return window.PowerCloudFeatures.book.init(match);
   }
   
   // If for some reason the external implementation is not available,
@@ -159,14 +165,14 @@ function loadBookFeature(match) {
  * This function is used as cleanup for both card and book features
  */
 function removeCardInfoButton() {
-  // For card features, use the implementation from adyen-card.js
-  if (window.removeCardInfoButton) {
-    return window.removeCardInfoButton();
+  // For card features, use the implementation from adyen-card.js using the PowerCloudFeatures namespace
+  if (window.PowerCloudFeatures?.card?.cleanup) {
+    return window.PowerCloudFeatures.card.cleanup();
   }
   
-  // For book features, use the implementation from adyen-book.js
-  if (window.removeBookInfoButton) {
-    return window.removeBookInfoButton();
+  // For book features, use the implementation from adyen-book.js using the PowerCloudFeatures namespace
+  if (window.PowerCloudFeatures?.book?.cleanup) {
+    return window.PowerCloudFeatures.book.cleanup();
   }
   
   // As a last resort, perform generic cleanup if neither implementation is available

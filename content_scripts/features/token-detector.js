@@ -98,8 +98,11 @@ function checkForTokensInStorage() {
   }
 }
 
-// Make functions available globally
-window.tokenDetector = {
+// Create namespace for PowerCloud features if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+
+// Register token detector functions in the PowerCloud namespace
+window.PowerCloudFeatures.tokenDetector = {
   init: initTokenDetection,
   checkStorage: checkForTokensInStorage
 };

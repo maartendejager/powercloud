@@ -223,7 +223,12 @@ function showCardInfoResult(message) {
   }, 10000);
 }
 
-// Make functions available globally for main.js
-window.adyenCardInit = initCardFeature; // Use a unique name to avoid recursion
-window.removeCardInfoButton = removeCardInfoButton;
-window.showCardInfoResult = showCardInfoResult;
+// Create namespace for PowerCloud features if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+
+// Register card feature functions in the PowerCloud namespace
+window.PowerCloudFeatures.card = {
+  init: initCardFeature,
+  cleanup: removeCardInfoButton,
+  showResult: showCardInfoResult
+};
