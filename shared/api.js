@@ -20,6 +20,7 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
   try {
     // Get the current authentication token
     const token = await getToken();
+    console.log(token)
     
     // Prepare headers
     const headers = {

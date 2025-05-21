@@ -1,5 +1,5 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
-import { setToken, getAllTokens, getToken, isValidJWT, saveTokens } from '../shared/auth.js';
+import { setToken, getAllTokens, getToken, isValidJWT, saveTokens, removeToken } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails } from '../shared/api.js';
 
 // Keep a local reference to tokens for quicker access
@@ -68,6 +68,32 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "getAuthTokens") {
     sendResponse({ authTokens });
+  } else if (message.action === "deleteToken") {
+    // Handle token deletion
+    if (!message.token) {
+      sendResponse({ success: false, error: 'No token provided' });
+      return true;
+    }
+    
+    // Use the removeToken function from auth.js
+    removeToken(message.token)
+      .then(success => {
+        if (success) {
+          return getAllTokens();
+        } else {
+          throw new Error('Token not found');
+        }
+      })
+      .then(tokens => {
+        authTokens = tokens; // Update local cache
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        console.error('Error deleting token:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    
+    return true; // Keep message channel open for async response
   } else if (message.action === "foundTokensInPage") {
     // Handle tokens found by content script
     const promises = [];

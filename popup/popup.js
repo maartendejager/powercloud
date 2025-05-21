@@ -90,9 +90,14 @@ document.addEventListener('DOMContentLoaded', () => {
           <br>URL: ${entry.url}
           ${entry.source ? `<br>Source: ${entry.source}` : ''}
         </div>
-        <button class="copy-btn" data-token="${entry.token}" ${isExpired ? 'title="Warning: This token is expired"' : ''}>
-          Copy Token${isExpired ? ' (Expired)' : ''}
-        </button>
+        <div class="token-actions">
+          <button class="copy-btn" data-token="${entry.token}" ${isExpired ? 'title="Warning: This token is expired"' : ''}>
+            Copy Token${isExpired ? ' (Expired)' : ''}
+          </button>
+          <button class="delete-btn" data-token="${entry.token}" title="Delete this token">
+            Delete
+          </button>
+        </div>
       `;
       
       tokensList.appendChild(tokenDiv);
@@ -111,6 +116,26 @@ document.addEventListener('DOMContentLoaded', () => {
               button.textContent = originalText;
             }, 1500);
           });
+      });
+    });
+    
+    // Add click handlers for delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const token = button.getAttribute('data-token');
+        if (confirm('Are you sure you want to delete this token?')) {
+          chrome.runtime.sendMessage({
+            action: "deleteToken",
+            token: token
+          }, (response) => {
+            if (response && response.success) {
+              // Refresh the token list
+              fetchAndDisplayTokens();
+            } else {
+              alert('Failed to delete token: ' + (response?.error || 'Unknown error'));
+            }
+          });
+        }
       });
     });
   });

@@ -71,6 +71,8 @@ function initTokenDetection() {
  * Check for tokens in localStorage or sessionStorage
  */
 function checkForTokensInStorage() {
+  console.log('nopeeeeeeeeeeeeeeeee')
+  return
   // First, check if we're on an API page
   const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
   if (!isApiRoute) {
