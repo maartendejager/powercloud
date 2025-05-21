@@ -76,6 +76,8 @@ async function getToken() {
  * @param {Object} metadata - Additional data about the token
  * @param {string} metadata.url - URL where the token was captured
  * @param {string} [metadata.source] - Source of the token (header, localStorage, etc.)
+ * @param {string} [metadata.clientEnvironment] - Client environment name
+ * @param {boolean} [metadata.isDevRoute] - Whether the token was captured from a dev route
  * @returns {Promise<void>}
  */
 async function setToken(token, metadata = {}) {
@@ -117,6 +119,8 @@ async function setToken(token, metadata = {}) {
     timestamp: new Date().toISOString(),
     url: metadata.url || window.location?.href || "unknown",
     source: metadata.source || "direct",
+    clientEnvironment: metadata.clientEnvironment || "unknown",
+    isDevRoute: metadata.isDevRoute || false,
     isValid: isValid,
     expiryDate: expiryDate ? expiryDate.toISOString() : null
   };
@@ -247,13 +251,52 @@ async function handleAuthHeaderFromWebRequest(details) {
       token = token.slice(7);
     }
 
+    // Determine client environment and dev route status
+    const clientEnvironment = extractClientEnvironment(details.url);
+    const isDevRouteFlag = isDevelopmentRoute(details.url);
+
     // Store the token using the existing setToken function
-    await setToken(token, { url: details.url, source: 'webRequest' });
+    await setToken(token, { 
+      url: details.url, 
+      source: 'webRequest',
+      clientEnvironment: clientEnvironment,
+      isDevRoute: isDevRouteFlag
+    });
     // After setting the token, get the updated list of all tokens
     const allTokens = await getAllTokens();
     return allTokens;
   }
   return null; // No relevant header found
+}
+
+/**
+ * Extracts client environment name from a URL
+ * @param {string} url - URL to extract from
+ * @returns {string} Client environment name
+ */
+function extractClientEnvironment(url) {
+  try {
+    const hostname = new URL(url).hostname;
+    if (hostname.includes('dev.')) return 'development';
+    if (hostname.includes('staging.')) return 'staging';
+    if (hostname.includes('localhost')) return 'local';
+    // Add more sophisticated logic as needed
+    return 'production'; // Default
+  } catch (e) {
+    return 'unknown';
+  }
+}
+
+/**
+ * Checks if a URL is for a development environment
+ * @param {string} url - URL to check
+ * @returns {boolean} True if the URL is for a development environment
+ */
+function isDevelopmentRoute(url) {
+  // Check if URL contains development indicators
+  return url.includes('localhost') || 
+         url.includes('.dev.') || 
+         url.includes('dev-');
 }
 
 export {
