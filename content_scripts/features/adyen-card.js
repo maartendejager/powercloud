@@ -2,8 +2,8 @@
  * Adyen Card Feature Module
  *
  * This module provides functionality for viewing card information at Adyen
- * for card pages at https://[customer-environment].spend.cloud/cards/[card-id]/*
- * and other related card pages.
+ * for card pages at https://[customer-environment].spend.cloud/cards/[card-id]/* or
+ * https://[customer-environment].dev.spend.cloud/cards/[card-id]/* and other related card pages.
  * 
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
@@ -17,12 +17,15 @@ window.PowerCloudFeatures.card = window.PowerCloudFeatures.card || {};
  * Initialize the card feature
  * Adds functionality specific to card pages
  * @param {object} match - The URL match result containing capture groups
+ *                        For URLs like https://[customer].spend.cloud/* or https://[customer].dev.spend.cloud/*
+ *                        match[1]=customer, match[2]=cardId
  */
 function initCardFeature(match) {
   if (!match || match.length < 3) return;
 
-  const customer = match[1]; // Extract customer subdomain
-  const cardId = match[2];   // Extract the actual card ID from URL
+  // In our new pattern, customer is always in match[1] and cardId is always in match[2]
+  const customer = match[1];
+  const cardId = match[2];
 
   // Check if buttons should be shown before fetching card details
   chrome.storage.local.get('showButtons', (result) => {

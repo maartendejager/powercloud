@@ -83,7 +83,7 @@ async function setToken(token, metadata = {}) {
   }
   
   // Only accept tokens from API routes
-  if (metadata.url && !metadata.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//)) {
+  if (metadata.url && !metadata.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)) {
     console.log('Skipping token from non-API URL:', metadata.url);
     return;
   }

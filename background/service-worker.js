@@ -9,7 +9,7 @@ let authTokens = [];
 chrome.webRequest.onSendHeaders.addListener(
   (details) => {
     // Check if the URL is an API route
-    const isApiRoute = details.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
+    const isApiRoute = details.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
     if (!isApiRoute) {
       return; // Skip non-API routes
     }
@@ -45,7 +45,7 @@ chrome.runtime.onInstalled.addListener(() => {
   getAllTokens().then(tokens => {
     // Filter out non-API tokens
     const apiTokens = tokens.filter(token => 
-      token.url && token.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//)
+      token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)
     );
     
     if (apiTokens.length !== tokens.length) {
@@ -73,7 +73,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const promises = [];
     
     // Check if the URL is an API route
-    const isApiRouteFromMessage = message.url && message.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
+    const isApiRouteFromMessage = message.url && message.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
     if (!isApiRouteFromMessage) {
       console.log('Skipping tokens from non-API URL:', message.url);
       sendResponse({ status: 'Skipped non-API URL tokens' });

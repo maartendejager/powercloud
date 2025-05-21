@@ -2,7 +2,7 @@
  * Token Detector Feature Module
  *
  * This module provides functionality for detecting authentication tokens
- * on spend.cloud pages. It searches localStorage and sessionStorage for 
+ * on spend.cloud and dev.spend.cloud pages. It searches localStorage and sessionStorage for 
  * common token patterns and reports them to the extension background script.
  *
  * Loading Method: Manifest-only

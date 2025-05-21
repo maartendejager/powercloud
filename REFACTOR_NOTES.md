@@ -2,21 +2,23 @@
 
 ## Current Structure
 
-The PowerCloud extension uses a hybrid approach for loading content scripts:
+As of version 1.1.0, the PowerCloud extension uses a single, consistent approach for loading content scripts:
 
 1. **Via Manifest Direct Injection**:
-   - Scripts listed in the `content_scripts` section of `manifest.json` are automatically injected by Chrome when the page loads.
-
-2. **Via Dynamic Loading**:
-   - Some scripts are dynamically loaded using the `loadScript` function in `main.js` which uses `chrome.runtime.getURL()`.
+   - All scripts are listed in the `content_scripts` section of `manifest.json` and are automatically injected by Chrome when the page loads.
+   - No dynamic script loading is used, as noted in the May 21, 2025 audit.
 
 ## Improvements Made
 
 ### Web Accessible Resources
 - Limited `web_accessible_resources` to only include resources that need to be dynamically accessible via URL:
-  - `content_scripts/features/*.js`: For feature scripts that are dynamically loaded
   - `content_scripts/styles.css`: For styling dynamically created components or shadow DOM elements
-- Removed `content_scripts/feature-manager.js` from web_accessible_resources as it is directly injected via the manifest and does not need to be web-accessible.
+- All scripts are now loaded via manifest.json and do not need to be web-accessible.
+
+### Domain Support
+- As of version 1.1.0, the extension now supports both standard domains (`https://[customer].spend.cloud/*`) and development domains (`https://[customer].dev.spend.cloud/*`)
+- All URL patterns in the code have been updated to match both domain patterns
+- The manifest.json has been updated to include permissions for both domain types
 
 ## Potential Issues
 

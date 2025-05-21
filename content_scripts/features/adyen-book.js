@@ -2,7 +2,8 @@
  * Adyen Book Feature Module
  * 
  * This module provides functionality for viewing balance account information at Adyen
- * for book pages at https://[customer-environment].spend.cloud/proactive/kasboek.boekingen/[book-id]/*
+ * for book pages at https://[customer-environment].spend.cloud/proactive/kasboek.boekingen/[book-id]/* or
+ * https://[customer-environment].dev.spend.cloud/proactive/kasboek.boekingen/[book-id]/*
  *
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
@@ -16,12 +17,15 @@ window.PowerCloudFeatures.book = window.PowerCloudFeatures.book || {};
  * Initialize the book feature
  * Adds functionality specific to book pages
  * @param {object} match - The URL match result containing capture groups
+ *                        For URLs like https://[customer].spend.cloud/* or https://[customer].dev.spend.cloud/*
+ *                        match[1]=customer, match[2]=bookId
  */
 function initBookFeature(match) {
   if (!match || match.length < 3) return;
   
-  const customer = match[1]; // Extract customer subdomain
-  const bookId = match[2];   // Extract the actual book ID from URL
+  // In our new pattern, customer is always in match[1] and bookId is always in match[2]
+  const customer = match[1];
+  const bookId = match[2];
   
   // Check if buttons should be shown before fetching book details
   chrome.storage.local.get('showButtons', (result) => {

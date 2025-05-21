@@ -8,6 +8,9 @@
  * 
  * IMPORTANT: Do not attempt to dynamically load scripts here.
  * All feature scripts must be loaded via manifest.json before this script runs.
+ * 
+ * URL Pattern Note: All URL patterns support both standard customer domains (https://[customer].spend.cloud/*)
+ * and dev environments (https://[customer].dev.spend.cloud/*).
  */
 
 // Initialize the PowerCloudFeatures namespace if it doesn't exist already
@@ -24,7 +27,7 @@ window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 const features = [
   {
     name: 'tokenDetection',
-    urlPattern: /.*\.spend\.cloud.*/,  // Run on all spend.cloud pages
+    urlPattern: /.*\.spend\.cloud.*|.*\.dev\.spend\.cloud.*/,  // Run on all spend.cloud pages (including .dev subdomains)
     init: function() {
       // Use the init function from token-detector.js using the PowerCloudFeatures namespace
       if (window.PowerCloudFeatures?.tokenDetector?.init) {
@@ -35,7 +38,7 @@ const features = [
   },
   {
     name: 'cardInfo',
-    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
     init: initCardFeature,
     cleanup: function() {
       // Use the card-specific cleanup function from the namespace
@@ -47,7 +50,7 @@ const features = [
   },
   {
     name: 'cardInfoProactive',
-    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: function() {
       // Use the card-specific cleanup function from the namespace
@@ -59,7 +62,7 @@ const features = [
   },
   {
     name: 'cardInfoKasboek',
-    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: function() {
       // Use the card-specific cleanup function from the namespace
@@ -71,7 +74,7 @@ const features = [
   },
   {
     name: 'bookInfo',
-    urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
     init: loadBookFeature,
     cleanup: function() {
       // Use the book-specific cleanup function from the namespace

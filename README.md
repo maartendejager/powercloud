@@ -2,6 +2,8 @@
 
 A Chrome extension that provides extra functionality for developers working with the spend.cloud platform. This extension captures and displays authentication tokens to assist with troubleshooting and development tasks.
 
+The extension works on both production (`https://[customer].spend.cloud/*`) and development environments (`https://[customer].dev.spend.cloud/*`).
+
 For technical details on how the extension is structured and how to add new features, please see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Features
@@ -82,3 +84,31 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Security Note
 
 This extension is intended for development and troubleshooting purposes only. JWT tokens provide access to authenticated resources, so handle them with care and never share them with unauthorized individuals.
+
+## Testing
+
+### Testing with Development Domains
+
+You can test the extension with both standard and development domains:
+
+1. **Standard domain**: `https://[customer].spend.cloud/*`
+2. **Development domain**: `https://[customer].dev.spend.cloud/*`
+
+To verify functionality on development domains:
+
+1. Install the extension in developer mode
+2. Navigate to a supported development domain (e.g., `https://example.dev.spend.cloud/cards/123`)
+3. Confirm that the extension features appear and work correctly
+4. Test token capture by making API requests on the development domain
+
+## Changelog
+
+### 1.1.0 - May 21, 2025
+- Added support for dev environments (`https://[customer].dev.spend.cloud/*`)
+- All features now work on both production and development environments
+- Uses regex patterns to match dev subdomain URLs
+
+### 1.0.0 - Initial Release
+- Authentication token capture and management
+- Card Payment Instrument ID retrieval
+- Page-specific tools for spend.cloud

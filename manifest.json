@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PowerCloud",
-  "version": "1.0",
+  "version": "1.1.0",
   "description": "A Chrome extension that adds extra functionality on certain pages while logged in and allows making requests to authenticated routes.",
   "permissions": [
     "activeTab",
@@ -12,7 +12,8 @@
     "webRequest"
   ],
   "host_permissions": [
-    "*://*.spend.cloud/*"
+    "*://*.spend.cloud/*",
+    "*://*.dev.spend.cloud/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -20,7 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.spend.cloud/*"],
+      "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"],
       "js": [
         "content_scripts/features/adyen-card.js",
         "content_scripts/features/adyen-book.js",
@@ -34,7 +35,7 @@
   "web_accessible_resources": [
     {
       "resources": ["content_scripts/styles.css"],
-      "matches": ["*://*.spend.cloud/*"]
+      "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"]
     }
   ],
   "action": {

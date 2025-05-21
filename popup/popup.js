@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ showButtons: showButtons });
     
     // Notify all tabs to update button visibility
-    chrome.tabs.query({ url: "*://*.spend.cloud/*" }, (tabs) => {
+    chrome.tabs.query({ url: ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"] }, (tabs) => {
       tabs.forEach(tab => {
         chrome.tabs.sendMessage(tab.id, { action: 'updateButtonVisibility', showButtons });
       });
@@ -24,17 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const tokensList = document.getElementById('tokens-list');
     
     if (!response || !response.authTokens || response.authTokens.length === 0) {
-      tokensList.textContent = "No authentication tokens captured yet. Browse spend.cloud/api/ routes to capture tokens.";
+      tokensList.textContent = "No authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.";
       return;
     }
     
     // Additional filtering in case any non-API tokens are still present
     const apiTokens = response.authTokens.filter(token => 
-      token.url && token.url.match(/https:\/\/[^.]+\.spend\.cloud\/api\//)
+      token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)
     );
     
     if (apiTokens.length === 0) {
-      tokensList.textContent = "No API authentication tokens captured yet. Browse spend.cloud/api/ routes to capture tokens.";
+      tokensList.textContent = "No API authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.";
       return;
     }
     
@@ -130,11 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Define all the URL patterns that might contain card information
         const patterns = [
           // Standard card URL
-          { pattern: /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, name: 'standard' },
+          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, name: 'standard' },
           // Proactive single card update URL
-          { pattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, name: 'proactive' },
+          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, name: 'proactive' },
           // Kasboek passen show URL
-          { pattern: /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, name: 'kasboek' }
+          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, name: 'kasboek' }
         ];
         
         // Try each pattern until we find a match
@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Check all supported card URL patterns
         const cardUrlPatterns = [
-          /https:\/\/([^.]+)\.spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
-          /https:\/\/([^.]+)\.spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
-          /https:\/\/([^.]+)\.spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
+          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
         ];
         
         // Check if any of the patterns match
