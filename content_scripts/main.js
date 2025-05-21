@@ -26,12 +26,12 @@ window.PowerCloudFeatures = window.PowerCloudFeatures || {};
  */
 const features = [
   {
-    name: 'tokenDetection',
+    name: 'uiVisibilityManager', // Renamed from tokenDetection
     urlPattern: /.*\.spend\.cloud.*|.*\.dev\.spend\.cloud.*/,  // Run on all spend.cloud pages (including .dev subdomains)
     init: function() {
-      // Use the init function from token-detector.js using the PowerCloudFeatures namespace
-      if (window.PowerCloudFeatures?.tokenDetector?.init) {
-        return window.PowerCloudFeatures.tokenDetector.init();
+      // Use the init function from ui-visibility-manager.js using the PowerCloudFeatures namespace
+      if (window.PowerCloudFeatures?.uiVisibilityManager?.init) {
+        return window.PowerCloudFeatures.uiVisibilityManager.init();
       }
     },
     cleanup: null  // No cleanup needed

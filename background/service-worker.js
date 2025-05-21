@@ -94,43 +94,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     
     return true; // Keep message channel open for async response
-  } else if (message.action === "foundTokensInPage") {
-    // Handle tokens found by content script
-    const promises = [];
-    
-    // Check if the URL is an API route
-    const isApiRouteFromMessage = message.url && message.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
-    if (!isApiRouteFromMessage) {
-      console.log('Skipping tokens from non-API URL:', message.url);
-      sendResponse({ status: 'Skipped non-API URL tokens' });
-      return true;
-    }
-    
-    message.tokens.forEach(({ token, source }) => {
-      // Use shared isValidJWT function to validate the token
-      if (isValidJWT(token)) {
-        // Store token using shared auth module
-        const promise = setToken(token, {
-          url: message.url,
-          source: source || 'content-script',
-          timestamp: message.timestamp
-        });
-        promises.push(promise);
-      }
-    });
-    
-    Promise.all(promises)
-      .then(() => getAllTokens())
-      .then(tokens => {
-        authTokens = tokens; // Update local cache
-        sendResponse({ status: 'Tokens processed' });
-      })
-      .catch(error => {
-        console.error('Error processing page tokens:', error);
-        sendResponse({ status: 'Error processing tokens', error: error.message });
-      });
-    
-    return true; // Keep message channel open for async response
   } else if (message.action === "fetchCardDetails") {
     // Fetch card details using the shared API module
     const { customer, cardId } = message;

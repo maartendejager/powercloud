@@ -59,7 +59,7 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
     *   **Examples**:
         *   `adyen-book.js`: Adds functionality related to Adyen booking on specific book pages.
         *   `adyen-card.js`: Adds functionality related to Adyen card details on card settings pages.
-        *   `token-detector.js`: Scans `localStorage` and `sessionStorage` for authentication tokens (JWTs) on `spend.cloud` pages. It looks for common key patterns like `token`, `authToken`, `jwt`, etc. Found tokens are reported to the background script. It runs an initial check and then periodically checks for new tokens. It is registered in `main.js` to run on all `spend.cloud` pages.
+        *   `ui-visibility-manager.js`: Handles button visibility messaging on `spend.cloud` pages. Listens for messages from the popup to show or hide UI elements injected by the extension. Previously named `token-detector.js`.
     *   **Loading**: 
         *   All scripts are loaded via manifest declaration - specified in the `content_scripts` section of manifest.json, loaded before main.js executes.
         *   As of May 21, 2025, only manifest loading is supported for consistency. See AUDIT.md for details.
@@ -144,7 +144,7 @@ All feature scripts in this extension are loaded via the manifest.json file. Thi
     "js": [
       "content_scripts/features/adyen-card.js",
       "content_scripts/features/adyen-book.js",
-      "content_scripts/features/token-detector.js",
+      "content_scripts/features/ui-visibility-manager.js",
       "content_scripts/feature-manager.js",
       "content_scripts/main.js"
     ]

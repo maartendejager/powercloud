@@ -8,7 +8,7 @@ For technical details on how the extension is structured and how to add new feat
 
 ## Features
 
-- **Authentication Token Capture**: Automatically captures JWT tokens sent in requests to spend.cloud domains
+- **Authentication Token Capture**: Automatically captures JWT tokens from network requests to spend.cloud domains
 - **Token History**: Keeps a history of recent tokens for easy access
 - **Token Information**: Parses JWT tokens to show expiration details
 - **Copy Functionality**: One-click copying of tokens for use in API testing tools
