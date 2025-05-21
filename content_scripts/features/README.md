@@ -15,6 +15,7 @@ This directory contains modular features that are used by the PowerCloud extensi
 
 - **`token-detector.js`**:
   - Scans `localStorage` and `sessionStorage` for authentication tokens (JWTs) on `spend.cloud` pages.
+  - Environment-aware: Only uses tokens from matching environments (same customer subdomain and same dev/non-dev status).
   - Reports found tokens to the background script.
   - For more details, see the [Token Detector section in ARCHITECTURE.md](../../ARCHITECTURE.md#feature-scripts).
 
