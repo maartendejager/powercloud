@@ -20,6 +20,15 @@ As of version 1.1.0, the PowerCloud extension uses a single, consistent approach
 - All URL patterns in the code have been updated to match both domain patterns
 - The manifest.json has been updated to include permissions for both domain types
 
+### Authentication Token Management (May, 2025)
+- Refactored token detection and storage to improve modularity:
+  - Moved token detection logic from service-worker.js to shared/auth.js
+  - Created a new `handleAuthHeaderFromWebRequest` function in auth.js to encapsulate the logic of extracting tokens from web requests
+  - Used the existing `isApiRoute` function from url-patterns.js for consistent URL pattern matching
+  - Updated popup.js to use ES modules for proper importing of shared functions
+  - Updated popup.html to use type="module" for the script tag
+  - Ensured consistency in API route pattern usage across the codebase
+
 ## Potential Issues
 
 ### Duplicate Script Loading

@@ -5,6 +5,8 @@
  * handling storage, retrieval, validation, and manipulation of JWT tokens.
  */
 
+import { API_ROUTE_PATTERN, isApiRoute } from './url-patterns.js';
+
 /**
  * Maximum number of tokens to store in history
  * @type {number}
@@ -83,7 +85,7 @@ async function setToken(token, metadata = {}) {
   }
   
   // Only accept tokens from API routes
-  if (metadata.url && !metadata.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)) {
+  if (metadata.url && !isApiRoute(metadata.url)) {
     console.log('Skipping token from non-API URL:', metadata.url);
     return;
   }
@@ -219,6 +221,41 @@ function getTokenPayload(token) {
   }
 }
 
+/**
+ * Processes web request details to find, validate, and store an authentication token.
+ * It calls setToken to store the token and then getAllTokens to return the updated list.
+ * @param {object} details - The details object from chrome.webRequest.onSendHeaders.
+ * @returns {Promise<Array|null>} A promise that resolves with the updated list of all tokens 
+ *                                if a new valid token was processed, or null otherwise.
+ */
+async function handleAuthHeaderFromWebRequest(details) {
+  // Check if the URL is an API route
+  if (!isApiRoute(details.url)) {
+    return null; // Skip non-API routes
+  }
+
+  // Look for Authorization header
+  const authHeader = details.requestHeaders?.find(header =>
+    header.name.toLowerCase() === 'x-authorization-token' ||
+    header.name.toLowerCase() === 'authorization'
+  );
+
+  if (authHeader?.value) {
+    let token = authHeader.value;
+    // If it's a Bearer token, extract just the JWT
+    if (token.startsWith('Bearer ')) {
+      token = token.slice(7);
+    }
+
+    // Store the token using the existing setToken function
+    await setToken(token, { url: details.url, source: 'webRequest' });
+    // After setting the token, get the updated list of all tokens
+    const allTokens = await getAllTokens();
+    return allTokens;
+  }
+  return null; // No relevant header found
+}
+
 export {
   getToken,
   setToken,
@@ -227,5 +264,6 @@ export {
   getAllTokens,
   isValidJWT,
   saveTokens,
-  getTokenPayload
+  getTokenPayload,
+  handleAuthHeaderFromWebRequest
 };

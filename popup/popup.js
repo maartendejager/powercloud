@@ -1,3 +1,5 @@
+import { isApiRoute } from '../shared/url-patterns.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   // Load and set toggle state for showing buttons
   chrome.storage.local.get('showButtons', (result) => {
@@ -30,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Additional filtering in case any non-API tokens are still present
     const apiTokens = response.authTokens.filter(token => 
-      token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)
+      token.url && isApiRoute(token.url)
     );
     
     if (apiTokens.length === 0) {

@@ -1,6 +1,7 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
-import { setToken, getAllTokens, getToken, isValidJWT, saveTokens, removeToken } from '../shared/auth.js';
+import { setToken, getAllTokens, getToken, isValidJWT, saveTokens, removeToken, handleAuthHeaderFromWebRequest } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails } from '../shared/api.js';
+import { isApiRoute } from '../shared/url-patterns.js';
 
 // Keep a local reference to tokens for quicker access
 let authTokens = [];
@@ -8,33 +9,16 @@ let authTokens = [];
 // Listen for requests to spend.cloud API domains only
 chrome.webRequest.onSendHeaders.addListener(
   (details) => {
-    // Check if the URL is an API route
-    const isApiRoute = details.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
-    if (!isApiRoute) {
-      return; // Skip non-API routes
-    }
-    
-    // Look for Authorization header
-    const authHeader = details.requestHeaders ? details.requestHeaders.find(header => 
-      header.name.toLowerCase() === 'x-authorization-token' || 
-      header.name.toLowerCase() === 'authorization'
-    ) : null;
-    
-    if (authHeader && authHeader.value) {
-      let token = authHeader.value;
-      // If it's a Bearer token, extract just the JWT
-      if (token.startsWith('Bearer ')) {
-        token = token.slice(7);
-      }
-      
-      // Use the shared auth module to store the token
-      setToken(token, { url: details.url, source: 'webRequest' })
-        .then(() => getAllTokens())
-        .then(tokens => {
-          // Update local reference
-          authTokens = tokens;
-        });
-    }
+    handleAuthHeaderFromWebRequest(details)
+      .then(updatedTokens => {
+        if (updatedTokens) {
+          // Update local reference if a token was processed and new list returned
+          authTokens = updatedTokens;
+        }
+      })
+      .catch(error => {
+        console.error('Error handling auth header from web request:', error);
+      });
   },
   { urls: ["*://*.spend.cloud/api/*"] }, // Only monitor API routes
   ["requestHeaders", "extraHeaders"]
@@ -45,7 +29,7 @@ chrome.runtime.onInstalled.addListener(() => {
   getAllTokens().then(tokens => {
     // Filter out non-API tokens
     const apiTokens = tokens.filter(token => 
-      token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)
+      token.url && isApiRoute(token.url)
     );
     
     if (apiTokens.length !== tokens.length) {
