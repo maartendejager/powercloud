@@ -132,11 +132,9 @@ When adding new feature scripts to the extension, follow these guidelines to ens
 2. **Naming Convention**: Use descriptive names that indicate the feature's functionality (e.g., `feature-name.js`).
 3. **Structure**: Each feature script should be self-contained with well-defined entry points.
 
-### 2. Script Loading Options
+### 2. Script Loading Strategy
 
-There are two ways to load feature scripts in this extension:
-
-#### Option A: Direct Loading via Manifest (Recommended)
+All feature scripts in this extension are loaded via the manifest.json file. This approach ensures consistency and avoids potential issues with duplicate script loading.
 
 1. Add the script path to the `content_scripts` section in `manifest.json`:
 
@@ -147,6 +145,8 @@ There are two ways to load feature scripts in this extension:
     "js": [
       "content_scripts/features/adyen-card.js",
       "content_scripts/features/adyen-book.js",
+      "content_scripts/features/token-detector.js",
+      "content_scripts/feature-manager.js",
       "content_scripts/main.js"
     ]
   }
@@ -169,41 +169,45 @@ const features = [
   {
     name: 'yourFeature',
     urlPattern: /https:\/\/([^.]+)\.spend\.cloud\/your-feature-pattern/,
-    init: yourFeatureInitFunction,
-    cleanup: yourFeatureCleanupFunction
+    init: function() {
+      if (window.PowerCloudFeatures?.yourFeature?.init) {
+        return window.PowerCloudFeatures.yourFeature.init();
+      }
+    },
+    cleanup: function() {
+      if (window.PowerCloudFeatures?.yourFeature?.cleanup) {
+        return window.PowerCloudFeatures.yourFeature.cleanup();
+      }
+    }
   }
 ];
 ```
 
-#### Option B: Dynamic Loading (Alternative)
+4. It's recommended to use the `PowerCloudFeatures` namespace to organize all feature functions:
 
-1. Add the script path to the `web_accessible_resources` section in `manifest.json` if not already included:
+```javascript
+// In your feature script (e.g., content_scripts/features/your-feature.js)
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+window.PowerCloudFeatures.yourFeature = {
+  init: function() {
+    // Your initialization code here
+  },
+  cleanup: function() {
+    // Your cleanup code here
+  }
+};
+```
 
 ```json
 "web_accessible_resources": [
   {
-    "resources": ["content_scripts/styles.css", "content_scripts/features/*.js"],
+    "resources": ["content_scripts/styles.css"],
     "matches": ["*://*.spend.cloud/*"]
   }
 ]
 ```
 
-2. Use the `loadScript` function in `main.js` to dynamically load your feature:
-
-```javascript
-// In main.js
-function initYourFeature(match) {
-  loadScript('content_scripts/features/your-new-feature.js')
-    .then(() => {
-      if (window.yourFeatureInitFunction) {
-        window.yourFeatureInitFunction(match);
-      }
-    })
-    .catch(error => console.error('Failed to load feature script:', error));
-}
-```
-
-3. Register your feature in the `features` array using this init function.
+Note: The `web_accessible_resources` section now only includes CSS files as all JS files are loaded via the manifest.
 
 ### 3. Testing Your Feature Script
 

@@ -3,60 +3,12 @@
  * Runs on spend.cloud pages to capture authentication tokens
  * and provide additional functionality
  *
- * Note: CSS is loaded via the manifest.json content_scripts configuration
+ * Note: All feature scripts and CSS are loaded via the manifest.json content_scripts configuration
+ * This ensures a consistent loading strategy through manifest-only injection.
  */
 
-// Load adyen-book.js using a script tag dynamically instead of import
-// This approach works with or without module support
-function loadScript(src, retries = 3, delay = 500) {
-  return new Promise((resolve, reject) => {
-    const attemptLoad = (attemptsLeft) => {
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL(src);
-      
-      script.onload = () => {
-        resolve();
-      };
-      
-      script.onerror = (err) => {
-        if (attemptsLeft > 0) {
-          setTimeout(() => attemptLoad(attemptsLeft - 1), delay);
-        } else {
-          reject(new Error(`Failed to load script: ${src} after multiple attempts`));
-        }
-      };
-      
-      // Add to document
-      document.head.appendChild(script);
-    };
-    
-    // Start loading with specified number of retries
-    attemptLoad(retries);
-  });
-}
-
-// Load feature scripts immediately to ensure they're available before URL matching happens
-// Note: We check if the script-specific functions exist first to prevent duplicate loading
-// if the script was already loaded via manifest
-const scriptsToLoad = [];
-
-// Only load adyen-book.js if its namespace doesn't already exist
-if (!window.PowerCloudFeatures?.book?.init) {
-  scriptsToLoad.push(loadScript('content_scripts/features/adyen-book.js'));
-}
-
-// Only load token-detector.js if its namespace doesn't already exist
-if (!window.PowerCloudFeatures?.tokenDetector?.init) {
-  scriptsToLoad.push(loadScript('content_scripts/features/token-detector.js'));
-}
-
-if (scriptsToLoad.length > 0) {
-  Promise.all(scriptsToLoad).catch(error => {
-    console.error('Error loading feature scripts:', error);
-  });
-}
-
 // Initialize the PowerCloudFeatures namespace if it doesn't exist already
+// All feature scripts should be loaded via manifest.json before this code runs
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
 /**

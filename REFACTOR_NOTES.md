@@ -49,5 +49,5 @@ The PowerCloud extension uses a hybrid approach for loading content scripts:
 Consider reviewing and updating the codebase with one of the following changes:
 
 1. Audit all feature scripts to ensure they support either loading method but not both simultaneously.
-2. Choose a single loading strategy (manifest or dynamic) for all feature scripts and apply it consistently.
+2. ✅ Choose a single loading strategy (manifest or dynamic) for all feature scripts and apply it consistently. (Implemented manifest-only loading on May 21, 2025)
 3. Add script loading detection to prevent duplicate initialization if a script is loaded twice.

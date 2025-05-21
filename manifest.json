@@ -33,7 +33,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content_scripts/styles.css", "content_scripts/features/*.js"],
+      "resources": ["content_scripts/styles.css"],
       "matches": ["*://*.spend.cloud/*"]
     }
   ],
