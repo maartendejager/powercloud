@@ -4,7 +4,14 @@
  * This module provides functionality for detecting authentication tokens
  * on spend.cloud pages. It searches localStorage and sessionStorage for 
  * common token patterns and reports them to the extension background script.
+ *
+ * Loading Method: Manifest-only
+ * This script is loaded via the manifest.json content_scripts configuration.
  */
+
+// Initialize the PowerCloudFeatures namespace if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+window.PowerCloudFeatures.tokenDetector = window.PowerCloudFeatures.tokenDetector || {};
 
 /**
  * Initialize the token detection feature
@@ -102,6 +109,10 @@ function checkForTokensInStorage() {
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
 // Register token detector functions in the PowerCloud namespace
+window.PowerCloudFeatures.tokenDetector = {
+  init: initTokenDetection,
+  checkForTokens: checkForTokensInStorage
+};
 window.PowerCloudFeatures.tokenDetector = {
   init: initTokenDetection,
   checkStorage: checkForTokensInStorage

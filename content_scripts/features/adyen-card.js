@@ -1,11 +1,17 @@
-// filepath: /home/maarten/projects/Extensions/PowerCloud/content_scripts/features/adyen-card.js
 /**
  * Adyen Card Feature Module
  *
  * This module provides functionality for viewing card information at Adyen
  * for card pages at https://[customer-environment].spend.cloud/cards/[card-id]/*
  * and other related card pages.
+ * 
+ * Loading Method: Manifest-only
+ * This script is loaded via the manifest.json content_scripts configuration.
  */
+
+// Initialize the PowerCloudFeatures namespace if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+window.PowerCloudFeatures.card = window.PowerCloudFeatures.card || {};
 
 /**
  * Initialize the card feature

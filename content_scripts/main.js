@@ -5,6 +5,9 @@
  *
  * Note: All feature scripts and CSS are loaded via the manifest.json content_scripts configuration
  * This ensures a consistent loading strategy through manifest-only injection.
+ * 
+ * IMPORTANT: Do not attempt to dynamically load scripts here.
+ * All feature scripts must be loaded via manifest.json before this script runs.
  */
 
 // Initialize the PowerCloudFeatures namespace if it doesn't exist already
@@ -98,14 +101,12 @@ function initCardFeature(match) {
  * @param {object} match - The URL match result containing capture groups  
  */
 function loadBookFeature(match) {
-  // Use the implementation from adyen-book.js using the PowerCloudFeatures namespace
+  // Use the implementation from adyen-book.js which is loaded via manifest
   if (window.PowerCloudFeatures?.book?.init) {
     return window.PowerCloudFeatures.book.init(match);
+  } else {
+    console.error('Book feature implementation not found. Check that adyen-book.js is properly included in manifest.json');
   }
-  
-  // If for some reason the external implementation is not available,
-  // log an error but don't try to use a local implementation
-  console.error('Book feature implementation not found');
 }
 
 // Card feature functions are now imported from adyen-card.js

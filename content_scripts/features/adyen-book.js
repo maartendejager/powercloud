@@ -3,7 +3,14 @@
  * 
  * This module provides functionality for viewing balance account information at Adyen
  * for book pages at https://[customer-environment].spend.cloud/proactive/kasboek.boekingen/[book-id]/*
+ *
+ * Loading Method: Manifest-only
+ * This script is loaded via the manifest.json content_scripts configuration.
  */
+
+// Initialize the PowerCloudFeatures namespace if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+window.PowerCloudFeatures.book = window.PowerCloudFeatures.book || {};
 
 /**
  * Initialize the book feature
