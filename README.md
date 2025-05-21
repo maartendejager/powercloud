@@ -14,6 +14,16 @@ For technical details on how the extension is structured and how to add new feat
 - **Copy Functionality**: One-click copying of tokens for use in API testing tools
 - **Card Payment Instrument ID**: Retrieve Adyen Payment Instrument IDs for cards
 - **Page-Specific Tools**: Automatically adds helpful buttons on relevant pages
+- **Dev Environment Support**: Works on both standard domains and dev environments with consistent behavior
+
+## Recent Updates
+
+### URL Pattern Refactoring (June 2023)
+- **Centralized URL Patterns**: All URL patterns are now defined in a shared module (`shared/url-patterns.js`)
+- **Dev Environment Support**: Added explicit support for `.dev.spend.cloud` domains alongside standard domains
+- **Improved Maintainability**: Removed duplicate pattern definitions across different files
+- **Helper Functions**: Added utility functions for common URL operations (extracting customer domains, checking API routes)
+- **Consistent Pattern Matching**: All components now use the same patterns for URL matching
 
 ## Installation
 

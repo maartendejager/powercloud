@@ -4,6 +4,7 @@
  * This module provides centralized authentication token management functionality,
  * handling storage, retrieval, validation, and manipulation of JWT tokens.
  */
+import { isApiRoute } from './url-patterns.js';
 
 /**
  * Maximum number of tokens to store in history
@@ -82,8 +83,8 @@ async function setToken(token, metadata = {}) {
     return;
   }
   
-  // Only accept tokens from API routes
-  if (metadata.url && !metadata.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)) {
+  // Only accept tokens from API routes using the shared utility
+  if (metadata.url && !isApiRoute(metadata.url)) {
     console.log('Skipping token from non-API URL:', metadata.url);
     return;
   }

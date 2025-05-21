@@ -20,6 +20,19 @@ As of version 1.1.0, the PowerCloud extension uses a single, consistent approach
 - All URL patterns in the code have been updated to match both domain patterns
 - The manifest.json has been updated to include permissions for both domain types
 
+### URL Pattern Refactoring (May 21, 2025)
+- Created a centralized URL pattern module (`shared/url-patterns.js`) with the following:
+  - Common pattern definitions (DOMAIN_PATTERN, ANY_SPEND_CLOUD_DOMAIN, API_ROUTE_PATTERN)
+  - Feature-specific patterns (CARD_PATTERNS, BOOK_PATTERN)
+  - Helper functions (isApiRoute, extractCustomerDomain, extractCardInfo, extractBookInfo)
+- Updated components to use these shared patterns:
+  - Added direct imports in background/service worker scripts 
+  - Implemented dynamic ESM imports in content scripts
+  - Added updateFeatureRegistry function in main.js to dynamically update patterns
+  - Implemented fallback logic for when patterns aren't loaded yet
+- Updated documentation in ARCHITECTURE.md and README.md to reflect these changes
+- All components now use consistent URL patterns that work with both domain formats
+
 ## Potential Issues
 
 ### Duplicate Script Loading
@@ -48,7 +61,14 @@ As of version 1.1.0, the PowerCloud extension uses a single, consistent approach
 
 ## Next Steps
 
+### Script Loading Strategy
 Consider reviewing and updating the codebase with one of the following changes:
+
+### URL Pattern Enhancement
+Following the recent centralization of URL patterns:
+1. **Performance Optimization**: Consider pre-loading URL patterns to avoid delays in pattern matching
+2. **Pattern Extensions**: Update the URL patterns module as new features or domain formats are added
+3. **Testing Coverage**: Add comprehensive tests for edge cases in URL pattern matching
 
 1. ✅ Audit all feature scripts to ensure they support either loading method but not both simultaneously. (Implemented manifest-only loading on May 21, 2025)
 2. ✅ Choose a single loading strategy (manifest or dynamic) for all feature scripts and apply it consistently. (Implemented manifest-only loading on May 21, 2025)

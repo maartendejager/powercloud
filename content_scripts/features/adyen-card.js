@@ -13,6 +13,20 @@
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 window.PowerCloudFeatures.card = window.PowerCloudFeatures.card || {};
 
+// Import shared URL patterns (using window-scoped variable to prevent duplicate declarations)
+if (!window.PowerCloudFeatures.card.urlPatterns) {
+  window.PowerCloudFeatures.card.urlPatterns = null;
+  (async () => {
+    try {
+      const module = await import(chrome.runtime.getURL('/shared/url-patterns.js'));
+      window.PowerCloudFeatures.card.urlPatterns = module;
+      console.log('URL patterns loaded successfully in adyen-card.js');
+    } catch (error) {
+      console.error('Failed to load URL patterns in adyen-card.js:', error);
+    }
+  })();
+}
+
 /**
  * Initialize the card feature
  * Adds functionality specific to card pages

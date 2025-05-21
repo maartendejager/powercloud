@@ -1,3 +1,16 @@
+// Import URL patterns from shared module using dynamic import
+const popupUrlPatterns = { loaded: false, module: null };
+(async () => {
+  try {
+    const module = await import(chrome.runtime.getURL('/shared/url-patterns.js'));
+    popupUrlPatterns.module = module;
+    popupUrlPatterns.loaded = true;
+    console.log('URL patterns loaded successfully in popup.js');
+  } catch (error) {
+    console.error('Failed to load URL patterns in popup.js:', error);
+  }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   // Load and set toggle state for showing buttons
   chrome.storage.local.get('showButtons', (result) => {
@@ -29,9 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Additional filtering in case any non-API tokens are still present
-    const apiTokens = response.authTokens.filter(token => 
-      token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)
-    );
+    const apiTokens = response.authTokens.filter(token => {
+      if (popupUrlPatterns.loaded && popupUrlPatterns.module && token.url) {
+        return popupUrlPatterns.module.isApiRoute(token.url);
+      }
+      // Fallback if module isn't loaded yet
+      return token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
+    });
     
     if (apiTokens.length === 0) {
       tokensList.textContent = "No API authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.";
@@ -127,38 +144,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = tabs[0].url;
         console.log('Current URL:', url);
         
-        // Define all the URL patterns that might contain card information
-        const patterns = [
-          // Standard card URL
-          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, name: 'standard' },
-          // Proactive single card update URL
-          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, name: 'proactive' },
-          // Kasboek passen show URL
-          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, name: 'kasboek' }
-        ];
+        // Try to extract card info using the shared utility
+        let cardInfo = null;
         
-        // Try each pattern until we find a match
-        let match = null;
-        let matchType = null;
-        
-        for (const patternObj of patterns) {
-          const result = url.match(patternObj.pattern);
-          if (result) {
-            match = result;
-            matchType = patternObj.name;
-            break;
+        if (popupUrlPatterns.loaded && popupUrlPatterns.module) {
+          cardInfo = popupUrlPatterns.module.extractCardInfo(url);
+        } else {
+          // Fallback patterns if module isn't loaded yet
+          const patterns = [
+            // Standard card URL
+            { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, name: 'standard' },
+            // Proactive single card update URL
+            { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, name: 'proactive' },
+            // Kasboek passen show URL
+            { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, name: 'kasboek' }
+          ];
+          
+          // Try each pattern until we find a match
+          let match = null;
+          let matchType = null;
+          
+          for (const patternObj of patterns) {
+            const result = url.match(patternObj.pattern);
+            if (result) {
+              match = result;
+              matchType = patternObj.name;
+              cardInfo = {
+                type: matchType,
+                customer: match[1],
+                cardId: match[2]
+              };
+              break;
+            }
           }
         }
         
-        console.log('URL match result:', match, 'Type:', matchType);
+        console.log('Card info:', cardInfo);
         
         // Show or hide the card tab based on whether we're on a card page
         const cardTab = document.getElementById('card-tab');
-        if (match) {
+        if (cardInfo) {
           cardTab.style.display = 'block';
-          const customerDomain = match[1];
-          const cardId = match[2];
-          console.log(`Extracted customer domain: ${customerDomain}, card ID: ${cardId} from ${matchType} URL`);
+          console.log(`Extracted customer domain: ${cardInfo.customer}, card ID: ${cardInfo.cardId} from ${cardInfo.type} URL`);
           
           // Make sure the elements exist
           const domainInput = document.getElementById('customer-domain');
@@ -166,8 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
           
           if (domainInput && cardInput) {
             // Fill the form fields
-            domainInput.value = customerDomain;
-            cardInput.value = cardId;
+            domainInput.value = cardInfo.customer;
+            cardInput.value = cardInfo.cardId;
             console.log('Form fields populated successfully');
             
             // Auto-switch to the card tab if we're on a card page
@@ -209,15 +236,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tabs[0] && tabs[0].url) {
         const url = tabs[0].url;
         
-        // Check all supported card URL patterns
-        const cardUrlPatterns = [
-          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
-          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
-          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
-        ];
+        // Check if we're on a card URL
+        let isCardPage = false;
         
-        // Check if any of the patterns match
-        const isCardPage = cardUrlPatterns.some(pattern => pattern.test(url));
+        if (popupUrlPatterns.loaded && popupUrlPatterns.module) {
+          isCardPage = popupUrlPatterns.module.extractCardInfo(url) !== null;
+        } else {
+          // Fallback if module isn't loaded
+          const cardUrlPatterns = [
+            /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+            /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+            /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
+          ];
+          
+          isCardPage = cardUrlPatterns.some(pattern => pattern.test(url));
+        }
         
         if (isCardPage) {
           switchToTab('card');

@@ -34,7 +34,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content_scripts/styles.css"],
+      "resources": ["content_scripts/styles.css", "shared/url-patterns.js"],
       "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"]
     }
   ],

@@ -16,6 +16,50 @@
 // Initialize the PowerCloudFeatures namespace if it doesn't exist already
 // All feature scripts should be loaded via manifest.json before this code runs
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+window.PowerCloudFeatures.main = window.PowerCloudFeatures.main || {};
+
+// Import URL patterns from shared module using dynamic import
+if (!window.PowerCloudFeatures.main.urlPatterns) {
+  window.PowerCloudFeatures.main.urlPatterns = null;
+  (async () => {
+    try {
+      const module = await import(chrome.runtime.getURL('/shared/url-patterns.js'));
+      window.PowerCloudFeatures.main.urlPatterns = module;
+      console.log('URL patterns loaded successfully in main.js');
+      
+      // Update feature registry with loaded patterns
+      updateFeatureRegistry(window.PowerCloudFeatures.main.urlPatterns);
+    } catch (error) {
+      console.error('Failed to load URL patterns:', error);
+    }
+  })();
+}
+
+/**
+ * Updates the feature registry with patterns from the URL patterns module
+ * @param {Object} patterns - The URL patterns module
+ */
+function updateFeatureRegistry(patterns) {
+  if (!patterns) return;
+  
+  // Update URL patterns in the feature registry
+  if (features && features.length) {
+    features.forEach(feature => {
+      if (feature.name === 'tokenDetection') {
+        feature.urlPattern = patterns.ANY_SPEND_CLOUD_DOMAIN;
+      } else if (feature.name === 'cardInfo') {
+        feature.urlPattern = patterns.CARD_PATTERNS.standard;
+      } else if (feature.name === 'cardInfoProactive') {
+        feature.urlPattern = patterns.CARD_PATTERNS.proactive;
+      } else if (feature.name === 'cardInfoKasboek') {
+        feature.urlPattern = patterns.CARD_PATTERNS.kasboek;
+      } else if (feature.name === 'bookInfo') {
+        feature.urlPattern = patterns.BOOK_PATTERN;
+      }
+    });
+    console.log('Feature registry updated with shared URL patterns');
+  }
+}
 
 /**
  * Feature registry for different page types

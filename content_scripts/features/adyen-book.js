@@ -13,6 +13,20 @@
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 window.PowerCloudFeatures.book = window.PowerCloudFeatures.book || {};
 
+// Import shared URL patterns (using window-scoped variable to prevent duplicate declarations)
+if (!window.PowerCloudFeatures.book.urlPatterns) {
+  window.PowerCloudFeatures.book.urlPatterns = null;
+  (async () => {
+    try {
+      const module = await import(chrome.runtime.getURL('/shared/url-patterns.js'));
+      window.PowerCloudFeatures.book.urlPatterns = module;
+      console.log('URL patterns loaded successfully in adyen-book.js');
+    } catch (error) {
+      console.error('Failed to load URL patterns in adyen-book.js:', error);
+    }
+  })();
+}
+
 /**
  * Initialize the book feature
  * Adds functionality specific to book pages

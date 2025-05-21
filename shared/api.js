@@ -6,6 +6,7 @@
  */
 
 import { getToken } from './auth.js';
+import { isApiRoute, extractCustomerDomain } from './url-patterns.js';
 
 /**
  * Makes an authenticated request to an API endpoint
@@ -120,6 +121,38 @@ function buildApiUrl(customer, path) {
 }
 
 /**
+ * Constructs a spend.cloud API URL for a given customer and endpoint
+ * Supports both standard and development domains
+ * 
+ * @param {string} customer - The customer subdomain
+ * @param {string} endpoint - The API endpoint path (without leading slash)
+ * @param {boolean} isDev - Whether to use the dev domain (default: false)
+ * @returns {string} The complete API URL
+ */
+function constructApiUrl(customer, endpoint, isDev = false) {
+  if (!customer || typeof customer !== 'string') {
+    throw new Error('Customer subdomain is required');
+  }
+  
+  if (!endpoint || typeof endpoint !== 'string') {
+    throw new Error('API endpoint path is required');
+  }
+  
+  // Remove leading slash if present
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+  
+  // Construct the domain with or without dev subdomain
+  const domain = isDev ? 
+    `https://${customer}.dev.spend.cloud` : 
+    `https://${customer}.spend.cloud`;
+  
+  // Add api/ prefix if not already present
+  const apiPath = cleanEndpoint.startsWith('api/') ? cleanEndpoint : `api/${cleanEndpoint}`;
+  
+  return `${domain}/${apiPath}`;
+}
+
+/**
  * Fetches card details from the API
  * @param {string} customer - The customer subdomain
  * @param {string} cardId - The card ID to fetch
@@ -212,6 +245,7 @@ export {
   put, 
   del, 
   buildApiUrl,
+  constructApiUrl,
   getCardDetails,
   getBookDetails,
   getAdministrationDetails

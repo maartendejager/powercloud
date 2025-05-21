@@ -1,6 +1,7 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
 import { setToken, getAllTokens, getToken, isValidJWT, saveTokens } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails } from '../shared/api.js';
+import { isApiRoute, API_ROUTE_PATTERN } from '../shared/url-patterns.js';
 
 // Keep a local reference to tokens for quicker access
 let authTokens = [];
@@ -8,9 +9,8 @@ let authTokens = [];
 // Listen for requests to spend.cloud API domains only
 chrome.webRequest.onSendHeaders.addListener(
   (details) => {
-    // Check if the URL is an API route
-    const isApiRoute = details.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
-    if (!isApiRoute) {
+    // Check if the URL is an API route using the shared utility
+    if (!isApiRoute(details.url)) {
       return; // Skip non-API routes
     }
     
@@ -36,16 +36,16 @@ chrome.webRequest.onSendHeaders.addListener(
         });
     }
   },
-  { urls: ["*://*.spend.cloud/api/*"] }, // Only monitor API routes
+  { urls: ["*://*.spend.cloud/api/*", "*://*.dev.spend.cloud/api/*"] }, // Monitor API routes on both domains
   ["requestHeaders", "extraHeaders"]
 );
 
 // Initialize from storage on startup
 chrome.runtime.onInstalled.addListener(() => {
   getAllTokens().then(tokens => {
-    // Filter out non-API tokens
+    // Filter out non-API tokens using the shared utility
     const apiTokens = tokens.filter(token => 
-      token.url && token.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//)
+      token.url && isApiRoute(token.url)
     );
     
     if (apiTokens.length !== tokens.length) {
@@ -72,9 +72,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Handle tokens found by content script
     const promises = [];
     
-    // Check if the URL is an API route
-    const isApiRouteFromMessage = message.url && message.url.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
-    if (!isApiRouteFromMessage) {
+    // Check if the URL is an API route using the shared utility
+    if (!message.url || !isApiRoute(message.url)) {
       console.log('Skipping tokens from non-API URL:', message.url);
       sendResponse({ status: 'Skipped non-API URL tokens' });
       return true;
