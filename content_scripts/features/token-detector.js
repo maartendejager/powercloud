@@ -8,6 +8,19 @@
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
  */
+// Import URL patterns from shared module using dynamic import (using window-scoped variable)
+if (!window.PowerCloudFeatures.tokenDetector.urlPatterns) {
+  window.PowerCloudFeatures.tokenDetector.urlPatterns = null;
+  (async () => {
+    try {
+      const module = await import(chrome.runtime.getURL('/shared/url-patterns.js'));
+      window.PowerCloudFeatures.tokenDetector.urlPatterns = module;
+      console.log('URL patterns loaded successfully in token-detector.js');
+    } catch (error) {
+      console.error('Failed to load URL patterns in token-detector.js:', error);
+    }
+  })();
+}
 
 // Initialize the PowerCloudFeatures namespace if it doesn't exist
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
@@ -42,10 +55,17 @@ function initTokenDetection() {
  * Check for tokens in localStorage or sessionStorage
  */
 function checkForTokensInStorage() {
-  // First, check if we're on an API page
-  const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.spend\.cloud\/api\//);
-  if (!isApiRoute) {
-    return;
+  // First, check if we're on an API page using the shared utility if available
+  if (window.PowerCloudFeatures.tokenDetector.urlPatterns) {
+    if (!window.PowerCloudFeatures.tokenDetector.urlPatterns.isApiRoute(window.location.href)) {
+      return;
+    }
+  } else {
+    // Fallback if module isn't loaded yet
+    const isApiRoute = window.location.href.match(/https:\/\/[^.]+\.(?:dev\.)?spend\.cloud\/api\//);
+    if (!isApiRoute) {
+      return;
+    }
   }
   
   const storageLocations = [

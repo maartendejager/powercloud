@@ -82,6 +82,82 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 *   **Examples**:
     *   `api.js`: Contains functions for making API calls.
     *   `auth.js`: Contains functions for authentication token management.
+    *   `url-patterns.js`: Centralized definition of URL patterns for consistent domain matching across the extension.
+
+#### URL Patterns Module (`shared/url-patterns.js`)
+
+This module provides a centralized set of URL pattern definitions and helper functions to improve consistency and maintainability. Key features include:
+
+*   **Pattern Definitions**:
+    ```javascript
+    const DOMAIN_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud/;
+    const ANY_SPEND_CLOUD_DOMAIN = /.*\.spend\.cloud.*|.*\.dev\.spend\.cloud.*/;
+    const API_ROUTE_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/api\//;
+    ```
+
+*   **Feature-specific Patterns**:
+    ```javascript
+    // Card-related URL patterns
+    const CARD_PATTERNS = {
+      standard: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+      proactive: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+      kasboek: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
+    };
+    
+    // Book-related URL pattern
+    const BOOK_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/;
+    ```
+
+*   **Helper Functions**:
+    *   `isApiRoute(url)`: Checks if a URL is an API route
+    *   `isSpendCloudDomain(url)`: Checks if a URL matches any spend.cloud domain
+    *   `extractCustomerDomain(url)`: Extracts the customer subdomain
+    *   `extractCardInfo(url)`: Extracts card information from card-related URLs
+    *   `extractBookInfo(url)`: Extracts book information from book-related URLs
+    
+*   **Usage in Components**:
+    *   Imported via ES modules in background scripts: `import { isApiRoute } from '../shared/url-patterns.js';`
+    *   Dynamically imported in content scripts: 
+    ```javascript
+    (async () => {
+      try {
+        const module = await import(chrome.runtime.getURL('/shared/url-patterns.js'));
+        urlPatterns = module;
+      } catch (error) {
+        console.error('Failed to load URL patterns:', error);
+      }
+    })();
+    ```
+    
+*   **Domain Support**: All patterns support both:
+    *   Standard domains: `https://[customer].spend.cloud/*`
+    *   Development domains: `https://[customer].dev.spend.cloud/*`
+
+## Integration Between URL Patterns and API Module
+
+To ensure consistent URL handling across the extension, the URL patterns module is integrated with the API module:
+
+1. **API URL Construction**:
+   * The `shared/api.js` module imports URL patterns and provides utilities for constructing API URLs:
+   ```javascript
+   import { isApiRoute, extractCustomerDomain } from './url-patterns.js';
+   
+   // Utility to construct API URLs supporting both domain types
+   function constructApiUrl(customer, endpoint, isDev = false) {
+     const domain = isDev ? 
+       `https://${customer}.dev.spend.cloud` : 
+       `https://${customer}.spend.cloud`;
+     
+     const apiPath = endpoint.startsWith('api/') ? endpoint : `api/${endpoint}`;
+     return `${domain}/${apiPath}`;
+   }
+   ```
+
+2. **Usage Benefits**:
+   * Consistent URL construction throughout the codebase
+   * Support for both standard and development domains
+   * Simplified API endpoint construction with proper domain handling
+   * Centralized pattern management for easier future updates
 
 ## Communication Flow
 
