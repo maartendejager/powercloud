@@ -11,12 +11,14 @@ import { getCardDetails as apiGetCardDetails } from '../../shared/api.js';
  * @param {string} customer - The customer subdomain
  * @param {string} cardId - The card ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} requestId - Optional request ID for tracing
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export function processCardDetailsRequest(customer, cardId, isDev, sendResponse) {
+export function processCardDetailsRequest(customer, cardId, isDev, requestId, sendResponse) {
   // Get card details using our API module
   apiGetCardDetails(customer, cardId, isDev)
     .then(data => {
+      console.log(`%c Card API response received! ${requestId || ''} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
       console.log('API response:', JSON.stringify(data));
       
       // Check various possible paths for the Adyen payment instrument ID
@@ -48,14 +50,16 @@ export function processCardDetailsRequest(customer, cardId, isDev, sendResponse)
         success: true,
         paymentInstrumentId: paymentInstrumentId,
         vendor: vendor,
-        data: data.data || data
+        data: data.data || data,
+        requestId
       });
     })
     .catch(error => {
-      console.error('Error fetching card details:', error);
+      console.error(`Error fetching card details (${requestId || ''}):`, error);
       sendResponse({
         success: false,
-        error: error.message
+        error: error.message,
+        requestId
       });
     });
 }

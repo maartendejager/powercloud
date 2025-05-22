@@ -1,0 +1,185 @@
+/**
+ * Entity Message Handlers
+ * 
+ * Handlers for entity-related messages received by the service worker.
+ */
+
+import { 
+  processCardDetailsRequest 
+} from '../api-processors/card-processor.js';
+import { 
+  processBookDetailsRequest 
+} from '../api-processors/book-processor.js';
+import { 
+  processAdministrationDetailsRequest 
+} from '../api-processors/administration-processor.js';
+import { 
+  processBalanceAccountDetailsRequest 
+} from '../api-processors/balance-account-processor.js';
+import { 
+  determineDevelopmentStatus, 
+  validateRequiredParams,
+  generateRequestId
+} from '../api-processors/utils.js';
+
+/**
+ * Handle fetchCardDetails message
+ * @param {Object} message - The message with customer and cardId
+ * @param {Object} sender - The sender information
+ * @param {Function} sendResponse - Function to send response
+ * @returns {boolean} - Whether to keep the message channel open
+ */
+export function handleFetchCardDetails(message, sender, sendResponse) {
+  const { customer, cardId } = message;
+  // Generate a request ID for tracing
+  const requestId = message.requestId || generateRequestId('card');
+  
+  console.log(`%c RECEIVED fetchCardDetails REQUEST ${requestId} `, 'background: #FF9800; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, CardID: ${cardId}`);
+  
+  // Validate required parameters
+  const validation = validateRequiredParams({ customer, cardId }, ['customer', 'cardId']);
+  if (!validation.isValid) {
+    sendResponse({
+      success: false,
+      error: validation.errorMessage,
+      requestId
+    });
+    return true;
+  }
+  
+  // Determine environment and process the request
+  determineDevelopmentStatus(sender)
+    .then(isDev => {
+      processCardDetailsRequest(customer, cardId, isDev, requestId, sendResponse);
+    })
+    .catch(error => {
+      console.error(`Error determining development status (${requestId}):`, error);
+      // Default to production if there's an error
+      processCardDetailsRequest(customer, cardId, false, requestId, sendResponse);
+    });
+  
+  return true; // Keep message channel open for async response
+}
+
+/**
+ * Handle fetchBookDetails message
+ * @param {Object} message - The message with customer and bookId
+ * @param {Object} sender - The sender information
+ * @param {Function} sendResponse - Function to send response
+ * @returns {boolean} - Whether to keep the message channel open
+ */
+export function handleFetchBookDetails(message, sender, sendResponse) {
+  const { customer, bookId } = message;
+  // Generate a request ID for tracing
+  const requestId = message.requestId || generateRequestId('book');
+  
+  console.log(`%c RECEIVED fetchBookDetails REQUEST ${requestId} `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, BookID: ${bookId}`);
+  
+  // Validate required parameters
+  const validation = validateRequiredParams({ customer, bookId }, ['customer', 'bookId']);
+  if (!validation.isValid) {
+    sendResponse({
+      success: false,
+      error: validation.errorMessage,
+      requestId
+    });
+    return true;
+  }
+  
+  // Determine environment and process the request
+  determineDevelopmentStatus(sender)
+    .then(isDev => {
+      processBookDetailsRequest(customer, bookId, isDev, requestId, sendResponse);
+    })
+    .catch(error => {
+      console.error(`Error determining development status (${requestId}):`, error);
+      // Default to production if there's an error
+      processBookDetailsRequest(customer, bookId, false, requestId, sendResponse);
+    });
+  
+  return true; // Keep message channel open for async response
+}
+
+/**
+ * Handle fetchAdministrationDetails message
+ * @param {Object} message - The message with customer and administrationId
+ * @param {Object} sender - The sender information
+ * @param {Function} sendResponse - Function to send response
+ * @returns {boolean} - Whether to keep the message channel open
+ */
+export function handleFetchAdministrationDetails(message, sender, sendResponse) {
+  const { customer, administrationId } = message;
+  // Generate or use existing request ID for tracing
+  const requestId = message.requestId || generateRequestId('admin');
+  
+  console.log(`%c RECEIVED fetchAdministrationDetails REQUEST ${requestId} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, AdministrationID: ${administrationId}`);
+  console.log(`Request timestamp: ${new Date().toISOString()}`);
+  
+  // Validate required parameters
+  const validation = validateRequiredParams({ customer, administrationId }, ['customer', 'administrationId']);
+  if (!validation.isValid) {
+    sendResponse({
+      success: false,
+      error: validation.errorMessage,
+      requestId
+    });
+    return true;
+  }
+  
+  // Determine environment and process the request
+  determineDevelopmentStatus(sender)
+    .then(isDev => {
+      processAdministrationDetailsRequest(customer, administrationId, isDev, requestId, sendResponse);
+    })
+    .catch(error => {
+      console.error(`Error determining development status (${requestId}):`, error);
+      // Default to production if there's an error
+      processAdministrationDetailsRequest(customer, administrationId, false, requestId, sendResponse);
+    });
+  
+  return true; // Keep message channel open for async response
+}
+
+/**
+ * Handle fetchBalanceAccountDetails message
+ * @param {Object} message - The message with customer and balanceAccountId
+ * @param {Object} sender - The sender information
+ * @param {Function} sendResponse - Function to send response
+ * @returns {boolean} - Whether to keep the message channel open
+ */
+export function handleFetchBalanceAccountDetails(message, sender, sendResponse) {
+  const { customer, balanceAccountId } = message;
+  // Generate or use existing request ID for tracing
+  const requestId = message.requestId || generateRequestId('balance');
+  
+  console.log(`%c RECEIVED fetchBalanceAccountDetails REQUEST ${requestId} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, BalanceAccountID: ${balanceAccountId}`);
+  console.log(`Request timestamp: ${new Date().toISOString()}`);
+  
+  // Validate required parameters
+  const validation = validateRequiredParams({ customer, balanceAccountId }, ['customer', 'balanceAccountId']);
+  if (!validation.isValid) {
+    sendResponse({
+      success: false,
+      error: validation.errorMessage,
+      requestId
+    });
+    return true;
+  }
+  
+  // Determine environment and process the request
+  determineDevelopmentStatus(sender)
+    .then(isDev => {
+      processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, requestId, sendResponse);
+    })
+    .catch(error => {
+      console.error(`Error determining development status (${requestId}):`, error);
+      // Default to production if there's an error
+      processBalanceAccountDetailsRequest(customer, balanceAccountId, false, requestId, sendResponse);
+    });
+  
+  return true; // Keep message channel open for async response
+}

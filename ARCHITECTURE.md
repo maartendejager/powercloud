@@ -20,14 +20,37 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
     *   `web_accessible_resources`: Lists resources (like CSS or JS files) that can be accessed by web pages.
     *   `action`: Defines the popup HTML and icons for the browser toolbar button.
 
-### 2. Background Service Worker (`background/service-worker.js`)
+### 2. Background Service Worker and Modules (`background/`)
 
-*   **Purpose**: Handles background tasks, manages extension state, and listens for browser events (e.g., network requests, tab updates, alarms).
-*   **Functionality**:
-    *   **API Interaction**: May make authenticated requests to `spend.cloud` APIs (details in `js/api.js` and `shared/api.js`).
-    *   **Authentication Management**: Likely handles authentication token storage and retrieval (details in `js/auth.js` and `shared/auth.js`).
-    *   **Event Handling**: Responds to events like `chrome.webRequest.onBeforeSendHeaders` to capture tokens or `chrome.runtime.onMessage` for communication with content scripts or the popup.
-    *   **Alarm Management**: Uses `chrome.alarms` for scheduled tasks if any.
+*   **Service Worker (`background/service-worker.js`)**:
+    *   **Purpose**: Main entry point for background processing. Handles initialization and message routing.
+    *   **Functionality**:
+        *   Initializes token management on extension installation.
+        *   Routes messages from popup and content scripts to appropriate handlers.
+        *   Maintains a clean structure by delegating to specialized modules.
+
+*   **Token Manager (`background/token-manager.js`)**:
+    *   **Purpose**: Manages authentication tokens for API requests.
+    *   **Functionality**:
+        *   Stores, retrieves, and updates authentication tokens.
+        *   Sets up web request listeners to capture tokens.
+        *   Filters invalid or expired tokens.
+
+*   **API Processors (`background/api-processors/`)**:
+    *   **Purpose**: Process API requests and responses for different entity types.
+    *   **Functionality**:
+        *   Make requests to specific API endpoints via the shared API module.
+        *   Extract relevant data from responses.
+        *   Transform data into formats usable by the extension.
+        *   Handle errors and edge cases consistently.
+
+*   **Message Handlers (`background/message-handlers/`)**:
+    *   **Purpose**: Handle messages from popup and content scripts.
+    *   **Functionality**:
+        *   Validate message parameters.
+        *   Call appropriate API processors or token manager functions.
+        *   Send responses back to callers.
+        *   Maintain consistent error handling.
 
 ### 3. Content Scripts
 

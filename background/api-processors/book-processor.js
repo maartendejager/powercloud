@@ -11,12 +11,14 @@ import { getBookDetails as apiGetBookDetails } from '../../shared/api.js';
  * @param {string} customer - The customer subdomain
  * @param {string} bookId - The book ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} requestId - Optional request ID for tracing
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export function processBookDetailsRequest(customer, bookId, isDev, sendResponse) {
+export function processBookDetailsRequest(customer, bookId, isDev, requestId, sendResponse) {
   // Get book details using our API module
   apiGetBookDetails(customer, bookId, isDev)
     .then(data => {
+      console.log(`%c Book API response received! ${requestId || ''} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
       console.log('Book API response:', JSON.stringify(data));
       
       // Extract book data from the response
@@ -52,14 +54,16 @@ export function processBookDetailsRequest(customer, bookId, isDev, sendResponse)
         adyenBalanceAccountId: adyenBalanceAccountId,
         administrationId: administrationId,
         balanceAccountReference: balanceAccountReference,
-        data: data.data || data
+        data: data.data || data,
+        requestId
       });
     })
     .catch(error => {
-      console.error('Error fetching book details:', error);
+      console.error(`Error fetching book details (${requestId || ''}):`, error);
       sendResponse({
         success: false,
-        error: error.message
+        error: error.message,
+        requestId
       });
     });
 }

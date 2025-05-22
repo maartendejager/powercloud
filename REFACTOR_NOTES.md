@@ -10,6 +10,18 @@ As of version 1.1.0, the PowerCloud extension uses a single, consistent approach
 
 ## Recent Improvements
 
+### Background Service Worker Refactoring (May 22, 2025)
+- Refactored the service worker for better modularity and maintainability:
+  - Split service-worker.js (~350 lines) into multiple focused modules
+  - Created dedicated token-manager.js to handle token operations
+  - Organized API processors into individual files by entity type
+  - Created message-handlers directory for handling different message types
+  - Implemented a clean message routing system using a handler registry
+  - Updated architecture documentation to reflect new structure
+  - Improved error handling and debugging throughout the modules
+  - Converted callback-based operations to promises for better readability
+  - Added comprehensive README files for each module directory
+
 ### API Processor Refactoring (May 22, 2025)
 - Refactored the service worker to separate API processing logic into dedicated modules:
   - Created individual processor files for each entity type (cards, books, administrations, balance accounts)
