@@ -5,7 +5,7 @@
  * requests to spend.cloud APIs.
  */
 
-import { getToken } from './auth.js';
+import { getToken, extractClientEnvironment, isDevelopmentRoute } from './auth.js';
 
 /**
  * Makes an authenticated request to an API endpoint
@@ -18,9 +18,12 @@ import { getToken } from './auth.js';
  */
 async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, additionalHeaders = {}) {
   try {
-    // Get the current authentication token
-    const token = await getToken();
-    console.log(token)
+    // Extract client environment and isDev from the endpoint URL
+    const clientEnvironment = endpoint.includes('spend.cloud') ? extractClientEnvironment(endpoint) : undefined;
+    const isDev = endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : undefined;
+    
+    // Get the current authentication token appropriate for this request
+    const token = await getToken(clientEnvironment, isDev);
     
     // Prepare headers
     const headers = {
@@ -169,7 +172,7 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
   
   // For debugging, add details about token
   try {
-    const token = await getToken();
+    const token = await getToken(customer, isDev);
     if (token) {
       console.log('Token available for API request:', { 
         tokenLength: token.length,

@@ -26,19 +26,31 @@ async function getAllTokens() {
 }
 
 /**
- * Gets the most recent valid authentication token
- * @returns {Promise<string>} The most recent valid auth token
- * @throws {Error} If no valid token is found
+ * Gets the most recent valid authentication token for a specific environment and development status.
+ * If clientEnvironment or isDev parameters are not provided, returns the most recent valid token.
+ * @param {string} [clientEnvironment] - The client environment (tenant) name.
+ * @param {boolean} [isDev] - Whether a token for a development environment is required.
+ * @returns {Promise<string>} The most recent valid and applicable auth token.
+ * @throws {Error} If no suitable valid token is found.
  */
-async function getToken() {
+async function getToken(clientEnvironment, isDev) {
   const tokens = await getAllTokens();
   
   if (!tokens || tokens.length === 0) {
     throw new Error("No authentication tokens found");
   }
   
-  // Filter for valid tokens
+  // Filter for valid tokens and, if specified, by environment and dev status
   const validTokens = tokens.filter(token => {
+    // Check clientEnvironment and isDevRoute match if parameters are provided
+    if (clientEnvironment !== undefined && token.clientEnvironment !== clientEnvironment) {
+      return false;
+    }
+    
+    if (isDev !== undefined && token.isDevRoute !== isDev) {
+      return false;
+    }
+    
     // If token has explicit validity flag
     if (token.hasOwnProperty('isValid')) {
       return token.isValid;
@@ -67,7 +79,11 @@ async function getToken() {
     return validTokens[0].token;
   }
   
-  throw new Error("No valid authentication tokens found");
+  if (clientEnvironment || isDev !== undefined) {
+    throw new Error(`No valid authentication token found for environment '${clientEnvironment || "any"}' and isDev=${isDev !== undefined ? isDev : "any"}`);
+  } else {
+    throw new Error("No valid authentication tokens found");
+  }
 }
 
 /**

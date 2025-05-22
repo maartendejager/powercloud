@@ -10,6 +10,7 @@ For technical details on how the extension is structured and how to add new feat
 
 - **Authentication Token Capture**: Automatically captures JWT tokens from network requests to spend.cloud domains
 - **Token History**: Keeps a history of recent tokens for easy access
+- **Environment-Specific Tokens**: Automatically uses the correct token for each client environment and development/production context
 - **Token Information**: Parses JWT tokens to show expiration details
 - **Copy Functionality**: One-click copying of tokens for use in API testing tools
 - **Card Payment Instrument ID**: Retrieve Adyen Payment Instrument IDs for cards
@@ -39,6 +40,7 @@ For technical details on how the extension is structured and how to add new feat
 3. The extension will automatically capture authentication tokens sent in requests
 4. View captured tokens in the popup window
 5. Click the "Copy" button to copy a token to your clipboard
+6. The extension automatically uses the correct token for each client environment (tenant) and for development/production contexts
 
 ### Card Payment Instrument ID
 There are two ways to get a card's Adyen Payment Instrument ID:
