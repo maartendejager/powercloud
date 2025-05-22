@@ -49,80 +49,18 @@ function initBookFeature(match) {
           const administrationId = response.administrationId;
           const balanceAccountReference = response.balanceAccountReference;
           
-          // Check for monetary_account_book type
-          if (bookType === 'monetary_account_book') {
-            
-            // Check administration ID from relationships
-            if (!administrationId && !adyenBalanceAccountId) {
-              // No relevant IDs found for this monetary_account_book
-            }
+          // Only continue for monetary_account_book type
+          if (bookType !== 'monetary_account_book') {
+            return;
           }
           
-          // If we have an administration ID but no balance account ID, fetch administration details
-          if (bookType === 'monetary_account_book' && administrationId && !adyenBalanceAccountId) {
-            // Create a unique request ID to track this specific request
-            const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-            
-            // Fetch administration details to check for balance account ID
-            try {
-              chrome.runtime.sendMessage(
-                { 
-                  action: "fetchAdministrationDetails", 
-                  customer: customer, 
-                  administrationId: administrationId,
-                  requestId: requestId
-                },
-                (adminResponse) => {
-                  
-                  if (adminResponse && adminResponse.success) {
-                    const balanceAccountIdFromAdmin = adminResponse.balanceAccountId;
-                    
-                    // Examine raw data
-                    const rawData = adminResponse.data;
-                    
-                    // Check relationships data
-                    const relationships = rawData?.relationships || rawData?.data?.relationships;
-                    
-                    if (balanceAccountIdFromAdmin) {
-                      // Now add the button with the balance account ID
-                      addBookInfoButton(customer, bookId, bookType, balanceAccountIdFromAdmin, administrationId, balanceAccountReference);
-                    } else {
-                      
-                      // Try to extract it manually from the raw data
-                      let extractedBalanceAccountId = null;
-                      
-                      // Check various possible paths for the balance account ID
-                      if (rawData?.data?.relationships?.balanceAccount?.data?.id) {
-                        extractedBalanceAccountId = rawData.data.relationships.balanceAccount.data.id;
-                      } else if (rawData?.relationships?.balanceAccount?.data?.id) {
-                        extractedBalanceAccountId = rawData.relationships.balanceAccount.data.id;
-                      } else if (rawData?.attributes?.balanceAccountId) {
-                        extractedBalanceAccountId = rawData.attributes.balanceAccountId;
-                      } else if (rawData?.data?.attributes?.balanceAccountId) {
-                        extractedBalanceAccountId = rawData.data.attributes.balanceAccountId;
-                      }
-                      
-                      if (extractedBalanceAccountId) {
-                        addBookInfoButton(customer, bookId, bookType, extractedBalanceAccountId, administrationId, balanceAccountReference);
-                      } else {
-                        // Add button without balance account ID
-                        addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
-                      }
-                    }
-                  } else {
-                    // Add button without balance account ID
-                    addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
-                  }
-                }
-              );
-            } catch (error) {
-              // Add button without balance account ID as a fallback
-              addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
-            }
-          } 
-          // Add the button directly if we already have a balance account ID or if it's a different book type
-          else if (bookType) {
+          // Either use the direct balance account ID or show a disabled button
+          if (adyenBalanceAccountId) {
+            // If we have a direct adyenBalanceAccountId, add the button with that ID
             addBookInfoButton(customer, bookId, bookType, adyenBalanceAccountId, administrationId, balanceAccountReference);
+          } else {
+            // No balance account ID found, show disabled button
+            addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
           }
         }
       }

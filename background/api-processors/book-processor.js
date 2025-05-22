@@ -26,9 +26,21 @@ export function processBookDetailsRequest(customer, bookId, isDev, requestId, se
       
       // Extract the necessary fields
       const bookType = bookData?.bookType;
-      const adyenBalanceAccountId = bookData?.adyenBalanceAccountId;
+      let adyenBalanceAccountId = bookData?.adyenBalanceAccountId;
       let administrationId = bookData?.administrationId;
       const balanceAccountReference = bookData?.balanceAccountReference;
+      
+      // Check for direct adyenBalanceAccount relationship
+      // Path: data->relationships->adyenBalanceAccount->data->id
+      if (!adyenBalanceAccountId && data?.data?.relationships?.adyenBalanceAccount?.data?.id) {
+        adyenBalanceAccountId = data.data.relationships.adyenBalanceAccount.data.id;
+        console.log('Found adyenBalanceAccount ID in relationships:', adyenBalanceAccountId);
+      }
+      // Also check alternative path
+      else if (!adyenBalanceAccountId && data?.relationships?.adyenBalanceAccount?.data?.id) {
+        adyenBalanceAccountId = data.relationships.adyenBalanceAccount.data.id;
+        console.log('Found adyenBalanceAccount ID in alternative relationships path:', adyenBalanceAccountId);
+      }
       
       // Extract administration ID from relationships if available
       // Path: data->relationships->administration->data->id
