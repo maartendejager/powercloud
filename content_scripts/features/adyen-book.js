@@ -234,15 +234,34 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
       button.innerHTML = '⏳ Loading...';
       button.disabled = true;
       
-      // Open Adyen directly in a new tab
-      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${balanceAccountId}`;
-      window.open(adyenUrl, '_blank');
-      
-      // Restore button text
-      setTimeout(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-      }, 1500);
+      // First, fetch the Adyen balance account ID
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      chrome.runtime.sendMessage(
+        { 
+          action: "fetchBalanceAccountDetails", 
+          customer: customer, 
+          balanceAccountId: balanceAccountId,
+          requestId: requestId
+        },
+        (response) => {
+          if (response && response.success && response.adyenBalanceAccountId) {
+            // Open Adyen directly in a new tab with the correct adyenBalanceAccountId
+            const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${response.adyenBalanceAccountId}`;
+            window.open(adyenUrl, '_blank');
+          } else {
+            console.error('Failed to fetch Adyen balance account ID:', response?.error || 'Unknown error');
+            // Fall back to using the internal balance account ID
+            const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${balanceAccountId}`;
+            window.open(adyenUrl, '_blank');
+          }
+          
+          // Restore button text
+          setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+          }, 1500);
+        }
+      );
     });
   } else {
     button.disabled = true;

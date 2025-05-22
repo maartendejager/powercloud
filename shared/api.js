@@ -213,6 +213,42 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
   }
 }
 
+/**
+ * Fetches balance account details from the API
+ * @param {string} customer - The customer subdomain
+ * @param {string} balanceAccountId - The balance account ID to fetch
+ * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @returns {Promise<Object>} The balance account details
+ */
+async function getBalanceAccountDetails(customer, balanceAccountId, isDev = false) {
+  console.log(`%c FETCHING BALANCE ACCOUNT DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, Balance Account ID: ${balanceAccountId}, Timestamp: ${new Date().toISOString()}`);
+  
+  if (!customer || !balanceAccountId) {
+    console.error('Invalid parameters for getBalanceAccountDetails');
+    console.trace('Trace for invalid parameters');
+    throw new Error(`Invalid parameters: customer=${customer}, balanceAccountId=${balanceAccountId}`);
+  }
+  
+  const url = buildApiUrl(customer, `/balance-accounts/${balanceAccountId}`, isDev);
+  console.log(`Balance Account API URL: ${url}`);
+  
+  try {
+    const response = await get(url);
+    console.log('Balance Account API request completed successfully');
+    console.log('Response summary:', {
+      success: true,
+      hasData: !!response,
+      hasAttributes: !!(response?.data?.attributes || response?.attributes)
+    });
+    
+    return response;
+  } catch (error) {
+    console.error(`Balance account API request failed: ${error.message}`);
+    throw error;
+  }
+}
+
 export { 
   makeAuthenticatedRequest, 
   get, 
@@ -222,5 +258,6 @@ export {
   buildApiUrl,
   getCardDetails,
   getBookDetails,
-  getAdministrationDetails
+  getAdministrationDetails,
+  getBalanceAccountDetails
 };

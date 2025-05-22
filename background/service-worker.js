@@ -1,6 +1,7 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
+// Import modules from shared directory
 import { setToken, getAllTokens, getToken, isValidJWT, saveTokens, removeToken, clearTokens, handleAuthHeaderFromWebRequest } from '../shared/auth.js';
-import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails } from '../shared/api.js';
+import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails, getBalanceAccountDetails as apiGetBalanceAccountDetails } from '../shared/api.js';
 import { isApiRoute } from '../shared/url-patterns.js';
 
 // Keep a local reference to tokens for quicker access
@@ -161,6 +162,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           isDev = tabs[0].url.includes('.dev.spend.cloud');
         }
         processAdministrationDetailsRequest(customer, administrationId, isDev, requestId, sendResponse);
+      });
+    }
+    
+    return true; // Keep message channel open for async response
+  } else if (message.action === "fetchBalanceAccountDetails") {
+    // Fetch balance account details using the shared API module
+    const { customer, balanceAccountId, requestId } = message;
+    
+    console.log(`%c RECEIVED fetchBalanceAccountDetails REQUEST ${requestId || ''} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
+    console.log(`Customer: ${customer}, BalanceAccountID: ${balanceAccountId}`);
+    console.log(`Request timestamp: ${new Date().toISOString()}`);
+    
+    if (!customer || !balanceAccountId) {
+      const errorMsg = `Missing required parameters: ${!customer ? 'customer' : ''} ${!balanceAccountId ? 'balanceAccountId' : ''}`;
+      console.error(errorMsg);
+      sendResponse({
+        success: false,
+        error: errorMsg
+      });
+      return true;
+    }
+    
+    // If request comes from a content script (tab), check the tab URL
+    let isDev = false;
+    if (sender.tab && sender.tab.url) {
+      isDev = sender.tab.url.includes('.dev.spend.cloud');
+      processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, requestId, sendResponse);
+    } else {
+      // If request comes from popup, check active tab URL first
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0] && tabs[0].url) {
+          isDev = tabs[0].url.includes('.dev.spend.cloud');
+        }
+        processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, requestId, sendResponse);
       });
     }
     
@@ -351,6 +386,71 @@ function processAdministrationDetailsRequest(customer, administrationId, isDev, 
     })
     .catch(error => {
       console.error(`Error fetching administration details (${requestId || ''}):`, error);
+      console.log('Error stack:', error.stack);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    });
+}
+
+/**
+ * Helper function to process balance account details request
+ * @param {string} customer - The customer subdomain
+ * @param {string} balanceAccountId - The balance account ID
+ * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} requestId - Optional request ID for tracking
+ * @param {function} sendResponse - The function to send the response back to the caller
+ */
+function processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, requestId, sendResponse) {
+  // Get balance account details using our API module
+  console.log('About to call apiGetBalanceAccountDetails...');
+  apiGetBalanceAccountDetails(customer, balanceAccountId, isDev)
+    .then(data => {
+      console.log(`%c Balance Account API response received! ${requestId || ''} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
+      console.log(`Response timestamp: ${new Date().toISOString()}`);
+      
+      // Short summary log first
+      console.log('Balance Account response summary:', {
+        success: true,
+        hasData: !!data,
+        hasAttributes: !!(data?.data?.attributes || data?.attributes)
+      });
+      
+      // Detailed log after
+      console.log('Full balance account API response:', JSON.stringify(data, null, 2));
+      
+      // Extract the Adyen balance account ID from attributes if available
+      // Path: data->attributes->adyenBalanceAccountId
+      let adyenBalanceAccountId = null;
+      if (data?.data?.attributes?.adyenBalanceAccountId) {
+        adyenBalanceAccountId = data.data.attributes.adyenBalanceAccountId;
+        console.log('%c FOUND ADYEN BALANCE ACCOUNT ID (PRIMARY PATH): ', 'background: #009688; color: white; font-size: 14px; font-weight: bold;', adyenBalanceAccountId);
+      } else if (data?.attributes?.adyenBalanceAccountId) {
+        adyenBalanceAccountId = data.attributes.adyenBalanceAccountId;
+        console.log('%c FOUND ADYEN BALANCE ACCOUNT ID (ALTERNATE PATH): ', 'background: #009688; color: white; font-size: 14px; font-weight: bold;', adyenBalanceAccountId);
+      } else {
+        console.log('%c NO ADYEN BALANCE ACCOUNT ID FOUND ', 'background: #F44336; color: white; font-size: 14px; font-weight: bold;');
+        // Log possible paths in the response to help debugging
+        console.log('Response structure:', {
+          hasDataObj: !!data?.data,
+          hasAttributes: !!(data?.data?.attributes || data?.attributes),
+          dataAttributesKeys: data?.data?.attributes ? Object.keys(data.data.attributes) : [],
+          rootAttributesKeys: data?.attributes ? Object.keys(data.attributes) : []
+        });
+      }
+      
+      console.log('Sending response back to content script...');
+      sendResponse({
+        success: true,
+        balanceAccountId: balanceAccountId,
+        adyenBalanceAccountId: adyenBalanceAccountId,
+        data: data.data || data
+      });
+      console.log('Response sent!');
+    })
+    .catch(error => {
+      console.error(`Error fetching balance account details (${requestId || ''}):`, error);
       console.log('Error stack:', error.stack);
       sendResponse({
         success: false,
