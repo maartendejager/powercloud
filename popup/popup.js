@@ -83,7 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
+      // Determine environment class for styling
+      const envClass = entry.clientEnvironment ? entry.clientEnvironment.toLowerCase() : 'unknown';
+      
       tokenDiv.innerHTML = `
+        <div class="environment-badge ${envClass}">
+          ${entry.clientEnvironment || 'Unknown'}
+          ${entry.isDevRoute ? '<span class="dev-route-indicator">DEV</span>' : ''}
+        </div>
         <div class="token" style="${isExpired ? 'opacity:0.6;' : ''}">${entry.token}</div>
         <div class="meta">
           ${isExpired ? '<span style="color:red;font-weight:bold">⚠️ EXPIRED</span> - ' : '<span style="color:green;font-weight:bold">✓ VALID</span> - '}

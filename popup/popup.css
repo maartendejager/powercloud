@@ -240,3 +240,42 @@ h3 {
 .delete-btn:hover {
   background-color: #d32f2f;
 }
+
+/* Environment badge styles */
+.environment-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 5px;
+}
+
+.production {
+  background-color: #4CAF50;
+}
+
+.development {
+  background-color: #FF9800;
+}
+
+.staging {
+  background-color: #9C27B0;
+}
+
+.local {
+  background-color: #2196F3;
+}
+
+.unknown {
+  background-color: #9E9E9E;
+}
+
+.dev-route-indicator {
+  background-color: rgba(0,0,0,0.2);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-size: 10px;
+}
