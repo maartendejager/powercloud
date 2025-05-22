@@ -174,59 +174,25 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'powercloud-container powercloud-button-container';
   buttonContainer.id = 'powercloud-button-container';
-
-  // Book and administration information handling
-  
-  // Create a badge to show the book type
-  const typeBadge = document.createElement('div');
-  typeBadge.className = 'powercloud-info-badge';
-  typeBadge.textContent = `Book Type: ${bookType}`;
-  buttonContainer.appendChild(typeBadge);
-
-  // Special handling for monetary_account_book type
-  if (bookType === 'monetary_account_book') {
-    const monetaryBadge = document.createElement('div');
-    monetaryBadge.className = 'powercloud-monetary-badge';
-    monetaryBadge.textContent = 'Monetary Account Book';
-    buttonContainer.appendChild(monetaryBadge);
-    
-    // If we have administration ID, display it
-    if (administrationId) {
-      const adminBadge = document.createElement('div');
-      adminBadge.className = 'powercloud-admin-badge';
-      adminBadge.textContent = `Administration ID: ${administrationId}`;
-      adminBadge.title = "The administration ID from the book's relationships";
-      buttonContainer.appendChild(adminBadge);
-    }
-  }
   
   // Create the button
   const button = document.createElement('button');
   button.id = 'powercloud-book-info-btn';
   button.className = 'powercloud-button';
   
-  // Set button text to "Monetary Account Book"
-  button.innerHTML = 'Monetary Account Book';
-  
-  // Set button state based on balance account availability
+  // Set button state and text based on balance account availability
   if (balanceAccountId) {
-    // Create badge for balance account reference if available
+    // Set button text based on whether we have a reference or just an ID
     if (balanceAccountReference) {
-      const refBadge = document.createElement('div');
-      refBadge.className = 'powercloud-balance-badge';
-      refBadge.textContent = `Balance Account: ${balanceAccountReference}`;
-      buttonContainer.appendChild(refBadge);
+      button.innerHTML = `View Adyen Balance Account: ${balanceAccountReference}`;
+      button.title = `View balance account details for ${balanceAccountReference} at Adyen`;
     } else {
-      // Create a badge for the balance account ID
-      const balanceBadge = document.createElement('div');
-      balanceBadge.className = 'powercloud-balance-badge';
-      balanceBadge.textContent = `Balance Account ID: ${balanceAccountId.substring(0, 8)}...`;
-      balanceBadge.title = balanceAccountId;
-      buttonContainer.appendChild(balanceBadge);
+      // Show a truncated version of the ID in the button text
+      button.innerHTML = `View Adyen Balance Account: ${balanceAccountId.substring(0, 8)}...`;
+      button.title = `View balance account details for ID: ${balanceAccountId} at Adyen`;
     }
     
     button.disabled = false;
-    button.title = `View balance account details at Adyen`;
     
     // Add click event to open Adyen balance account page
     button.addEventListener('click', () => {
@@ -265,6 +231,7 @@ function addBookInfoButton(customer, bookId, bookType, balanceAccountId, adminis
     });
   } else {
     button.disabled = true;
+    button.innerHTML = 'Adyen Balance Account Not Found';
     button.title = `This monetary account book doesn't have a linked Adyen balance account`;
   }
 
