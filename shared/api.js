@@ -114,20 +114,22 @@ async function del(endpoint, additionalHeaders = {}) {
  * Utility function to build a complete URL for spend.cloud API
  * @param {string} customer - The customer subdomain
  * @param {string} path - The API path
+ * @param {boolean} [isDev=false] - Whether to use the development environment
  * @returns {string} The complete API URL
  */
-function buildApiUrl(customer, path) {
-  return `https://${customer}.spend.cloud/api${path.startsWith('/') ? path : '/' + path}`;
+function buildApiUrl(customer, path, isDev = false) {
+  return `https://${customer}${isDev ? '.dev' : ''}.spend.cloud/api${path.startsWith('/') ? path : '/' + path}`;
 }
 
 /**
  * Fetches card details from the API
  * @param {string} customer - The customer subdomain
  * @param {string} cardId - The card ID to fetch
+ * @param {boolean} [isDev=false] - Whether to use the development environment
  * @returns {Promise<Object>} The card details
  */
-async function getCardDetails(customer, cardId) {
-  const url = buildApiUrl(customer, `/cards/${cardId}`);
+async function getCardDetails(customer, cardId, isDev = false) {
+  const url = buildApiUrl(customer, `/cards/${cardId}`, isDev);
   return get(url);
 }
 
@@ -135,10 +137,11 @@ async function getCardDetails(customer, cardId) {
  * Fetches book details from the API
  * @param {string} customer - The customer subdomain
  * @param {string} bookId - The book ID to fetch
+ * @param {boolean} [isDev=false] - Whether to use the development environment
  * @returns {Promise<Object>} The book details
  */
-async function getBookDetails(customer, bookId) {
-  const url = buildApiUrl(customer, `/books/${bookId}`);
+async function getBookDetails(customer, bookId, isDev = false) {
+  const url = buildApiUrl(customer, `/books/${bookId}`, isDev);
   return get(url);
 }
 
@@ -146,9 +149,10 @@ async function getBookDetails(customer, bookId) {
  * Fetches administration details from the API
  * @param {string} customer - The customer subdomain
  * @param {string} administrationId - The administration ID to fetch
+ * @param {boolean} [isDev=false] - Whether to use the development environment
  * @returns {Promise<Object>} The administration details
  */
-async function getAdministrationDetails(customer, administrationId) {
+async function getAdministrationDetails(customer, administrationId, isDev = false) {
   console.log(`%c FETCHING ADMINISTRATION DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
   console.log(`Customer: ${customer}, ID: ${administrationId}, Timestamp: ${new Date().toISOString()}`);
   
@@ -160,7 +164,7 @@ async function getAdministrationDetails(customer, administrationId) {
   
   // Try both API endpoints since we're not sure which one is correct
   // First, try the /administrations/ endpoint as specified in the requirements
-  const url = buildApiUrl(customer, `/administrations/${administrationId}`);
+  const url = buildApiUrl(customer, `/administrations/${administrationId}`, isDev);
   console.log(`Primary Administration API URL: ${url}`);
   
   // For debugging, add details about token
@@ -196,7 +200,7 @@ async function getAdministrationDetails(customer, administrationId) {
     // Try fallback endpoint in case the primary fails
     try {
       console.log('Trying alternative API endpoint...');
-      const alternateUrl = buildApiUrl(customer, `/api/v1/administrations/${administrationId}`);
+      const alternateUrl = buildApiUrl(customer, `/api/v1/administrations/${administrationId}`, isDev);
       console.log(`Alternative Administration API URL: ${alternateUrl}`);
       return await get(alternateUrl);
     } catch (fallbackError) {

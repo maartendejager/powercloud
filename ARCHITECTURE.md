@@ -80,8 +80,9 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 
 *   **Purpose**: Contains JavaScript modules with common logic used by different parts of the extension (e.g., background, popup).
 *   **Examples**:
-    *   `api.js`: Contains functions for making API calls.
+    *   `api.js`: Contains functions for making API calls to both production and development environments (`*.spend.cloud` and `*.dev.spend.cloud`).
     *   `auth.js`: Contains functions for authentication token management.
+    *   `url-patterns.js`: Provides URL pattern matching utilities for consistent domain handling.
 
 ## Communication Flow
 

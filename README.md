@@ -103,9 +103,14 @@ To verify functionality on development domains:
 
 ## Changelog
 
+### 1.1.1 - May 22, 2025
+- Enhanced API handling to properly support development environment API requests
+- Improved detection of development vs. production environments in requests from popup
+- Fixed issue where popup requests might use incorrect API endpoints
+
 ### 1.1.0 - May 21, 2025
 - Added support for dev environments (`https://[customer].dev.spend.cloud/*`)
-- All features now work on both production and development environments
+- All features now work on both production and development environments 
 - Uses regex patterns to match dev subdomain URLs
 
 ### 1.0.0 - Initial Release

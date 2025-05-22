@@ -8,17 +8,14 @@ As of version 1.1.0, the PowerCloud extension uses a single, consistent approach
    - All scripts are listed in the `content_scripts` section of `manifest.json` and are automatically injected by Chrome when the page loads.
    - No dynamic script loading is used, as noted in the May 21, 2025 audit.
 
-## Improvements Made
+## Recent Improvements
 
-### Web Accessible Resources
-- Limited `web_accessible_resources` to only include resources that need to be dynamically accessible via URL:
-  - `content_scripts/styles.css`: For styling dynamically created components or shadow DOM elements
-- All scripts are now loaded via manifest.json and do not need to be web-accessible.
-
-### Domain Support
-- As of version 1.1.0, the extension now supports both standard domains (`https://[customer].spend.cloud/*`) and development domains (`https://[customer].dev.spend.cloud/*`)
-- All URL patterns in the code have been updated to match both domain patterns
-- The manifest.json has been updated to include permissions for both domain types
+### API Environment Handling (May 22, 2025)
+- Enhanced the `buildApiUrl` function in `shared/api.js` to properly handle both production and development environments
+- Added `isDev` parameter to all API utility functions to ensure proper URL construction
+- Updated service worker message handlers to detect environment from both content script and popup sources
+- Fixed an issue where popup requests might use the wrong environment URL due to lack of sender tab information
+- Refactored service worker with helper functions for API request handling to improve code organization
 
 ### Authentication Token Management (May, 2025)
 - Refactored token detection and storage to improve modularity:
