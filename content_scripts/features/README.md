@@ -12,6 +12,7 @@ This directory contains modular features that are used by the PowerCloud extensi
 - **`adyen-book.js`**: 
   - Handles book (monetary account) features.
   - Provides functionality to view balance accounts in Adyen.
+  - Uses direct relationships from the book resource to find Adyen balance accounts.
 
 - **`ui-visibility-manager.js`**:
   - Handles button visibility messaging on `spend.cloud` pages.

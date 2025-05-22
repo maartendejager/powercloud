@@ -5,6 +5,12 @@
  * for book pages at https://[customer-environment].spend.cloud/proactive/kasboek.boekingen/[book-id]/* or
  * https://[customer-environment].dev.spend.cloud/proactive/kasboek.boekingen/[book-id]/*
  *
+ * The module:
+ * 1. Detects monetary account book pages
+ * 2. Checks for a direct relationship to an Adyen balance account 
+ * 3. Displays a button to view the balance account at Adyen
+ * 4. Button states: hidden (non-monetary book), disabled (no balance account), or enabled (with balance account)
+ *
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
  */

@@ -2,6 +2,7 @@
  * Book API Processor
  * 
  * Handles processing of book details requests and data extraction.
+ * Extracts balance account relationships directly from book resources.
  */
 
 import { getBookDetails as apiGetBookDetails } from '../../shared/api.js';
