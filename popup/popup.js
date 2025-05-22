@@ -132,19 +132,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.delete-btn').forEach(button => {
       button.addEventListener('click', () => {
         const token = button.getAttribute('data-token');
-        if (confirm('Are you sure you want to delete this token?')) {
-          chrome.runtime.sendMessage({
-            action: "deleteToken",
-            token: token
-          }, (response) => {
-            if (response && response.success) {
-              // Refresh the token list
-              fetchAndDisplayTokens();
-            } else {
-              alert('Failed to delete token: ' + (response?.error || 'Unknown error'));
-            }
-          });
-        }
+        chrome.runtime.sendMessage({
+          action: "deleteToken",
+          token: token
+        }, (response) => {
+          if (response && response.success) {
+            // Refresh the token list
+            fetchAndDisplayTokens();
+          } else {
+            alert('Failed to delete token: ' + (response?.error || 'Unknown error'));
+          }
+        });
       });
     });
   });
@@ -152,6 +150,20 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initial fetch of tokens
   fetchAndDisplayTokens();
+  
+  // Add event listener for the "Delete All Tokens" button
+  document.getElementById('delete-all-btn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({
+      action: "deleteAllTokens"
+    }, (response) => {
+      if (response && response.success) {
+        // Refresh the token list
+        fetchAndDisplayTokens();
+      } else {
+        alert('Failed to delete all tokens: ' + (response?.error || 'Unknown error'));
+      }
+    });
+  });
   
   // Function to extract and pre-fill card details from the active tab URL
   function fillCardDetailsFromActiveTab() {

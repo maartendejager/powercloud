@@ -1,5 +1,5 @@
 // filepath: /home/maarten/projects/Extensions/PowerCloud/background/service-worker.js
-import { setToken, getAllTokens, getToken, isValidJWT, saveTokens, removeToken, handleAuthHeaderFromWebRequest } from '../shared/auth.js';
+import { setToken, getAllTokens, getToken, isValidJWT, saveTokens, removeToken, clearTokens, handleAuthHeaderFromWebRequest } from '../shared/auth.js';
 import { makeAuthenticatedRequest, getCardDetails as apiGetCardDetails, getBookDetails as apiGetBookDetails, getAdministrationDetails as apiGetAdministrationDetails } from '../shared/api.js';
 import { isApiRoute } from '../shared/url-patterns.js';
 
@@ -74,6 +74,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })
       .catch(error => {
         console.error('Error deleting token:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    
+    return true; // Keep message channel open for async response
+  } else if (message.action === "deleteAllTokens") {
+    // Handle clearing all tokens
+    clearTokens()
+      .then(() => {
+        authTokens = []; // Update local cache
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        console.error('Error clearing all tokens:', error);
         sendResponse({ success: false, error: error.message });
       });
     
