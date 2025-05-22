@@ -10,6 +10,14 @@ As of version 1.1.0, the PowerCloud extension uses a single, consistent approach
 
 ## Recent Improvements
 
+### API Processor Refactoring (May 22, 2025)
+- Refactored the service worker to separate API processing logic into dedicated modules:
+  - Created individual processor files for each entity type (cards, books, administrations, balance accounts)
+  - Moved shared utility functions (like environment detection) to a utility module
+  - Created an index.js to centralize processor exports
+  - Reduced the size of service-worker.js to improve maintainability
+  - Added clear documentation for each processor module
+
 ### API Environment Handling (May 22, 2025)
 - Enhanced the `buildApiUrl` function in `shared/api.js` to properly handle both production and development environments
 - Added `isDev` parameter to all API utility functions to ensure proper URL construction
