@@ -83,8 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Determine environment class for styling
-      const envClass = entry.clientEnvironment ? entry.clientEnvironment.toLowerCase() : 'unknown';
+      // Determine environment class for styling based on whether it's a dev route
+      const envClass = entry.isDevRoute ? 'development' : 'production';
       
       tokenDiv.innerHTML = `
         <div class="environment-badge ${envClass}">

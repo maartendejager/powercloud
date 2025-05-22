@@ -270,18 +270,16 @@ async function handleAuthHeaderFromWebRequest(details) {
 }
 
 /**
- * Extracts client environment name from a URL
+ * Extracts client environment (tenant) name from a URL
  * @param {string} url - URL to extract from
- * @returns {string} Client environment name
+ * @returns {string} Client environment (tenant) name, or 'unknown' if not found
  */
 function extractClientEnvironment(url) {
   try {
-    const hostname = new URL(url).hostname;
-    if (hostname.includes('dev.')) return 'development';
-    if (hostname.includes('staging.')) return 'staging';
-    if (hostname.includes('localhost')) return 'local';
-    // Add more sophisticated logic as needed
-    return 'production'; // Default
+    // Extract the client environment (tenant) name from the URL
+    // Pattern: https://[client-environment].spend.cloud/... or https://[client-environment].dev.spend.cloud/...
+    const match = url.match(/https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud/);
+    return match ? match[1] : 'unknown';
   } catch (e) {
     return 'unknown';
   }
@@ -308,5 +306,7 @@ export {
   isValidJWT,
   saveTokens,
   getTokenPayload,
-  handleAuthHeaderFromWebRequest
+  handleAuthHeaderFromWebRequest,
+  extractClientEnvironment,
+  isDevelopmentRoute
 };
