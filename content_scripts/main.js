@@ -76,6 +76,7 @@ const features = [
     name: 'entriesInfo',
     urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
     init: loadEntriesFeature,
+    excludes: ['bookInfo'], // Exclude the bookInfo feature when on entry pages
     cleanup: function() {
       // Use the entries-specific cleanup function from the namespace
       if (window.PowerCloudFeatures?.entries?.cleanup) {
