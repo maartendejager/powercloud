@@ -25,6 +25,7 @@
       "js": [
         "content_scripts/features/adyen-card.js",
         "content_scripts/features/adyen-book.js",
+        "content_scripts/features/adyen-entries.js",
         "content_scripts/features/ui-visibility-manager.js",
         "content_scripts/feature-manager.js",
         "content_scripts/main.js"

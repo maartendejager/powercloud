@@ -17,6 +17,9 @@ import {
   processBalanceAccountDetailsRequest 
 } from '../api-processors/balance-account-processor.js';
 import { 
+  processEntryDetailsRequest 
+} from '../api-processors/entry-processor.js';
+import { 
   determineDevelopmentStatus, 
   validateRequiredParams,
   generateRequestId
@@ -179,6 +182,46 @@ export function handleFetchBalanceAccountDetails(message, sender, sendResponse) 
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
       processBalanceAccountDetailsRequest(customer, balanceAccountId, false, requestId, sendResponse);
+    });
+  
+  return true; // Keep message channel open for async response
+}
+
+/**
+ * Handle fetchEntryDetails message
+ * @param {Object} message - The message with customer and entryId
+ * @param {Object} sender - The sender information
+ * @param {Function} sendResponse - Function to send response
+ * @returns {boolean} - Whether to keep the message channel open
+ */
+export function handleFetchEntryDetails(message, sender, sendResponse) {
+  const { customer, entryId } = message;
+  // Generate a request ID for tracing
+  const requestId = message.requestId || generateRequestId('entry');
+  
+  console.log(`%c RECEIVED fetchEntryDetails REQUEST ${requestId} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, EntryID: ${entryId}`);
+  
+  // Validate required parameters
+  const validation = validateRequiredParams({ customer, entryId }, ['customer', 'entryId']);
+  if (!validation.isValid) {
+    sendResponse({
+      success: false,
+      error: validation.errorMessage,
+      requestId
+    });
+    return true;
+  }
+  
+  // Determine environment and process the request
+  determineDevelopmentStatus(sender)
+    .then(isDev => {
+      processEntryDetailsRequest(customer, entryId, isDev, requestId, sendResponse);
+    })
+    .catch(error => {
+      console.error(`Error determining development status (${requestId}):`, error);
+      // Default to production if there's an error
+      processEntryDetailsRequest(customer, entryId, false, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response

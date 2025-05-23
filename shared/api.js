@@ -249,6 +249,42 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
   }
 }
 
+/**
+ * Fetches book entry details from the API
+ * @param {string} customer - The customer subdomain
+ * @param {string} entryId - The entry ID to fetch
+ * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @returns {Promise<Object>} The entry details
+ */
+async function getEntryDetails(customer, entryId, isDev = false) {
+  console.log(`%c FETCHING ENTRY DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
+  console.log(`Customer: ${customer}, Entry ID: ${entryId}, Timestamp: ${new Date().toISOString()}`);
+  
+  if (!customer || !entryId) {
+    console.error('Invalid parameters for getEntryDetails');
+    console.trace('Trace for invalid parameters');
+    throw new Error(`Invalid parameters: customer=${customer}, entryId=${entryId}`);
+  }
+  
+  const url = buildApiUrl(customer, `/book-entries/${entryId}`, isDev);
+  console.log(`Entry API URL: ${url}`);
+  
+  try {
+    const response = await get(url);
+    console.log('Entry API request completed successfully');
+    console.log('Response summary:', {
+      success: true,
+      hasData: !!response,
+      hasAttributes: !!(response?.data?.attributes || response?.attributes)
+    });
+    
+    return response;
+  } catch (error) {
+    console.error(`Entry API request failed: ${error.message}`);
+    throw error;
+  }
+}
+
 export { 
   makeAuthenticatedRequest, 
   get, 
@@ -259,5 +295,6 @@ export {
   getCardDetails,
   getBookDetails,
   getAdministrationDetails,
-  getBalanceAccountDetails
+  getBalanceAccountDetails,
+  getEntryDetails
 };

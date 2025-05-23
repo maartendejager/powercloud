@@ -16,7 +16,8 @@ import {
   handleFetchCardDetails,
   handleFetchBookDetails,
   handleFetchAdministrationDetails,
-  handleFetchBalanceAccountDetails
+  handleFetchBalanceAccountDetails,
+  handleFetchEntryDetails
 } from './message-handlers/index.js';
 
 // Set up message action handlers map for cleaner code
@@ -27,7 +28,8 @@ const messageHandlers = {
   "fetchCardDetails": handleFetchCardDetails,
   "fetchBookDetails": handleFetchBookDetails,
   "fetchAdministrationDetails": handleFetchAdministrationDetails,
-  "fetchBalanceAccountDetails": handleFetchBalanceAccountDetails
+  "fetchBalanceAccountDetails": handleFetchBalanceAccountDetails,
+  "fetchEntryDetails": handleFetchEntryDetails
 };
 
 // Set up web request listener for token capture

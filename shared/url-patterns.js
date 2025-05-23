@@ -45,6 +45,12 @@ const CARD_PATTERNS = {
 const BOOK_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/;
 
 /**
+ * Book entry URL pattern for kasboek.boekingen/show?id=
+ * @type {RegExp}
+ */
+const BOOK_ENTRY_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/;
+
+/**
  * Checks if a URL is an API route
  * @param {string} url - URL to check
  * @returns {boolean} True if the URL is an API route
@@ -108,6 +114,22 @@ function extractBookInfo(url) {
   return null;
 }
 
+/**
+ * Extracts entry ID from a book entry URL
+ * @param {string} url - URL to extract from
+ * @returns {Object|null} Object with customer and entryId, or null if not a book entry URL
+ */
+function extractEntryInfo(url) {
+  const match = url.match(BOOK_ENTRY_PATTERN);
+  if (match) {
+    return {
+      customer: match[1],
+      entryId: match[2]
+    };
+  }
+  return null;
+}
+
 // Export all patterns and functions
 export {
   DOMAIN_PATTERN,
@@ -115,9 +137,11 @@ export {
   API_ROUTE_PATTERN,
   CARD_PATTERNS,
   BOOK_PATTERN,
+  BOOK_ENTRY_PATTERN,
   isApiRoute,
   isSpendCloudDomain,
   extractCustomerDomain,
   extractCardInfo,
-  extractBookInfo
+  extractBookInfo,
+  extractEntryInfo
 };

@@ -73,6 +73,18 @@ const features = [
     }
   },
   {
+    name: 'entriesInfo',
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
+    init: loadEntriesFeature,
+    cleanup: function() {
+      // Use the entries-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.entries?.cleanup) {
+        return window.PowerCloudFeatures.entries.cleanup();
+      }
+      return removeCardInfoButton();
+    }
+  },
+  {
     name: 'bookInfo',
     urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
     init: loadBookFeature,
@@ -112,26 +124,44 @@ function loadBookFeature(match) {
   }
 }
 
+/**
+ * Load and initialize the entries feature
+ * @param {object} match - The URL match result containing capture groups  
+ */
+function loadEntriesFeature(match) {
+  // Use the implementation from adyen-entries.js which is loaded via manifest
+  if (window.PowerCloudFeatures?.entries?.init) {
+    return window.PowerCloudFeatures.entries.init(match);
+  } else {
+    console.error('Entries feature implementation not found. Check that adyen-entries.js is properly included in manifest.json');
+  }
+}
+
 // Card feature functions are now imported from adyen-card.js
 // Book feature functions are now imported from adyen-book.js
 
 /**
  * Generic cleanup utility for UI elements
- * Delegates to feature-specific implementations when available (from adyen-card.js or adyen-book.js)
- * This function is used as cleanup for both card and book features
+ * Delegates to feature-specific implementations when available
+ * This function is used as cleanup for card, book, and entries features
  */
 function removeCardInfoButton() {
-  // For card features, use the implementation from adyen-card.js using the PowerCloudFeatures namespace
+  // For card features, use the implementation from adyen-card.js
   if (window.PowerCloudFeatures?.card?.cleanup) {
     return window.PowerCloudFeatures.card.cleanup();
   }
   
-  // For book features, use the implementation from adyen-book.js using the PowerCloudFeatures namespace
+  // For book features, use the implementation from adyen-book.js
   if (window.PowerCloudFeatures?.book?.cleanup) {
     return window.PowerCloudFeatures.book.cleanup();
   }
   
-  // As a last resort, perform generic cleanup if neither implementation is available
+  // For entries features, use the implementation from adyen-entries.js
+  if (window.PowerCloudFeatures?.entries?.cleanup) {
+    return window.PowerCloudFeatures.entries.cleanup();
+  }
+  
+  // As a last resort, perform generic cleanup if no implementation is available
   console.warn('No feature-specific cleanup implementation found, using generic cleanup');
   
   const shadowHost = document.getElementById('powercloud-shadow-host');

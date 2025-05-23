@@ -14,5 +14,6 @@ export {
   handleFetchCardDetails, 
   handleFetchBookDetails,
   handleFetchAdministrationDetails,
-  handleFetchBalanceAccountDetails
+  handleFetchBalanceAccountDetails,
+  handleFetchEntryDetails
 } from './entity-handlers.js';
