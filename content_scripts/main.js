@@ -121,7 +121,7 @@ function loadBookFeature(match) {
   if (window.PowerCloudFeatures?.book?.init) {
     return window.PowerCloudFeatures.book.init(match);
   } else {
-    console.error('Book feature implementation not found. Check that adyen-book.js is properly included in manifest.json');
+    // Feature not found - should never happen with manifest loading
   }
 }
 
@@ -134,7 +134,7 @@ function loadEntriesFeature(match) {
   if (window.PowerCloudFeatures?.entries?.init) {
     return window.PowerCloudFeatures.entries.init(match);
   } else {
-    console.error('Entries feature implementation not found. Check that adyen-entries.js is properly included in manifest.json');
+    // Feature not found - should never happen with manifest loading
   }
 }
 
@@ -163,7 +163,6 @@ function removeCardInfoButton() {
   }
   
   // As a last resort, perform generic cleanup if no implementation is available
-  console.warn('No feature-specific cleanup implementation found, using generic cleanup');
   
   const shadowHost = document.getElementById('powercloud-shadow-host');
   if (shadowHost) {

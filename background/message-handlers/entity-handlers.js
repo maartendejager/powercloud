@@ -37,9 +37,6 @@ export function handleFetchCardDetails(message, sender, sendResponse) {
   // Generate a request ID for tracing
   const requestId = message.requestId || generateRequestId('card');
   
-  console.log(`%c RECEIVED fetchCardDetails REQUEST ${requestId} `, 'background: #FF9800; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, CardID: ${cardId}`);
-  
   // Validate required parameters
   const validation = validateRequiredParams({ customer, cardId }, ['customer', 'cardId']);
   if (!validation.isValid) {
@@ -76,9 +73,6 @@ export function handleFetchBookDetails(message, sender, sendResponse) {
   const { customer, bookId } = message;
   // Generate a request ID for tracing
   const requestId = message.requestId || generateRequestId('book');
-  
-  console.log(`%c RECEIVED fetchBookDetails REQUEST ${requestId} `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, BookID: ${bookId}`);
   
   // Validate required parameters
   const validation = validateRequiredParams({ customer, bookId }, ['customer', 'bookId']);
@@ -117,10 +111,6 @@ export function handleFetchAdministrationDetails(message, sender, sendResponse) 
   // Generate or use existing request ID for tracing
   const requestId = message.requestId || generateRequestId('admin');
   
-  console.log(`%c RECEIVED fetchAdministrationDetails REQUEST ${requestId} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, AdministrationID: ${administrationId}`);
-  console.log(`Request timestamp: ${new Date().toISOString()}`);
-  
   // Validate required parameters
   const validation = validateRequiredParams({ customer, administrationId }, ['customer', 'administrationId']);
   if (!validation.isValid) {
@@ -158,10 +148,6 @@ export function handleFetchBalanceAccountDetails(message, sender, sendResponse) 
   // Generate or use existing request ID for tracing
   const requestId = message.requestId || generateRequestId('balance');
   
-  console.log(`%c RECEIVED fetchBalanceAccountDetails REQUEST ${requestId} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, BalanceAccountID: ${balanceAccountId}`);
-  console.log(`Request timestamp: ${new Date().toISOString()}`);
-  
   // Validate required parameters
   const validation = validateRequiredParams({ customer, balanceAccountId }, ['customer', 'balanceAccountId']);
   if (!validation.isValid) {
@@ -198,9 +184,6 @@ export function handleFetchEntryDetails(message, sender, sendResponse) {
   const { customer, entryId } = message;
   // Generate a request ID for tracing
   const requestId = message.requestId || generateRequestId('entry');
-  
-  console.log(`%c RECEIVED fetchEntryDetails REQUEST ${requestId} `, 'background: #9C27B0; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, EntryID: ${entryId}`);
   
   // Validate required parameters
   const validation = validateRequiredParams({ customer, entryId }, ['customer', 'entryId']);

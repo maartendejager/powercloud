@@ -19,9 +19,6 @@ export function processBookDetailsRequest(customer, bookId, isDev, requestId, se
   // Get book details using our API module
   apiGetBookDetails(customer, bookId, isDev)
     .then(data => {
-      console.log(`%c Book API response received! ${requestId || ''} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
-      console.log('Book API response:', JSON.stringify(data));
-      
       // Extract book data from the response
       const bookData = data?.data?.attributes || data?.attributes || data;
       
@@ -35,30 +32,20 @@ export function processBookDetailsRequest(customer, bookId, isDev, requestId, se
       // Path: data->relationships->adyenBalanceAccount->data->id
       if (!adyenBalanceAccountId && data?.data?.relationships?.adyenBalanceAccount?.data?.id) {
         adyenBalanceAccountId = data.data.relationships.adyenBalanceAccount.data.id;
-        console.log('Found adyenBalanceAccount ID in relationships:', adyenBalanceAccountId);
       }
       // Also check alternative path
       else if (!adyenBalanceAccountId && data?.relationships?.adyenBalanceAccount?.data?.id) {
         adyenBalanceAccountId = data.relationships.adyenBalanceAccount.data.id;
-        console.log('Found adyenBalanceAccount ID in alternative relationships path:', adyenBalanceAccountId);
       }
       
       // Extract administration ID from relationships if available
       // Path: data->relationships->administration->data->id
       if (!administrationId && data?.data?.relationships?.administration?.data?.id) {
         administrationId = data.data.relationships.administration.data.id;
-        console.log('Found administration ID in relationships:', administrationId);
       } 
       // Also check for other possible paths
       else if (!administrationId && data?.relationships?.administration?.data?.id) {
         administrationId = data.relationships.administration.data.id;
-        console.log('Found administration ID in alternative relationships path:', administrationId);
-      }
-      
-      // Log full data to help debugging
-      if (bookData?.bookType === 'monetary_account_book') {
-        console.log('Monetary account book found. Full relationships data:', 
-                    JSON.stringify(data?.data?.relationships || data?.relationships || {}));
       }
       
       sendResponse({

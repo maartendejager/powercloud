@@ -19,9 +19,6 @@ export function processEntryDetailsRequest(customer, entryId, isDev, requestId, 
   // Get entry details using our API module
   apiGetEntryDetails(customer, entryId, isDev)
     .then(data => {
-      console.log(`%c Entry API response received! ${requestId || ''} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
-      console.log('Entry API response:', JSON.stringify(data));
-      
       // Send back the full response for extraction in the content script
       sendResponse({
         success: true,

@@ -39,7 +39,6 @@ function initEntriesFeature(match) {
   const entryId = urlParams.get('id');
   
   if (!match || !match[1] || !entryId) {
-    console.log('Adyen Entries: Invalid URL match or missing entry ID, exiting.');
     return;
   }
   
@@ -77,7 +76,6 @@ function fetchEntryDetails(customer, entryId) {
       }
       
       if (!response || !response.success) {
-        console.log('Failed to fetch entry details:', response?.error || 'Unknown error');
         return;
       }
       
@@ -97,16 +95,12 @@ function fetchEntryDetails(customer, entryId) {
  * @param {string|null} adyenTransferId - The Adyen transfer ID (if available)
  */
 function addEntryFeatureUI(entryId, adyenTransferId) {
-    console.log('Adding Adyen Entries feature UI');
-    console.log(`Entry ID: ${entryId}, Adyen Transfer ID: ${adyenTransferId || 'not available'}`);
-
   // First, let's try to clean up any existing UI
   cleanupEntriesFeature();
   
   // Check if any PowerCloud feature UI from other features exists and leave those alone
   const existingHost = document.getElementById(FEATURE_HOST_ID);
   if (existingHost) {
-    console.log('Another feature UI is present, using a unique ID for ours');
     // If there's already a shared host, use our specific host ID instead
     const ourShadowHost = document.createElement('div');
     ourShadowHost.id = 'powercloud-adyen-entries-host';
@@ -115,7 +109,6 @@ function addEntryFeatureUI(entryId, adyenTransferId) {
     ourShadowHost.style.cssText = 'position: fixed; bottom: 20px; right: 80px; z-index: 9999;';
     
     document.body.appendChild(ourShadowHost);
-    console.log('Created our custom shadow host');
     
     // Create and attach shadow DOM
     const shadowRoot = ourShadowHost.attachShadow({ mode: 'closed' });
@@ -136,7 +129,6 @@ function addEntryFeatureUI(entryId, adyenTransferId) {
   });
   
   document.body.appendChild(shadowHost);
-  console.log('Shadow host added to document body');
   
   const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
   
@@ -155,7 +147,6 @@ function createUiContent(shadowRoot, adyenTransferId) {
   linkElem.rel = 'stylesheet';
   linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
   shadowRoot.appendChild(linkElem);
-  console.log('Stylesheet linked to shadow DOM');
   
   // Create container
   const container = document.createElement('div');
@@ -178,7 +169,6 @@ function createUiContent(shadowRoot, adyenTransferId) {
   
   container.appendChild(button);
   shadowRoot.appendChild(container);
-  console.log('Button added to shadow DOM');
 }
 
 /**
@@ -199,8 +189,6 @@ function handleViewAdyenTransfer(adyenTransferId, buttonElement) {
     // Show success message
     if (window.PowerCloudFeatures.card?.showResult) {
       window.PowerCloudFeatures.card.showResult('Opened Adyen transfer in new tab');
-    } else {
-      console.log('Success: Opened Adyen transfer in new tab');
     }
   } catch (error) {
     // Show error message
@@ -231,9 +219,7 @@ function cleanupEntriesFeature() {
     
     if (!isBookActive && !isCardActive) {
       shadowHost.remove();
-      console.log('Removed standard shadow host');
     } else {
-      console.log('Standard shadow host being used by another feature, not removing');
     }
   }
   
@@ -241,7 +227,6 @@ function cleanupEntriesFeature() {
   const customShadowHost = document.getElementById('powercloud-adyen-entries-host');
   if (customShadowHost) {
     customShadowHost.remove();
-    console.log('Removed custom shadow host');
   }
 }
 

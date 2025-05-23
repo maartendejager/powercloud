@@ -18,9 +18,6 @@ export function processCardDetailsRequest(customer, cardId, isDev, requestId, se
   // Get card details using our API module
   apiGetCardDetails(customer, cardId, isDev)
     .then(data => {
-      console.log(`%c Card API response received! ${requestId || ''} `, 'background: #4CAF50; color: white; font-size: 14px; font-weight: bold;');
-      console.log('API response:', JSON.stringify(data));
-      
       // Check various possible paths for the Adyen payment instrument ID
       let paymentInstrumentId = null;
       if (data?.data?.attributes?.adyenPaymentInstrumentId) {

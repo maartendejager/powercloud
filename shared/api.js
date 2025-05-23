@@ -156,9 +156,6 @@ async function getBookDetails(customer, bookId, isDev = false) {
  * @returns {Promise<Object>} The administration details
  */
 async function getAdministrationDetails(customer, administrationId, isDev = false) {
-  console.log(`%c FETCHING ADMINISTRATION DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, ID: ${administrationId}, Timestamp: ${new Date().toISOString()}`);
-  
   if (!customer || !administrationId) {
     console.error('Invalid parameters for getAdministrationDetails');
     console.trace('Trace for invalid parameters');
@@ -168,43 +165,28 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
   // Try both API endpoints since we're not sure which one is correct
   // First, try the /administrations/ endpoint as specified in the requirements
   const url = buildApiUrl(customer, `/administrations/${administrationId}`, isDev);
-  console.log(`Primary Administration API URL: ${url}`);
   
   // For debugging, add details about token
   try {
     const token = await getToken(customer, isDev);
-    if (token) {
-      console.log('Token available for API request:', { 
-        tokenLength: token.length,
-        tokenStart: token.substring(0, 10) + '...',
-        tokenEnd: '...' + token.substring(token.length - 10)
-      });
-    } else {
+    if (!token) {
       console.warn('No token available for administration API request!');
     }
   } catch (error) {
     console.error('Error checking token:', error);
   }
   
-  console.log('Making administration API request...');
   try {
     const response = await get(url);
-    console.log('Administration API request completed successfully');
     
     // Check if the response has the expected structure
-    if (response?.data?.relationships?.balanceAccount?.data?.id) {
-      console.log('Found balance account ID in response data');
-    }
-    
     return response;
   } catch (primaryError) {
     console.error(`Primary administration API request failed: ${primaryError.message}`);
     
     // Try fallback endpoint in case the primary fails
     try {
-      console.log('Trying alternative API endpoint...');
       const alternateUrl = buildApiUrl(customer, `/api/v1/administrations/${administrationId}`, isDev);
-      console.log(`Alternative Administration API URL: ${alternateUrl}`);
       return await get(alternateUrl);
     } catch (fallbackError) {
       console.error(`Alternative administration API request also failed: ${fallbackError.message}`);
@@ -221,9 +203,6 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
  * @returns {Promise<Object>} The balance account details
  */
 async function getBalanceAccountDetails(customer, balanceAccountId, isDev = false) {
-  console.log(`%c FETCHING BALANCE ACCOUNT DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, Balance Account ID: ${balanceAccountId}, Timestamp: ${new Date().toISOString()}`);
-  
   if (!customer || !balanceAccountId) {
     console.error('Invalid parameters for getBalanceAccountDetails');
     console.trace('Trace for invalid parameters');
@@ -231,17 +210,9 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
   }
   
   const url = buildApiUrl(customer, `/balance-accounts/${balanceAccountId}`, isDev);
-  console.log(`Balance Account API URL: ${url}`);
   
   try {
     const response = await get(url);
-    console.log('Balance Account API request completed successfully');
-    console.log('Response summary:', {
-      success: true,
-      hasData: !!response,
-      hasAttributes: !!(response?.data?.attributes || response?.attributes)
-    });
-    
     return response;
   } catch (error) {
     console.error(`Balance account API request failed: ${error.message}`);
@@ -257,9 +228,6 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
  * @returns {Promise<Object>} The entry details
  */
 async function getEntryDetails(customer, entryId, isDev = false) {
-  console.log(`%c FETCHING ENTRY DETAILS FROM API `, 'background: #2196F3; color: white; font-size: 14px; font-weight: bold;');
-  console.log(`Customer: ${customer}, Entry ID: ${entryId}, Timestamp: ${new Date().toISOString()}`);
-  
   if (!customer || !entryId) {
     console.error('Invalid parameters for getEntryDetails');
     console.trace('Trace for invalid parameters');
@@ -267,17 +235,9 @@ async function getEntryDetails(customer, entryId, isDev = false) {
   }
   
   const url = buildApiUrl(customer, `/book-entries/${entryId}`, isDev);
-  console.log(`Entry API URL: ${url}`);
   
   try {
     const response = await get(url);
-    console.log('Entry API request completed successfully');
-    console.log('Response summary:', {
-      success: true,
-      hasData: !!response,
-      hasAttributes: !!(response?.data?.attributes || response?.attributes)
-    });
-    
     return response;
   } catch (error) {
     console.error(`Entry API request failed: ${error.message}`);
