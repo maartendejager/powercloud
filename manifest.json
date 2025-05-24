@@ -27,6 +27,7 @@
         "shared/error-handling.js",
         "shared/debug-mode.js",
         "shared/base-feature.js",
+        "shared/test-framework.js",
         "content_scripts/features/adyen-card.js",
         "content_scripts/features/adyen-book.js",
         "content_scripts/features/adyen-entries.js",
