@@ -5,6 +5,9 @@
  * Background scripts and popup use this ES6 module
  */
 
+// Import URL pattern utilities
+import { isApiRoute } from './url-patterns-module.js';
+
 /**
  * Token management functions
  * These functions provide secure token storage and management for the extension
@@ -266,17 +269,6 @@ async function handleAuthHeaderFromWebRequest(details) {
   console.log(`[auth-module] ${new Date().toISOString()} - Processing web request for token capture: ${details.url}`);
   
   try {
-    // Check if the URL is an API route - we need to use the imported function
-    let isApiRoute;
-    try {
-      const urlPatternsModule = await import('./url-patterns-module.js');
-      isApiRoute = urlPatternsModule.isApiRoute;
-    } catch (importError) {
-      console.error('[auth-module] Failed to import url-patterns-module:', importError);
-      // Fallback: basic API route check
-      isApiRoute = (url) => url.includes('/api/');
-    }
-    
     if (!isApiRoute(details.url)) {
       console.log(`[auth-module] Skipping non-API route: ${details.url}`);
       return null; // Skip non-API routes
