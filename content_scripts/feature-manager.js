@@ -1,6 +1,7 @@
 /**
  * Feature Manager
  * Handles loading and unloading features based on page URL
+ * Enhanced in Phase 1.3 with improved pattern specificity calculation
  */
 class FeatureManager {
   /**
@@ -11,6 +12,14 @@ class FeatureManager {
     this.features = features;
     this.activeFeatures = new Set();
     this.lastUrl = window.location.href;
+    
+    // Initialize logger if available (Phase 1.2 integration)
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('FeatureManager') || {
+      debug: (...args) => console.log('[DEBUG][FeatureManager]', ...args),
+      info: (...args) => console.log('[INFO][FeatureManager]', ...args),
+      warn: (...args) => console.warn('[WARN][FeatureManager]', ...args),
+      error: (...args) => console.error('[ERROR][FeatureManager]', ...args)
+    };
   }
   
   /**
@@ -18,9 +27,11 @@ class FeatureManager {
    */
   checkPage() {
     const url = window.location.href;
+    this.logger.debug(`Checking page: ${url}`);
     
     // Clean up features if URL changed
     if (url !== this.lastUrl) {
+      this.logger.debug(`URL changed from ${this.lastUrl} to ${url}`);
       this.cleanup();
       this.lastUrl = url;
     }
@@ -30,22 +41,26 @@ class FeatureManager {
     this.features.forEach(feature => {
       const match = url.match(feature.urlPattern);
       if (match && !this.activeFeatures.has(feature.name)) {
+        const specificity = this.calculatePatternSpecificity(feature.urlPattern, url);
         matchingFeatures.push({
           feature,
           match,
-          specificity: this.calculatePatternSpecificity(feature.urlPattern, url)
+          specificity
         });
+        this.logger.debug(`Feature ${feature.name} matches with specificity ${specificity}`);
       }
     });
     
     // Sort by specificity (higher is more specific)
     matchingFeatures.sort((a, b) => b.specificity - a.specificity);
+    this.logger.debug(`Found ${matchingFeatures.length} matching features (sorted by specificity)`);
     
     // Handle feature exclusions and priorities
     const excludedFeatures = new Set();
-    matchingFeatures.forEach(({ feature, match }) => {
+    matchingFeatures.forEach(({ feature, match, specificity }) => {
       // Skip features that have been excluded by more specific features
       if (excludedFeatures.has(feature.name)) {
+        this.logger.debug(`Skipping excluded feature: ${feature.name}`);
         return;
       }
       
@@ -53,23 +68,36 @@ class FeatureManager {
       if (feature.excludes) {
         feature.excludes.forEach(excludedFeature => {
           excludedFeatures.add(excludedFeature);
+          this.logger.debug(`Feature ${feature.name} excludes ${excludedFeature}`);
         });
       }
       
       // Initialize the feature
-      feature.init(match);
-      this.activeFeatures.add(feature.name);
+      try {
+        this.logger.info(`Initializing feature: ${feature.name}`);
+        feature.init(match);
+        this.activeFeatures.add(feature.name);
+        this.logger.info(`Successfully initialized feature: ${feature.name}`);
+      } catch (error) {
+        this.logger.error(`Failed to initialize feature ${feature.name}:`, error);
+      }
     });
   }
   
   /**
    * Calculate a specificity score for a pattern match
-   * Higher scores mean more specific matches
+   * Enhanced in Phase 1.3 to use shared URL pattern utilities
    * @param {RegExp} pattern - The URL pattern
    * @param {string} url - The URL being matched
    * @returns {number} - The specificity score
    */
   calculatePatternSpecificity(pattern, url) {
+    // Use the enhanced calculation from url-patterns.js if available
+    if (typeof window.calculatePatternSpecificity === 'function') {
+      return window.calculatePatternSpecificity(pattern, url);
+    }
+    
+    // Fallback to original implementation
     const patternStr = pattern.toString();
     let score = 0;
     
@@ -95,14 +123,22 @@ class FeatureManager {
    * Clean up active features
    */
   cleanup() {
+    this.logger.debug(`Cleaning up ${this.activeFeatures.size} active features`);
     this.features.forEach(feature => {
       if (this.activeFeatures.has(feature.name) && feature.cleanup) {
-        feature.cleanup();
-        this.activeFeatures.delete(feature.name);
+        try {
+          this.logger.debug(`Cleaning up feature: ${feature.name}`);
+          feature.cleanup();
+          this.activeFeatures.delete(feature.name);
+        } catch (error) {
+          this.logger.error(`Failed to cleanup feature ${feature.name}:`, error);
+          // Still remove from active features even if cleanup failed
+          this.activeFeatures.delete(feature.name);
+        }
       }
     });
   }
-  
+
   /**
    * Set up URL change detection
    */
