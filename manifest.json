@@ -23,6 +23,9 @@
     {
       "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"],
       "js": [
+        "shared/logger.js",
+        "shared/error-handling.js",
+        "shared/debug-mode.js",
         "shared/base-feature.js",
         "content_scripts/features/adyen-card.js",
         "content_scripts/features/adyen-book.js",

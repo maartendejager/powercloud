@@ -17,6 +17,10 @@
 // All feature scripts should be loaded via manifest.json before this code runs
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
+// Initialize the enhanced feature manager with error boundaries
+const safeFeatureManager = new window.PowerCloudSafeFeatureManager();
+window.PowerCloudFeatureManager = safeFeatureManager;
+
 /**
  * Feature registry for different page types
  * Each entry represents a feature with:
@@ -175,5 +179,32 @@ function removeCardInfoButton() {
   }
 }
 
-// Initialize the extension using the FeatureManager from feature-manager.js
-const featureManager = new window.FeatureManager(features).init();
+// Initialize the extension using enhanced SafeFeatureManager with error boundaries
+async function initializeExtension() {
+  try {
+    // Register features with the SafeFeatureManager for better error handling
+    for (const feature of features) {
+      await safeFeatureManager.registerFeature(feature.name, {
+        init: () => {
+          // Create a feature manager instance for this specific feature
+          const manager = new window.FeatureManager([feature]);
+          return manager.init();
+        }
+      }, {
+        allowRetry: true,
+        retryDelay: 2000
+      });
+    }
+    
+    console.log('[PowerCloud] All features registered with enhanced error handling');
+    
+    // Also initialize with the traditional feature manager for backward compatibility
+    const featureManager = new window.FeatureManager(features).init();
+    
+  } catch (error) {
+    console.error('[PowerCloud] Extension initialization failed:', error);
+  }
+}
+
+// Initialize the extension
+initializeExtension();

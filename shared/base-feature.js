@@ -26,6 +26,14 @@ class BaseFeature {
     this.enableDebugLogging = options.enableDebugLogging || false;
     this.isInitialized = false;
     this.isActive = false;
+    
+    // Initialize logger with feature-specific context
+    this.logger = window.PowerCloudLoggerFactory?.getLogger(`Feature.${name}`) || {
+      debug: (...args) => console.log(`[DEBUG][Feature.${name}]`, ...args),
+      info: (...args) => console.log(`[INFO][Feature.${name}]`, ...args),
+      warn: (...args) => console.warn(`[WARN][Feature.${name}]`, ...args),
+      error: (...args) => console.error(`[ERROR][Feature.${name}]`, ...args)
+    };
   }
 
   /**
@@ -56,7 +64,7 @@ class BaseFeature {
    * @returns {Promise<void>|void}
    */
   onActivate() {
-    this.log('Feature activated');
+    this.logger.info('Feature activated');
     this.isActive = true;
   }
 
@@ -66,7 +74,7 @@ class BaseFeature {
    * @returns {Promise<void>|void}
    */
   onDeactivate() {
-    this.log('Feature deactivated');
+    this.logger.info('Feature deactivated');
     this.isActive = false;
   }
 
@@ -76,7 +84,7 @@ class BaseFeature {
    * @param {string} context - Context where the error occurred
    */
   onError(error, context = 'unknown') {
-    console.error(`[${this.name}] Error in ${context}:`, error);
+    this.logger.error(`Error in ${context}:`, error);
   }
 
   /**
@@ -86,11 +94,10 @@ class BaseFeature {
    */
   log(message, data = null) {
     if (this.enableDebugLogging) {
-      const logMessage = `[${this.name}] ${message}`;
       if (data) {
-        console.log(logMessage, data);
+        this.logger.debug(message, data);
       } else {
-        console.log(logMessage);
+        this.logger.debug(message);
       }
     }
   }
