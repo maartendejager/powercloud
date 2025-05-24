@@ -5,7 +5,8 @@
  * handling storage, retrieval, validation, and manipulation of JWT tokens.
  */
 
-import { API_ROUTE_PATTERN, isApiRoute } from './url-patterns.js';
+// Note: This module depends on url-patterns.js being loaded first
+// URL pattern utilities are available via window.API_ROUTE_PATTERN and window.isApiRoute
 
 /**
  * Maximum number of tokens to store in history
@@ -103,7 +104,7 @@ async function setToken(token, metadata = {}) {
   }
   
   // Only accept tokens from API routes
-  if (metadata.url && !isApiRoute(metadata.url)) {
+  if (metadata.url && !window.isApiRoute(metadata.url)) {
     console.log('Skipping token from non-API URL:', metadata.url);
     return;
   }
@@ -250,7 +251,7 @@ function getTokenPayload(token) {
  */
 async function handleAuthHeaderFromWebRequest(details) {
   // Check if the URL is an API route
-  if (!isApiRoute(details.url)) {
+  if (!window.isApiRoute(details.url)) {
     return null; // Skip non-API routes
   }
 

@@ -5,7 +5,8 @@
  * requests to spend.cloud APIs.
  */
 
-import { getToken, extractClientEnvironment, isDevelopmentRoute } from './auth.js';
+// Note: This module depends on auth.js being loaded first
+// Auth functions are available via window.getToken, window.extractClientEnvironment, window.isDevelopmentRoute
 
 /**
  * Makes an authenticated request to an API endpoint
@@ -19,11 +20,11 @@ import { getToken, extractClientEnvironment, isDevelopmentRoute } from './auth.j
 async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, additionalHeaders = {}) {
   try {
     // Extract client environment and isDev from the endpoint URL
-    const clientEnvironment = endpoint.includes('spend.cloud') ? extractClientEnvironment(endpoint) : undefined;
-    const isDev = endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : undefined;
+    const clientEnvironment = endpoint.includes('spend.cloud') ? window.extractClientEnvironment(endpoint) : undefined;
+    const isDev = endpoint.includes('spend.cloud') ? window.isDevelopmentRoute(endpoint) : undefined;
     
     // Get the current authentication token appropriate for this request
-    const token = await getToken(clientEnvironment, isDev);
+    const token = await window.getToken(clientEnvironment, isDev);
     
     // Prepare headers
     const headers = {
@@ -168,7 +169,7 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
   
   // For debugging, add details about token
   try {
-    const token = await getToken(customer, isDev);
+    const token = await window.getToken(customer, isDev);
     if (!token) {
       console.warn('No token available for administration API request!');
     }
