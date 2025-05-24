@@ -15,6 +15,14 @@ This directory contains test files and testing utilities for the PowerCloud exte
 - **`phase-1.3-test.js`** - Tests for URL pattern enhancements (Phase 1.3)
 - **`phase-2.2-tests.js`** - Tests for feature validation and health monitoring (Phase 2.2)
 
+### Phase 4.1 Testing Infrastructure
+- **`content-script-tests.js`** - Comprehensive unit tests for content script functionality
+- **`background-integration-tests.js`** - Integration tests for background service worker
+- **`e2e-tests.js`** - End-to-end tests for critical user flows
+- **`feature-test-utils.js`** - Testing utilities, mocks, and helpers for feature testing
+- **`TESTING_PIPELINE.md`** - Comprehensive documentation for automated testing pipeline
+- **`validate-phase-4.1.js`** - Comprehensive validation script for Phase 4.1 testing infrastructure
+
 ## Running Tests
 
 ### Manual Testing
@@ -26,28 +34,83 @@ Most tests are designed to be run manually in the browser console:
 
 ### Test Framework Usage
 ```javascript
-// Example: Running unit tests
-// Load test-framework.js first, then:
+// Example: Running all test categories
 PowerCloudTesting.runAllTests();
 
-// Running specific test suites
-PowerCloudTesting.runUnitTests();
-PowerCloudTesting.runIntegrationTests();
+// Running specific test suites (Phase 4.1)
+PowerCloudTesting.runUnitTests();           // Content script unit tests
+PowerCloudTesting.runIntegrationTests();    // Background integration tests  
+PowerCloudTesting.runE2ETests();            // End-to-end workflow tests
+
+// Running legacy test suites
+PowerCloudTesting.runTestSuite('Base Feature Tests');
+PowerCloudTesting.runTestSuite('Feature Loading Integration');
 ```
 
-### Test Categories
+### Testing Utilities (Phase 4.1)
+```javascript
+// Set up test environment with mocks
+await testUtils.setup();
+
+// Create test features
+const testFeature = testUtils.createTestFeature({
+  name: 'myTestFeature',
+  init: () => console.log('Feature initialized')
+});
+
+// Create mock DOM structures
+const adyenDOM = domUtils.createAdyenTestDOM();
+const bookDOM = domUtils.createBookTestDOM();
+
+// Performance testing
+perfUtils.startTimer('operation');
+// ... run operation ...
+const duration = perfUtils.endTimer('operation');
+
+// Clean up after tests
+await testUtils.teardown();
+```
+
+### Phase 4.1 Validation
+
+To validate that all Phase 4.1 testing components are working properly:
+
+```javascript
+// Load the validation script in browser console
+// Then run:
+validatePhase41Testing();
+```
+
+This will check:
+- Test framework availability and functionality
+- Content script unit tests setup
+- Background integration tests configuration
+- E2E testing infrastructure
+- Feature testing utilities and mocks
+- Testing pipeline documentation completeness
+
+## Test Categories
 
 #### Unit Tests
-- Shared utility functions
-- URL pattern matching
-- Token validation
-- Configuration management
+- Shared utility functions (URL patterns, settings, auth)
+- Content script components (feature manager, debug system)
+- DOM manipulation and event handling
+- Configuration management and validation
 
 #### Integration Tests  
-- Feature loading and initialization
-- Error handling across components
-- Settings manager integration
-- Performance monitoring
+- Background service worker message handling
+- Chrome extension API integration
+- Token management workflows
+- Health monitoring system integration
+- Storage operations and data persistence
+
+#### End-to-End Tests
+- Complete user workflows and feature interactions
+- Extension popup functionality validation
+- Feature activation based on URL patterns
+- Adyen integration workflows
+- Settings and configuration management
+- Error handling and recovery scenarios
 
 #### Feature Tests
 - BaseFeature lifecycle
