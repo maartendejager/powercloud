@@ -92,12 +92,19 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 
 ## Phase 5: Feature-Specific Improvements
 
-### 5.1 Adyen Features Enhancement
-- [ ] Refactor `adyen-card.js` to use BaseFeature class
-- [ ] Refactor `adyen-book.js` to use BaseFeature class  
-- [ ] Refactor `adyen-entries.js` to use BaseFeature class
-- [ ] Add error handling for Adyen API failures
-- [ ] Implement feature-specific configuration options
+### 5.1 Adyen Features Enhancement ✅ COMPLETE
+- [x] Refactor `adyen-card.js` to use BaseFeature class
+- [x] Refactor `adyen-book.js` to use BaseFeature class  
+- [x] Refactor `adyen-entries.js` to use BaseFeature class
+- [x] Add error handling for Adyen API failures
+- [x] Implement feature-specific configuration options
+- [x] **CRITICAL FIX**: Fixed response structure handling for all three features
+  - [x] Card feature: Handle both `response.card.adyenCardToken` and `response.paymentInstrumentId`
+  - [x] Book feature: Handle both `response.balanceAccountId` and `response.adyenBalanceAccountId`
+  - [x] Entries feature: Handle multiple response structures for `adyenTransferId`
+- [x] Enhanced debug logging and error tracking
+- [x] Added comprehensive testing tools (`response-structure-test.js`, `final-validation-test.js`)
+- [x] Created configuration documentation (`ADYEN_CONFIG.md`)
 
 ### 5.2 UI/UX Improvements
 - [ ] Standardize UI components across features

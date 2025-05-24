@@ -150,9 +150,17 @@ class AdyenBookFeature extends BaseFeature {
 
         if (response && response.success) {
           this.bookType = response.bookType;
-          this.balanceAccountId = response.balanceAccountId;
+          // Handle both old and new response formats for balance account ID
+          this.balanceAccountId = response.balanceAccountId || response.adyenBalanceAccountId;
           this.administrationId = response.administrationId;
           this.balanceAccountReference = response.balanceAccountReference;
+          
+          console.log('[PowerCloud] Book API response structure:', {
+            hasBalanceAccountId: !!response.balanceAccountId,
+            hasAdyenBalanceAccountId: !!response.adyenBalanceAccountId,
+            finalBalanceAccountId: this.balanceAccountId,
+            bookType: this.bookType
+          });
           
           // Check if book type is supported
           if (this.config.enableBookTypeFiltering && 
@@ -397,12 +405,24 @@ class AdyenBookFeature extends BaseFeature {
    */
   async handleBookInfoClick() {
     try {
+      console.log('[PowerCloud] Book info click handler called', {
+        hasBalanceAccountId: !!this.balanceAccountId,
+        balanceAccountId: this.balanceAccountId,
+        bookType: this.bookType
+      });
+      
       if (!this.balanceAccountId) {
+        console.log('[PowerCloud] No balance account ID available for book');
         this.showBookInfoResult('No Adyen Balance Account ID found for this book');
         return;
       }
 
       const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${this.balanceAccountId}`;
+      
+      console.log('[PowerCloud] Opening Adyen balance account:', {
+        balanceAccountId: this.balanceAccountId,
+        url: adyenUrl
+      });
       
       // Open Adyen URL in new tab
       chrome.runtime.sendMessage({
@@ -412,6 +432,7 @@ class AdyenBookFeature extends BaseFeature {
       
       this.showBookInfoResult('Balance Account opened in Adyen');
     } catch (error) {
+      console.error('[PowerCloud] Book info click error:', error);
       this.handleError('Failed to handle book info click', error);
       this.showBookInfoResult('Error: Unable to open balance account');
     }

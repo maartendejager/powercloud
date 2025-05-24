@@ -54,8 +54,45 @@ const messageHandlers = {
   "clearDebugData": handleClearDebugData,
   "exportHealthReport": handleExportHealthReport,
   "updateFeatureHealth": handleUpdateFeatureHealth,
-  "recordPerformanceMetric": handleRecordPerformanceMetric
+  "recordPerformanceMetric": handleRecordPerformanceMetric,
+  // Tab management
+  "openTab": handleOpenTab
 };
+
+/**
+ * Handle opening a new tab
+ * @param {Object} message - The message object
+ * @param {Object} sender - The sender information
+ * @param {Function} sendResponse - Function to send response back
+ * @returns {boolean} - Whether to keep the message channel open
+ */
+function handleOpenTab(message, sender, sendResponse) {
+  console.log('[service-worker] Opening tab:', message.url);
+  
+  if (!message.url) {
+    console.error('[service-worker] No URL provided for openTab action');
+    sendResponse({ success: false, error: 'No URL provided' });
+    return false;
+  }
+  
+  try {
+    chrome.tabs.create({ url: message.url }, (tab) => {
+      if (chrome.runtime.lastError) {
+        console.error('[service-worker] Error creating tab:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log('[service-worker] Tab created successfully:', tab.id);
+        sendResponse({ success: true, tabId: tab.id });
+      }
+    });
+    
+    return true; // Keep message channel open for async response
+  } catch (error) {
+    console.error('[service-worker] Exception in handleOpenTab:', error);
+    sendResponse({ success: false, error: error.message });
+    return false;
+  }
+}
 
 // Set up web request listener for token capture
 console.log('[service-worker] Setting up web request listener...');

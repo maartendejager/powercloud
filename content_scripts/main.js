@@ -17,6 +17,12 @@
 // All feature scripts should be loaded via manifest.json before this code runs
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
+console.log('[PowerCloud] Main script loaded');
+console.log('[PowerCloud] PowerCloudFeatures namespace initialized');
+console.log('[PowerCloud] Available features:', Object.keys(window.PowerCloudFeatures));
+console.log('[PowerCloud] BaseFeature available:', typeof window.BaseFeature !== 'undefined');
+console.log('[PowerCloud] Current URL:', window.location.href);
+
 // Initialize enhanced debugging system
 if (window.enhancedDebug && window.loggerFactory) {
   const mainLogger = window.loggerFactory.createLogger('Main');
@@ -114,6 +120,28 @@ const features = [
         return window.PowerCloudFeatures.book.cleanup();
       }
       return removeCardInfoButton();
+    }
+  },
+  {
+    name: 'adyenBookInfo',
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/book\/([^\/]+)(\/.*|$)/,
+    init: loadBookFeature,
+    cleanup: function() {
+      // Use the book-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.book?.cleanup) {
+        return window.PowerCloudFeatures.book.cleanup();
+      }
+    }
+  },
+  {
+    name: 'adyenEntriesInfo',
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/entries\/([^\/]+)(\/.*|$)/,
+    init: loadEntriesFeature,
+    cleanup: function() {
+      // Use the entries-specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.entries?.cleanup) {
+        return window.PowerCloudFeatures.entries.cleanup();
+      }
     }
   }
   // Additional features can be registered here

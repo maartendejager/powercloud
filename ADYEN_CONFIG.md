@@ -9,6 +9,40 @@ All configurations are stored in Chrome's local storage under feature-specific k
 - `adyenBookConfig` - Configuration for adyen-book.js  
 - `adyenEntriesConfig` - Configuration for adyen-entries.js
 
+## Recent Fixes (Phase 5.1 Enhancement)
+
+### Response Structure Compatibility
+Fixed all three features to handle both old and new API response formats:
+
+#### 1. Card Feature (`adyen-card.js`)
+- **Status**: ✅ Working correctly
+- **Old format**: `response.card.adyenCardToken`
+- **New format**: `response.paymentInstrumentId`
+
+#### 2. Book Feature (`adyen-book.js`)  
+- **Status**: ✅ Fixed response structure handling
+- **Old format**: `response.balanceAccountId`
+- **New format**: `response.adyenBalanceAccountId`
+
+#### 3. Entries Feature (`adyen-entries.js`)
+- **Status**: ✅ Fixed response structure handling
+- **Old format**: `response.entry.adyenTransferId`
+- **New format**: `response.data.data.attributes.adyenTransferId` or `response.data.attributes.adyenTransferId`
+
+### Enhanced Debug Logging
+Added comprehensive console logging to track:
+- Response structure detection and selection
+- API call results and retry attempts
+- Button state changes and user interactions
+- Error conditions with detailed context
+
+### Testing Tools
+- Created `/testing/response-structure-test.js` for debugging response handling
+- Enhanced error messages to identify specific missing data fields
+- Added comprehensive logging for troubleshooting
+
+## Configuration Storage
+
 ## Configuration Options
 
 Each feature supports the following configuration options:

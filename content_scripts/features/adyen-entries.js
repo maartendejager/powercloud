@@ -149,8 +149,43 @@ class AdyenEntriesFeature extends BaseFeature {
         }, this.config.timeout);
 
         if (response && response.success) {
-          this.entry = response.entry;
-          this.adyenTransferId = response.entry ? response.entry.adyenTransferId : null;
+          // Handle both old and new response formats
+          // Old format: response.entry.adyenTransferId
+          // New format: response.data.data.attributes.adyenTransferId or response.data.attributes.adyenTransferId
+          let entryData = null;
+          let adyenTransferId = null;
+          
+          if (response.entry) {
+            // Old format
+            entryData = response.entry;
+            adyenTransferId = response.entry.adyenTransferId;
+            console.log('[PowerCloud] Using old format entry data:', { adyenTransferId });
+          } else if (response.data) {
+            // New format - extract from data structure
+            if (response.data.data && response.data.data.attributes) {
+              entryData = response.data.data.attributes;
+              adyenTransferId = response.data.data.attributes.adyenTransferId;
+            } else if (response.data.attributes) {
+              entryData = response.data.attributes;
+              adyenTransferId = response.data.attributes.adyenTransferId;
+            } else {
+              entryData = response.data;
+              adyenTransferId = response.data.adyenTransferId;
+            }
+            console.log('[PowerCloud] Using new format entry data:', { 
+              adyenTransferId,
+              dataStructure: response.data.data ? 'nested' : 'flat'
+            });
+          }
+          
+          this.entry = entryData;
+          this.adyenTransferId = adyenTransferId;
+          
+          console.log('[PowerCloud] Entry details processing result:', {
+            hasEntry: !!this.entry,
+            hasAdyenTransferId: !!this.adyenTransferId,
+            transferId: this.adyenTransferId
+          });
           
           this.addEntriesInfoButton();
           this.clearApiError('fetchEntryDetails');
@@ -327,9 +362,16 @@ class AdyenEntriesFeature extends BaseFeature {
     let attempt = 0;
     const maxAttempts = this.config.retryAttempts;
     
+    console.log('[PowerCloud] Entries info click handler called', {
+      hasAdyenTransferId: !!this.adyenTransferId,
+      adyenTransferId: this.adyenTransferId,
+      entry: this.entry
+    });
+    
     while (attempt < maxAttempts) {
       try {
         if (!this.adyenTransferId) {
+          console.log('[PowerCloud] No transfer ID available for entry');
           this.showEntriesInfoResult('No Adyen Transfer ID found for this entry');
           return;
         }
@@ -337,6 +379,11 @@ class AdyenEntriesFeature extends BaseFeature {
         const adyenUrl = `${ADYEN_TRANSFERS_BASE_URL}${this.adyenTransferId}`;
         
         this.log(`Opening Adyen transfer (attempt ${attempt + 1}/${maxAttempts})`, { transferId: this.adyenTransferId });
+        console.log('[PowerCloud] Opening Adyen transfer:', {
+          transferId: this.adyenTransferId,
+          url: adyenUrl,
+          attempt: attempt + 1
+        });
         
         // Open Adyen URL in new tab with timeout
         await this.sendMessageWithTimeout({
