@@ -328,3 +328,18 @@ if (typeof window !== 'undefined') {
   window.extractClientEnvironment = extractClientEnvironment;
   window.isDevelopmentRoute = isDevelopmentRoute;
 }
+
+// ES6 exports for service worker (module environment)
+export {
+  getAllTokens,
+  getToken,
+  setToken,
+  saveTokens,
+  clearTokens,
+  removeToken,
+  isValidJWT,
+  getTokenPayload,
+  handleAuthHeaderFromWebRequest,
+  extractClientEnvironment,
+  isDevelopmentRoute
+};

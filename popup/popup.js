@@ -1,4 +1,4 @@
-import { isApiRoute } from '../shared/url-patterns.js';
+import { isApiRoute } from '../shared/url-patterns-module.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Load and set toggle state for showing buttons

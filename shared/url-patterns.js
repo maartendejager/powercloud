@@ -418,7 +418,7 @@ function testPatternAgainstUrls(pattern, testUrls) {
   return results;
 }
 
-// Export all patterns and functions for browser extension environment
+// Export for content scripts (window object) - this is the primary export mechanism
 if (typeof window !== 'undefined') {
   // Pattern constants
   window.DOMAIN_PATTERN = DOMAIN_PATTERN;

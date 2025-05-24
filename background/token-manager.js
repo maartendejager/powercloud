@@ -6,7 +6,7 @@
  */
 
 import { getAllTokens, saveTokens, removeToken, clearTokens, handleAuthHeaderFromWebRequest, isValidJWT } from '../shared/auth.js';
-import { isApiRoute } from '../shared/url-patterns.js';
+import { isApiRoute } from '../shared/url-patterns-module.js';
 
 // Local reference to tokens for quicker access
 let authTokens = [];
