@@ -1,82 +1,72 @@
-# PowerCloud Extension Improvement Plan
+# PowerCloud Extension Improvement Plan (Revised)
 
 ## Overview
-This plan outlines structured improvements to enhance the PowerCloud extension's architecture, maintainability, and developer experience while preserving the existing manifest-only loading strategy.
+This plan outlines structured improvements to enhance the PowerCloud extension's architecture, maintainability, and developer experience while preserving the existing manifest-only loading strategy. The plan has been revised to focus on incremental improvements that maintain simplicity and reliability.
 
 ---
 
-## Phase 1: Core Architecture Refactoring
+## Phase 1: Core Architecture Foundation (High Priority)
 
-### 1.1 Content Script Modernization
+### 1.1 Base Feature Structure
 - [ ] Create `BaseFeature` class in `shared/base-feature.js` for standardized feature structure
-- [ ] Update `FeatureManager` to use ES6 classes and modern patterns
-- [ ] Implement centralized error handling and logging system
-- [ ] Add feature lifecycle hooks (onInit, onCleanup, onActivate, onDeactivate)
-- [ ] Create feature dependency management system
+- [ ] Add basic feature lifecycle hooks (onInit, onCleanup)
+- [ ] Implement simple error handling within features
+- [ ] Create feature interface documentation
 
-### 1.2 Feature Registry Enhancement
-- [ ] Create `FeatureRegistry` class in `content_scripts/feature-registry.js`
-- [ ] Migrate hardcoded feature array to registry pattern
-- [ ] Add feature metadata (priority, dependencies, environment support)
-- [ ] Implement feature versioning and compatibility checks
-- [ ] Add feature health monitoring capabilities
+### 1.2 Enhanced Error Handling & Logging
+- [ ] Create `Logger` class in `shared/logger.js` with configurable levels
+- [ ] Add error boundaries for feature initialization failures
+- [ ] Implement graceful degradation when features fail to load
+- [ ] Add debug mode with verbose logging
 
-### 1.3 URL Pattern Management
-- [ ] Centralize URL patterns in `shared/url-patterns.js` (already exists - enhance it)
-- [ ] Create URL pattern utility functions for better matching
-- [ ] Add support for pattern priorities and specificity calculation
-- [ ] Implement pattern validation and testing utilities
-- [ ] Add pattern documentation and examples
+### 1.3 URL Pattern Enhancement
+- [ ] Enhance existing `shared/url-patterns.js` with utility functions
+- [ ] Add pattern validation helpers
+- [ ] Improve pattern specificity calculation in FeatureManager
+- [ ] Document URL pattern best practices
 
 ---
 
-## Phase 2: Background Service Worker Enhancement
+## Phase 2: Testing Infrastructure (Medium Priority)
 
-### 2.1 Service Worker Modularization
-- [ ] Refactor `service-worker.js` to use dependency injection pattern
-- [ ] Create service registry for background services
-- [ ] Implement graceful error recovery for service worker crashes
-- [ ] Add service worker health monitoring and diagnostics
-- [ ] Create unified logging system across all background modules
+### 2.1 Basic Testing Framework
+- [ ] Create unit test framework for shared utilities
+- [ ] Add basic integration tests for feature loading
+- [ ] Create feature testing utilities and mocks
+- [ ] Add automated testing pipeline documentation
+- [ ] Implement test coverage reporting
 
-### 2.2 Message Handler Improvements
-- [ ] Standardize message handler interfaces in `message-handlers/`
-- [ ] Add message validation and schema enforcement
-- [ ] Implement message queuing for offline scenarios
-- [ ] Add message timeout and retry mechanisms
-- [ ] Create message handler testing framework
-
-### 2.3 API Processor Enhancements
-- [ ] Add request/response caching layer to API processors
-- [ ] Implement rate limiting for API requests
-- [ ] Add request batching capabilities
-- [ ] Create API response transformation pipelines
-- [ ] Add API error handling and retry logic
+### 2.2 Feature Validation
+- [ ] Add feature initialization validation
+- [ ] Create feature health checks
+- [ ] Implement basic performance monitoring
+- [ ] Add error tracking for features
+- [ ] Create debugging utilities
 
 ---
 
-## Phase 3: Developer Experience Improvements
+## Phase 3: Developer Experience Improvements (Medium Priority)
 
 ### 3.1 Configuration Management
 - [ ] Create `SettingsManager` class in `shared/settings-manager.js`
 - [ ] Add user preference storage and retrieval
 - [ ] Implement feature toggle system
 - [ ] Create environment-specific configuration support
-- [ ] Add configuration validation and migration
+- [ ] Add configuration validation
 
-### 3.2 Debugging and Monitoring
-- [ ] Create `Logger` class in `shared/logger.js` with configurable levels
-- [ ] Add performance monitoring for feature loading times
-- [ ] Implement extension health dashboard in popup
-- [ ] Create debug mode with verbose logging
-- [ ] Add feature usage analytics (privacy-focused)
+### 3.2 Documentation & Code Quality
+- [ ] Establish JSDoc standards for all modules
+- [ ] Create code style guide and linting rules
+- [ ] Update ARCHITECTURE.md with new patterns
+- [ ] Create developer onboarding documentation
+- [ ] Add inline documentation for complex logic
 
-### 3.3 Error Handling
-- [ ] Implement global error boundary for content scripts
-- [ ] Add error reporting and collection system
-- [ ] Create error recovery mechanisms for common failures
-- [ ] Add user-friendly error messages and troubleshooting
-- [ ] Implement graceful degradation for feature failures
+### 3.3 Enhanced Debugging
+- [ ] Improve logging consistency across features
+- [ ] Add debug mode for verbose output
+- [ ] Create extension health dashboard in popup
+- [ ] Implement better error messages
+- [ ] Add feature usage tracking (privacy-focused)
 
 ---
 
@@ -130,28 +120,21 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 
 ---
 
-## Phase 6: Advanced Features
+## Phase 6: Advanced Features (Optional)
 
-### 6.1 Extension Analytics
+### 6.1 Extension Analytics (Optional)
 - [ ] Implement privacy-focused usage analytics
 - [ ] Add feature adoption tracking
 - [ ] Create performance metrics collection
 - [ ] Add error rate monitoring
 - [ ] Implement user feedback collection system
 
-### 6.2 Advanced Configuration
+### 6.2 Advanced Configuration (Optional)
 - [ ] Create advanced settings panel in popup
 - [ ] Add import/export of extension settings
 - [ ] Implement feature scheduling (enable/disable by time)
 - [ ] Add environment-specific feature sets
 - [ ] Create team-based configuration sharing
-
-### 6.3 Developer Tools Integration
-- [ ] Add Chrome DevTools panel for extension debugging
-- [ ] Create API request/response inspector
-- [ ] Add token validation and debugging tools
-- [ ] Implement feature performance profiler
-- [ ] Add network request analysis tools
 
 ---
 
@@ -163,12 +146,18 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 - **Low**: Advanced features and nice-to-have enhancements
 
 ### Implementation Order
-1. Start with Phase 1 (Core Architecture) - most critical
-2. Complete Phase 2 (Background Service Worker) 
-3. Move to Phase 3 (Developer Experience)
-4. Continue with Phase 4 (Code Quality)
-5. Implement Phase 5 (Feature-Specific)
-6. Finally Phase 6 (Advanced Features)
+1. **Phase 1** (Core Architecture Foundation) - Essential for maintainability
+2. **Phase 2** (Testing Infrastructure) - Moved up to support refactoring
+3. **Phase 3** (Developer Experience) - Important for long-term productivity
+4. **Phase 4** (Code Quality) - Complete testing and documentation
+5. **Phase 5** (Feature-Specific) - Apply patterns to existing features
+6. **Phase 6** (Advanced Features) - Only if clearly beneficial
+
+### Milestone Strategy
+- **Start Small**: Implement one item from Phase 1 first, test, and commit
+- **Incremental Progress**: Complete 2-3 related items before moving to next phase
+- **Regular Reviews**: After each milestone, evaluate if the plan needs adjustment
+- **Test Early**: Include basic testing from Phase 2 alongside Phase 1 work
 
 ### Validation Criteria
 Each item should be considered complete when:
@@ -177,6 +166,7 @@ Each item should be considered complete when:
 - [ ] Code review is completed
 - [ ] No new bugs or regressions introduced
 - [ ] Performance impact is acceptable
+- [ ] Extension functionality remains reliable
 
 ---
 
