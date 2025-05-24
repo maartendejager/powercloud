@@ -88,13 +88,6 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 - [x] Update ARCHITECTURE.md with new patterns
 - [x] Create developer onboarding documentation
 
-### 4.3 Performance Optimization
-- [ ] Audit and optimize feature loading performance
-- [ ] Implement lazy loading for non-critical features
-- [ ] Add memory leak detection and prevention
-- [ ] Optimize DOM manipulation and event handling
-- [ ] Create performance benchmarking tools
-
 ---
 
 ## Phase 5: Feature-Specific Improvements
@@ -124,14 +117,21 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 
 ## Phase 6: Advanced Features (Optional)
 
-### 6.1 Extension Analytics (Optional)
+### 6.1 Performance Optimization (Moved from Phase 4.3)
+- [ ] Audit and optimize feature loading performance
+- [ ] Implement lazy loading for non-critical features
+- [ ] Add memory leak detection and prevention
+- [ ] Optimize DOM manipulation and event handling
+- [ ] Create performance benchmarking tools
+
+### 6.2 Extension Analytics (Optional)
 - [ ] Implement privacy-focused usage analytics
 - [ ] Add feature adoption tracking
 - [ ] Create performance metrics collection
 - [ ] Add error rate monitoring
 - [ ] Implement user feedback collection system
 
-### 6.2 Advanced Configuration (Optional)
+### 6.3 Advanced Configuration (Optional)
 - [ ] Create advanced settings panel in popup
 - [ ] Add import/export of extension settings
 - [ ] Implement feature scheduling (enable/disable by time)

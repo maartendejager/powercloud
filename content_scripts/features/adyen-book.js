@@ -1,212 +1,601 @@
 /**
  * Adyen Book Feature Module
- * 
+ *
  * This module provides functionality for viewing balance account information at Adyen
- * for book pages at https://[customer-environment].spend.cloud/proactive/kasboek.boekingen/[book-id]/* or
- * https://[customer-environment].dev.spend.cloud/proactive/kasboek.boekingen/[book-id]/*
- *
- * The module:
- * 1. Detects monetary account book pages
- * 2. Checks for a direct relationship to an Adyen balance account 
- * 3. Displays a button to view the balance account at Adyen
- * 4. Button states: hidden (non-monetary book), disabled (no balance account), or enabled (with balance account)
- *
+ * for book pages at https://[customer-environment].spend.cloud/books/[book-id]/* or
+ * https://[customer-environment].dev.spend.cloud/books/[book-id]/* and other related book pages.
+ * 
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
  */
 
-// Initialize the PowerCloudFeatures namespace if it doesn't exist
-window.PowerCloudFeatures = window.PowerCloudFeatures || {};
-window.PowerCloudFeatures.book = window.PowerCloudFeatures.book || {};
-
 /**
- * Initialize the book feature
- * Adds functionality specific to book pages
- * @param {object} match - The URL match result containing capture groups
- *                        For URLs like https://[customer].spend.cloud/* or https://[customer].dev.spend.cloud/*
- *                        match[1]=customer, match[2]=bookId
+ * AdyenBookFeature class extending BaseFeature
+ * Provides balance account viewing functionality
  */
-function initBookFeature(match) {
-  if (!match || match.length < 3) return;
-  
-  // In our new pattern, customer is always in match[1] and bookId is always in match[2]
-  const customer = match[1];
-  const bookId = match[2];
-  
-  // Check if buttons should be shown before fetching book details
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+class AdyenBookFeature extends BaseFeature {
+  constructor() {
+    super('adyen-book', {
+      hostElementId: 'powercloud-shadow-host',
+      enableDebugLogging: false
+    });
     
-    if (!showButtons) {
-      return;
+    // Feature-specific properties
+    this.customer = null;
+    this.bookId = null;
+    this.bookType = null;
+    this.balanceAccountId = null;
+    this.administrationId = null;
+    this.balanceAccountReference = null;
+    
+    // Feature-specific configuration options
+    this.config = {
+      retryAttempts: 3,
+      retryDelay: 1000,
+      timeout: 5000,
+      autoRetryOnFailure: true,
+      showDetailedErrors: false,
+      fallbackToDefaultBehavior: true,
+      enableBookTypeFiltering: true,
+      supportedBookTypes: ['monetary_account_book']
+    };
+    
+    // Error tracking
+    this.apiErrors = new Map();
+    this.lastErrorTime = null;
+  }
+
+  /**
+   * Initialize the feature with URL match data
+   * @param {object} match - The URL match result containing capture groups
+   */
+  async onInit(match) {
+    await super.onInit(match);
+    
+    if (!match || match.length < 3) {
+      throw new Error('Invalid match data for book feature');
     }
+
+    // In our new pattern, customer is always in match[1] and bookId is always in match[2]
+    this.customer = match[1];
+    this.bookId = match[2];
     
-    // First fetch book details to determine book type before adding button
-    chrome.runtime.sendMessage(
-      { 
-        action: "fetchBookDetails", 
-        customer: customer, 
-        bookId: bookId 
-      },
-      (response) => {
+    // Load feature-specific configuration
+    await this.loadFeatureConfig();
+    
+    this.log('Initializing book feature', { 
+      customer: this.customer, 
+      bookId: this.bookId,
+      config: this.config 
+    });
+  }
+
+  /**
+   * Load feature-specific configuration from storage
+   */
+  async loadFeatureConfig() {
+    try {
+      const result = await this.getStorageSettings();
+      
+      // Merge with default config
+      if (result.adyenBookConfig) {
+        this.config = { ...this.config, ...result.adyenBookConfig };
+      }
+      
+      this.log('Feature configuration loaded', { config: this.config });
+    } catch (error) {
+      this.handleError('Failed to load feature configuration', error);
+    }
+  }
+
+  /**
+   * Activate the feature - check settings and fetch book details
+   */
+  async onActivate() {
+    await super.onActivate();
+    
+    try {
+      // Check if buttons should be shown before fetching book details
+      const result = await this.getStorageSettings();
+      const showButtons = result.showButtons === undefined ? true : result.showButtons;
+
+      if (!showButtons) {
+        this.log('Buttons disabled, skipping book feature activation');
+        return;
+      }
+
+      // Fetch book details to determine book type before adding button
+      await this.fetchBookDetailsAndAddButton();
+      
+    } catch (error) {
+      this.handleError('Failed to activate book feature', error);
+    }
+  }
+
+  /**
+   * Clean up the feature
+   */
+  async onCleanup() {
+    this.removeBookInfoButton();
+    await super.onCleanup();
+  }
+
+  /**
+   * Get storage settings as a Promise
+   * @returns {Promise<Object>}
+   */
+  getStorageSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['showButtons', 'adyenBookConfig'], resolve);
+    });
+  }
+
+  /**
+   * Fetch book details and add button based on book type with enhanced error handling
+   */
+  async fetchBookDetailsAndAddButton() {
+    let attempt = 0;
+    let lastError = null;
+    
+    while (attempt < this.config.retryAttempts) {
+      try {
+        attempt++;
+        this.log(`Fetching book details (attempt ${attempt}/${this.config.retryAttempts})`);
+        
+        const response = await this.sendMessageWithTimeout({
+          action: "fetchBookDetails",
+          customer: this.customer,
+          bookId: this.bookId
+        }, this.config.timeout);
+
         if (response && response.success) {
-          const bookType = response.bookType;
-          const adyenBalanceAccountId = response.adyenBalanceAccountId;
-          const administrationId = response.administrationId;
-          const balanceAccountReference = response.balanceAccountReference;
+          this.bookType = response.bookType;
+          this.balanceAccountId = response.balanceAccountId;
+          this.administrationId = response.administrationId;
+          this.balanceAccountReference = response.balanceAccountReference;
           
-          // Only continue for monetary_account_book type
-          if (bookType !== 'monetary_account_book') {
+          // Check if book type is supported
+          if (this.config.enableBookTypeFiltering && 
+              !this.config.supportedBookTypes.includes(this.bookType)) {
+            this.log(`Book type '${this.bookType}' not supported, skipping button creation`);
             return;
           }
           
-          // Either use the direct balance account ID or show a disabled button
-          if (adyenBalanceAccountId) {
-            // If we have a direct adyenBalanceAccountId, add the button with that ID
-            addBookInfoButton(customer, bookId, bookType, adyenBalanceAccountId, administrationId, balanceAccountReference);
-          } else {
-            // No balance account ID found, show disabled button
-            addBookInfoButton(customer, bookId, bookType, null, administrationId, balanceAccountReference);
-          }
+          this.addBookInfoButton();
+          
+          // Clear any previous errors on success
+          this.clearApiError('fetchBookDetails');
+          return;
+        } else {
+          const error = new Error(response?.error || 'API returned unsuccessful response');
+          error.apiResponse = response;
+          throw error;
+        }
+        
+      } catch (error) {
+        lastError = error;
+        this.trackApiError('fetchBookDetails', error, attempt);
+        
+        if (attempt < this.config.retryAttempts) {
+          const delay = this.config.retryDelay * attempt; // Exponential backoff
+          this.log(`Retrying in ${delay}ms due to error: ${error.message}`);
+          await this.delay(delay);
         }
       }
-    );
-  });
-}
-
-/**
- * Adds a button to view balance account at Adyen
- * @param {string} customer - The customer subdomain
- * @param {string} bookId - The book ID
- * @param {string} bookType - The type of book
- * @param {string} balanceAccountId - The Adyen balance account ID if available
- * @param {string} administrationId - The administration ID if available
- * @param {string} balanceAccountReference - Optional reference/name for the balance account
- */
-function addBookInfoButton(customer, bookId, bookType, balanceAccountId, administrationId, balanceAccountReference) {
-  // Only show button for monetary_account_book type
-  if (bookType !== 'monetary_account_book') {
-    return;
-  }
-  
-  // Check if button already exists
-  if (document.getElementById('powercloud-shadow-host')) {
-    return;
-  }
-
-  // Create shadow DOM host element
-  const shadowHost = document.createElement('div');
-  shadowHost.id = 'powercloud-shadow-host'; 
-  // The positioning styles are now in the CSS file
-  
-  // Check if buttons should be hidden by default
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
-  });
-  
-  // Attach a shadow DOM tree to completely isolate our styles
-  const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
-  
-  // Add link to our external stylesheet in shadow DOM
-  const linkElem = document.createElement('link');
-  linkElem.rel = 'stylesheet';
-  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
-  shadowRoot.appendChild(linkElem);
-
-  // Create button container with styling
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'powercloud-container powercloud-button-container';
-  buttonContainer.id = 'powercloud-button-container';
-  
-  // Create the button
-  const button = document.createElement('button');
-  button.id = 'powercloud-book-info-btn';
-  button.className = 'powercloud-button';
-  
-  // Set button state and text based on balance account availability
-  if (balanceAccountId) {
-    // Set button text based on whether we have a reference or just an ID
-    if (balanceAccountReference) {
-      button.innerHTML = `View Adyen Balance Account: ${balanceAccountReference}`;
-      button.title = `View balance account details for ${balanceAccountReference} at Adyen`;
-    } else {
-      // Show a truncated version of the ID in the button text
-      button.innerHTML = `View Adyen Balance Account: ${balanceAccountId.substring(0, 8)}...`;
-      button.title = `View balance account details for ID: ${balanceAccountId} at Adyen`;
     }
     
-    button.disabled = false;
+    // All attempts failed
+    this.handleAdyenApiFailure('fetchBookDetails', lastError);
     
-    // Add click event to open Adyen balance account page
-    button.addEventListener('click', () => {
-      const originalText = button.innerHTML;
-      button.innerHTML = '⏳ Loading...';
-      button.disabled = true;
+    // Fallback behavior based on configuration
+    if (this.config.fallbackToDefaultBehavior) {
+      this.log('Using fallback behavior after API failure');
+      this.bookType = 'monetary_account_book';
+      this.balanceAccountId = null;
+      this.addBookInfoButton();
+    }
+  }
+
+  /**
+   * Send message to background script with timeout support
+   * @param {Object} message
+   * @param {number} timeout
+   * @returns {Promise<Object>}
+   */
+  sendMessageWithTimeout(message, timeout = 5000) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Message timeout after ${timeout}ms`));
+      }, timeout);
       
-      // First, fetch the Adyen balance account ID
-      const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-      chrome.runtime.sendMessage(
-        { 
-          action: "fetchBalanceAccountDetails", 
-          customer: customer, 
-          balanceAccountId: balanceAccountId,
-          requestId: requestId
-        },
-        (response) => {
-          if (response && response.success && response.adyenBalanceAccountId) {
-            // Open Adyen directly in a new tab with the correct adyenBalanceAccountId
-            const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${response.adyenBalanceAccountId}`;
-            window.open(adyenUrl, '_blank');
-          } else {
-            console.error('Failed to fetch Adyen balance account ID:', response?.error || 'Unknown error');
-            // Fall back to using the internal balance account ID
-            const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${balanceAccountId}`;
-            window.open(adyenUrl, '_blank');
-          }
-          
-          // Restore button text
-          setTimeout(() => {
-            button.innerHTML = originalText;
-            button.disabled = false;
-          }, 1500);
+      chrome.runtime.sendMessage(message, (response) => {
+        clearTimeout(timeoutId);
+        
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
         }
-      );
+      });
     });
-  } else {
-    button.disabled = true;
-    button.innerHTML = 'Adyen Balance Account Not Found';
-    button.title = `This monetary account book doesn't have a linked Adyen balance account`;
   }
 
-  // Add button to container and container to shadow DOM
-  buttonContainer.appendChild(button);
-  shadowRoot.appendChild(buttonContainer);
-  
-  // Add shadow host to the page
-  document.body.appendChild(shadowHost);
+  /**
+   * Send message to background script as a Promise (legacy support)
+   * @param {Object} message
+   * @returns {Promise<Object>}
+   */
+  sendMessage(message) {
+    return this.sendMessageWithTimeout(message, this.config.timeout);
+  }
+
+  /**
+   * Handle Adyen API failures with enhanced error tracking and reporting
+   * @param {string} operation - The operation that failed
+   * @param {Error} error - The error that occurred
+   */
+  handleAdyenApiFailure(operation, error) {
+    const errorDetails = {
+      operation,
+      error: error.message,
+      timestamp: Date.now(),
+      customer: this.customer,
+      bookId: this.bookId,
+      attempts: this.config.retryAttempts,
+      config: this.config
+    };
+    
+    // Enhanced error logging
+    this.handleError(`Adyen API failure for ${operation}`, error, errorDetails);
+    
+    // Track error patterns
+    this.lastErrorTime = Date.now();
+    
+    // Show user-friendly error message if configured
+    if (this.config.showDetailedErrors) {
+      this.showBookInfoResult(`API Error: ${operation} failed after ${this.config.retryAttempts} attempts. ${error.message}`);
+    } else {
+      this.showBookInfoResult('Unable to connect to services. Please try again later.');
+    }
+  }
+
+  /**
+   * Track API errors for pattern analysis
+   * @param {string} operation - The operation that failed
+   * @param {Error} error - The error that occurred
+   * @param {number} attempt - Current attempt number
+   */
+  trackApiError(operation, error, attempt) {
+    const errorKey = `${operation}-${Date.now()}`;
+    const errorRecord = {
+      operation,
+      error: error.message,
+      attempt,
+      timestamp: Date.now(),
+      isNetworkError: error.message.includes('timeout') || error.message.includes('network'),
+      isApiError: error.apiResponse !== undefined
+    };
+    
+    this.apiErrors.set(errorKey, errorRecord);
+    
+    // Keep only recent errors (last 10)
+    if (this.apiErrors.size > 10) {
+      const oldestKey = this.apiErrors.keys().next().value;
+      this.apiErrors.delete(oldestKey);
+    }
+    
+    this.log('API error tracked', errorRecord);
+  }
+
+  /**
+   * Clear tracked API errors for an operation
+   * @param {string} operation - The operation to clear errors for
+   */
+  clearApiError(operation) {
+    for (const [key, record] of this.apiErrors.entries()) {
+      if (record.operation === operation) {
+        this.apiErrors.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Utility method to create delays
+   * @param {number} ms - Milliseconds to delay
+   * @returns {Promise}
+   */
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Get API error statistics
+   * @returns {Object} Error statistics
+   */
+  getApiErrorStats() {
+    const errors = Array.from(this.apiErrors.values());
+    const now = Date.now();
+    const recentErrors = errors.filter(e => (now - e.timestamp) < 300000); // Last 5 minutes
+    
+    return {
+      totalErrors: errors.length,
+      recentErrors: recentErrors.length,
+      networkErrors: errors.filter(e => e.isNetworkError).length,
+      apiErrors: errors.filter(e => e.isApiError).length,
+      lastErrorTime: this.lastErrorTime,
+      errorsByOperation: errors.reduce((acc, err) => {
+        acc[err.operation] = (acc[err.operation] || 0) + 1;
+        return acc;
+      }, {})
+    };
+  }
+
+  /**
+   * Adds a button to view balance account information at Adyen
+   */
+  addBookInfoButton() {
+    // Check if button already exists
+    if (this.getHostElement()) {
+      return;
+    }
+
+    // Create shadow DOM host element
+    const shadowHost = document.createElement('div');
+    shadowHost.id = this.hostElementId;
+
+    // Check if buttons should be hidden by default
+    chrome.storage.local.get('showButtons', (result) => {
+      const showButtons = result.showButtons === undefined ? true : result.showButtons;
+      shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
+    });
+
+    // Attach a shadow DOM tree to completely isolate our styles
+    const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
+
+    // Add external stylesheet to shadow DOM
+    const linkElem = document.createElement('link');
+    linkElem.rel = 'stylesheet';
+    linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+    shadowRoot.appendChild(linkElem);
+
+    // Create button container with styling
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'powercloud-container powercloud-button-container';
+    buttonContainer.id = 'powercloud-button-container';
+
+    // Create the button
+    const button = document.createElement('button');
+    button.id = 'powercloud-book-info-btn';
+    button.className = 'powercloud-button';
+
+    // Set button text and state based on balance account availability
+    if (this.balanceAccountId) {
+      button.textContent = 'View Balance Account in Adyen';
+      button.addEventListener('click', () => this.handleBookInfoClick());
+    } else {
+      button.textContent = 'No Adyen Balance Account';
+      button.disabled = true;
+      button.className += ' powercloud-button-disabled';
+      button.title = 'This monetary account is not linked to an Adyen balance account';
+    }
+
+    // Add button to container and container to shadow DOM
+    buttonContainer.appendChild(button);
+    shadowRoot.appendChild(buttonContainer);
+
+    // Add shadow host to the page
+    document.body.appendChild(shadowHost);
+    
+    this.log('Book info button added', { 
+      hasBalanceAccount: !!this.balanceAccountId,
+      balanceAccountId: this.balanceAccountId 
+    });
+  }
+
+  /**
+   * Handle book info button click
+   */
+  async handleBookInfoClick() {
+    try {
+      if (!this.balanceAccountId) {
+        this.showBookInfoResult('No Adyen Balance Account ID found for this book');
+        return;
+      }
+
+      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${this.balanceAccountId}`;
+      
+      // Open Adyen URL in new tab
+      chrome.runtime.sendMessage({
+        action: "openTab",
+        url: adyenUrl
+      });
+      
+      this.showBookInfoResult('Balance Account opened in Adyen');
+    } catch (error) {
+      this.handleError('Failed to handle book info click', error);
+      this.showBookInfoResult('Error: Unable to open balance account');
+    }
+  }
+
+  /**
+   * Removes the book information button and any related UI elements
+   */
+  removeBookInfoButton() {
+    // Remove the shadow host for the button
+    this.removeHostElement();
+
+    // Also remove any result shadow host that might be showing
+    const resultHost = document.getElementById('powercloud-result-host');
+    if (resultHost) {
+      resultHost.remove();
+    }
+    
+    this.log('Book info button removed');
+  }
+
+  /**
+   * Handle balance account button click with enhanced error handling
+   */
+  async handleBalanceAccountClick() {
+    try {
+      // Update button state
+      const button = document.querySelector('#powercloud-book-info-btn');
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '⏳ Loading...';
+        button.disabled = true;
+        
+        let attempt = 0;
+        let lastError = null;
+        
+        while (attempt < this.config.retryAttempts) {
+          try {
+            attempt++;
+            this.log(`Fetching balance account ID (attempt ${attempt}/${this.config.retryAttempts})`);
+            
+            const response = await this.sendMessageWithTimeout({
+              action: "fetchBalanceAccountId",
+              customer: this.customer,
+              bookId: this.bookId,
+              administrationId: this.administrationId
+            }, this.config.timeout);
+
+            if (response && response.success && response.balanceAccountId) {
+              const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${response.balanceAccountId}`;
+              
+              // Open Adyen URL in new tab
+              chrome.runtime.sendMessage({
+                action: "openTab",
+                url: adyenUrl
+              });
+              
+              this.showBookInfoResult('Balance account opened in Adyen');
+              
+              // Clear any previous errors on success
+              this.clearApiError('fetchBalanceAccountId');
+              break;
+              
+            } else {
+              const error = new Error(response?.error || 'Balance account ID not found');
+              error.apiResponse = response;
+              throw error;
+            }
+            
+          } catch (error) {
+            lastError = error;
+            this.trackApiError('fetchBalanceAccountId', error, attempt);
+            
+            if (attempt < this.config.retryAttempts) {
+              const delay = this.config.retryDelay * attempt;
+              this.log(`Retrying balance account fetch in ${delay}ms due to error: ${error.message}`);
+              await this.delay(delay);
+            }
+          }
+        }
+        
+        // If all attempts failed
+        if (attempt >= this.config.retryAttempts) {
+          this.handleAdyenApiFailure('fetchBalanceAccountId', lastError);
+        }
+        
+        // Reset button state
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    } catch (error) {
+      this.handleError('Failed to handle balance account click', error);
+      this.showBookInfoResult('Error: Unable to retrieve balance account information');
+    }
+  }
+
+  /**
+   * Shows a result message for book info operations
+   * @param {string} message - The message to display
+   */
+  showBookInfoResult(message) {
+    // Check if result display already exists
+    const existingResult = document.getElementById('powercloud-result-host');
+    if (existingResult) {
+      existingResult.remove();
+    }
+
+    // Create shadow DOM host for result
+    const resultHost = document.createElement('div');
+    resultHost.id = 'powercloud-result-host';
+    
+    // Attach a shadow DOM tree
+    const shadowRoot = resultHost.attachShadow({ mode: 'closed' });
+
+    // Add link to our external stylesheet in shadow DOM
+    const linkElem = document.createElement('link');
+    linkElem.rel = 'stylesheet';
+    linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+    shadowRoot.appendChild(linkElem);
+    
+    // Create result container
+    const resultContainer = document.createElement('div');
+    resultContainer.className = 'powercloud-result-container';
+    
+    // Add message
+    const messageElem = document.createElement('div');
+    messageElem.className = 'powercloud-result-message';
+    messageElem.textContent = message;
+    resultContainer.appendChild(messageElem);
+    
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'powercloud-result-close';
+    closeButton.textContent = '×';
+    closeButton.addEventListener('click', () => resultHost.remove());
+    resultContainer.appendChild(closeButton);
+    
+    // Add container to shadow DOM
+    shadowRoot.appendChild(resultContainer);
+    
+    // Add to page
+    document.body.appendChild(resultHost);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      if (document.body.contains(resultHost)) {
+        resultHost.remove();
+      }
+    }, 10000);
+    
+    this.log('Book info result shown', { message });
+  }
 }
 
-/**
- * Remove book info button and related UI elements
- */
-function removeBookInfoButton() {
-  const shadowHost = document.getElementById('powercloud-shadow-host');
-  if (shadowHost) {
-    shadowHost.remove();
-  }
-  
-  const resultHost = document.getElementById('powercloud-result-host');
-  if (resultHost) {
-    resultHost.remove();
-  }
-}
+// Create instance and register with PowerCloud features
+const adyenBookFeature = new AdyenBookFeature();
 
 // Create namespace for PowerCloud features if it doesn't exist
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
-// Register book feature functions in the PowerCloud namespace
+console.log('[PowerCloud] Registering adyen-book feature');
+
+// Register book feature with backward compatibility
 window.PowerCloudFeatures.book = {
-  init: initBookFeature,
-  cleanup: removeBookInfoButton
+  init: async (match) => {
+    console.log('[PowerCloud] adyen-book feature init called with match:', match);
+    try {
+      await adyenBookFeature.onInit(match);
+      await adyenBookFeature.onActivate();
+    } catch (error) {
+      console.error('[PowerCloud] adyen-book feature initialization error:', error);
+      adyenBookFeature.onError(error, 'initialization');
+    }
+  },
+  cleanup: async () => {
+    console.log('[PowerCloud] adyen-book feature cleanup called');
+    try {
+      await adyenBookFeature.onDeactivate();
+      await adyenBookFeature.onCleanup();
+    } catch (error) {
+      console.error('[PowerCloud] adyen-book feature cleanup error:', error);
+      adyenBookFeature.onError(error, 'cleanup');
+    }
+  }
 };
+
+console.log('[PowerCloud] adyen-book feature registered successfully');

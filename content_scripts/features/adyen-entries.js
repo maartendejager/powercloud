@@ -17,219 +17,471 @@
  * This script is loaded via the manifest.json content_scripts configuration.
  */
 
-// Initialize the PowerCloudFeatures namespace if it doesn't exist
-window.PowerCloudFeatures = window.PowerCloudFeatures || {};
-window.PowerCloudFeatures.entries = window.PowerCloudFeatures.entries || {};
-
 // Constants for feature elements
-const FEATURE_HOST_ID = 'powercloud-shadow-host';
 const ADYEN_TRANSFERS_BASE_URL = 'https://balanceplatform-live.adyen.com/balanceplatform/transfers/';
 
 /**
- * Initialize the entries feature
- * Adds functionality specific to book entry pages
- * @param {object} match - The URL match result containing capture groups
- *                        For URLs like https://[customer].spend.cloud/proactive/kasboek.boekingen/show?id=[entry-id]
- *                        or https://[customer].dev.spend.cloud/proactive/kasboek.boekingen/show?id=[entry-id]
- *                        match[1]=customer, match[2]=entryId (from query parameter)
+ * AdyenEntriesFeature class extending BaseFeature
+ * Provides transfer viewing functionality for book entries
  */
-function initEntriesFeature(match) {
-  // Extract entryId from URL query parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const entryId = urlParams.get('id');
-  
-  if (!match || !match[1] || !entryId) {
-    return;
-  }
-  
-  const customer = match[1];
-  
-  // Check if buttons should be shown before fetching entry details
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+class AdyenEntriesFeature extends BaseFeature {
+  constructor() {
+    super('adyen-entries', {
+      hostElementId: 'powercloud-shadow-host',
+      enableDebugLogging: false
+    });
     
-    if (!showButtons) {
+    // Feature-specific properties
+    this.customer = null;
+    this.entryId = null;
+    this.entry = null;
+    this.adyenTransferId = null;
+    
+    // Error handling and configuration
+    this.config = {
+      retryAttempts: 3,
+      retryDelay: 1000,
+      timeout: 30000,
+      showDetailedErrors: false,
+      fallbackToDefaultBehavior: true
+    };
+    this.apiErrorStats = new Map();
+  }
+
+  /**
+   * Initialize the feature with URL match data
+   * @param {object} match - The URL match result containing capture groups
+   */
+  async onInit(match) {
+    await super.onInit(match);
+    
+    // Load feature-specific configuration
+    await this.loadConfiguration();
+    
+    // Extract entryId from URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    this.entryId = urlParams.get('id');
+    
+    if (!match || !match[1] || !this.entryId) {
+      throw new Error('Invalid match data or missing entry ID for entries feature');
+    }
+    
+    this.customer = match[1];
+    
+    this.log('Initializing entries feature', { customer: this.customer, entryId: this.entryId, config: this.config });
+  }
+
+  /**
+   * Load feature-specific configuration from Chrome storage
+   */
+  async loadConfiguration() {
+    try {
+      const result = await new Promise((resolve) => {
+        chrome.storage.local.get('adyenEntriesConfig', resolve);
+      });
+      
+      if (result.adyenEntriesConfig) {
+        this.config = { ...this.config, ...result.adyenEntriesConfig };
+        this.log('Configuration loaded', this.config);
+      }
+    } catch (error) {
+      this.log('Failed to load configuration, using defaults', error);
+    }
+  }
+
+  /**
+   * Activate the feature - check settings and fetch entry details
+   */
+  async onActivate() {
+    await super.onActivate();
+    
+    try {
+      // Check if buttons should be shown before fetching entry details
+      const result = await this.getStorageSettings();
+      const showButtons = result.showButtons === undefined ? true : result.showButtons;
+
+      if (!showButtons) {
+        this.log('Buttons disabled, skipping entries feature activation');
+        return;
+      }
+
+      // Fetch entry details to determine if adyenTransferId exists before adding button
+      await this.fetchEntryDetailsAndAddButton();
+      
+    } catch (error) {
+      this.handleError('Failed to activate entries feature', error);
+    }
+  }
+
+  /**
+   * Clean up the feature
+   */
+  async onCleanup() {
+    this.removeEntriesInfoButton();
+    await super.onCleanup();
+  }
+
+  /**
+   * Get storage settings as a Promise
+   * @returns {Promise<Object>}
+   */
+  getStorageSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get('showButtons', resolve);
+    });
+  }
+
+  /**
+   * Fetch entry details and add button based on adyenTransferId availability
+   */
+  async fetchEntryDetailsAndAddButton() {
+    let attempt = 0;
+    const maxAttempts = this.config.retryAttempts;
+    
+    while (attempt < maxAttempts) {
+      try {
+        this.log(`Fetching entry details (attempt ${attempt + 1}/${maxAttempts})`);
+        
+        const response = await this.sendMessageWithTimeout({
+          action: "fetchEntryDetails",
+          customer: this.customer,
+          entryId: this.entryId
+        }, this.config.timeout);
+
+        if (response && response.success) {
+          this.entry = response.entry;
+          this.adyenTransferId = response.entry ? response.entry.adyenTransferId : null;
+          
+          this.addEntriesInfoButton();
+          this.clearApiError('fetchEntryDetails');
+          return;
+        } else {
+          throw new Error(response?.error || 'Unknown API error');
+        }
+      } catch (error) {
+        attempt++;
+        this.trackApiError('fetchEntryDetails', error);
+        
+        if (attempt >= maxAttempts) {
+          const errorMessage = this.config.showDetailedErrors 
+            ? `Failed to fetch entry details after ${maxAttempts} attempts: ${error.message}`
+            : 'Unable to load entry details';
+            
+          this.handleError('Failed to fetch entry details', error, { 
+            showUserMessage: true, 
+            userMessage: errorMessage 
+          });
+          
+          if (this.config.fallbackToDefaultBehavior) {
+            this.log('Using fallback behavior - adding disabled button');
+            this.addEntriesInfoButton();
+          }
+          return;
+        } else {
+          // Wait before retry with exponential backoff
+          const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
+          this.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+  }
+
+  /**
+   * Send message to background script with timeout support
+   * @param {Object} message
+   * @param {number} timeout
+   * @returns {Promise<Object>}
+   */
+  sendMessageWithTimeout(message, timeout = this.config.timeout) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Message timeout after ${timeout}ms`));
+      }, timeout);
+      
+      chrome.runtime.sendMessage(message, (response) => {
+        clearTimeout(timeoutId);
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
+  /**
+   * Send message to background script as a Promise (legacy support)
+   * @param {Object} message
+   * @returns {Promise<Object>}
+   */
+  sendMessage(message) {
+    return this.sendMessageWithTimeout(message);
+  }
+
+  /**
+   * Track API error for analysis
+   * @param {string} operation - The operation that failed
+   * @param {Error} error - The error that occurred
+   */
+  trackApiError(operation, error) {
+    const key = `${operation}:${error.message}`;
+    const current = this.apiErrorStats.get(key) || { count: 0, lastOccurred: null, operation, error: error.message };
+    current.count++;
+    current.lastOccurred = new Date().toISOString();
+    this.apiErrorStats.set(key, current);
+    
+    this.log(`API error tracked for ${operation}`, { error: error.message, count: current.count });
+  }
+
+  /**
+   * Clear API error tracking for an operation
+   * @param {string} operation - The operation to clear
+   */
+  clearApiError(operation) {
+    for (const [key] of this.apiErrorStats) {
+      if (key.startsWith(`${operation}:`)) {
+        this.apiErrorStats.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Get API error statistics
+   * @returns {Object} Error statistics
+   */
+  getApiErrorStats() {
+    const stats = {};
+    for (const [key, value] of this.apiErrorStats) {
+      stats[key] = value;
+    }
+    return stats;
+  }
+
+  /**
+   * Adds a button to view transfer information at Adyen
+   */
+  addEntriesInfoButton() {
+    // Check if button already exists
+    if (this.getHostElement()) {
       return;
     }
-    
-    // Fetch entry details to check for adyenTransferId
-    fetchEntryDetails(customer, entryId);
-  });
-}
 
-/**
- * Fetch entry details from API
- * @param {string} customer - The customer subdomain
- * @param {string} entryId - The entry ID
- */
-function fetchEntryDetails(customer, entryId) {
-  chrome.runtime.sendMessage(
-    { 
-      action: "fetchEntryDetails", 
-      customer: customer, 
-      entryId: entryId 
-    },
-    (response) => {
-      if (chrome.runtime.lastError) {
-        console.error("Error fetching entry details:", chrome.runtime.lastError.message);
-        return;
-      }
-      
-      if (!response || !response.success) {
-        return;
-      }
-      
-      // Extract adyenTransferId from the response
-      const entryData = response.data?.data?.attributes || response.data?.attributes || response.data;
-      const adyenTransferId = entryData?.adyenTransferId;
-      
-      // Add the UI with the transfer ID
-      addEntryFeatureUI(entryId, adyenTransferId);
-    }
-  );
-}
+    // Create shadow DOM host element
+    const shadowHost = document.createElement('div');
+    shadowHost.id = this.hostElementId;
 
-/**
- * Add the UI elements for the Adyen Entries feature
- * @param {string} entryId - The ID of the entry
- * @param {string|null} adyenTransferId - The Adyen transfer ID (if available)
- */
-function addEntryFeatureUI(entryId, adyenTransferId) {
-  // First, let's try to clean up any existing UI
-  cleanupEntriesFeature();
-  
-  // Check if any PowerCloud feature UI from other features exists and leave those alone
-  const existingHost = document.getElementById(FEATURE_HOST_ID);
-  if (existingHost) {
-    // If there's already a shared host, use our specific host ID instead
-    const ourShadowHost = document.createElement('div');
-    ourShadowHost.id = 'powercloud-adyen-entries-host';
-    
-    // Position it near but not overlapping the existing button
-    ourShadowHost.style.cssText = 'position: fixed; bottom: 20px; right: 80px; z-index: 9999;';
-    
-    document.body.appendChild(ourShadowHost);
-    
-    // Create and attach shadow DOM
-    const shadowRoot = ourShadowHost.attachShadow({ mode: 'closed' });
-    
-    // Rest of the UI creation...
-    createUiContent(shadowRoot, adyenTransferId);
-    return;
-  }
-  
-  // No existing UI, create the standard shadow host
-  const shadowHost = document.createElement('div');
-  shadowHost.id = FEATURE_HOST_ID;
-  
-  // Check if buttons should be hidden by default
-  chrome.storage.local.get('showButtons', (result) => {
-    const showButtons = result.showButtons === undefined ? true : result.showButtons;
-    shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
-  });
-  
-  document.body.appendChild(shadowHost);
-  
-  const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
-  
-  // Create the UI content
-  createUiContent(shadowRoot, adyenTransferId);
-}
+    // Check if buttons should be hidden by default
+    chrome.storage.local.get('showButtons', (result) => {
+      const showButtons = result.showButtons === undefined ? true : result.showButtons;
+      shadowHost.className = showButtons ? 'powercloud-visible' : 'powercloud-hidden';
+    });
 
-/**
- * Create UI content inside the shadow root
- * @param {ShadowRoot} shadowRoot - The shadow root to add content to
- * @param {string|null} adyenTransferId - The Adyen transfer ID (if available)
- */
-function createUiContent(shadowRoot, adyenTransferId) {
-  // Add stylesheet
-  const linkElem = document.createElement('link');
-  linkElem.rel = 'stylesheet';
-  linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
-  shadowRoot.appendChild(linkElem);
-  
-  // Create container
-  const container = document.createElement('div');
-  container.className = 'powercloud-container powercloud-button-container';
-  
-  // Create button
-  const button = document.createElement('button');
-  button.className = 'powercloud-button';
-  button.id = 'powercloud-adyen-transfer-btn';
-  
-  if (adyenTransferId) {
-    button.textContent = 'View in Adyen';
-    button.title = `Open Adyen transfer ${adyenTransferId}`;
-    button.addEventListener('click', () => handleViewAdyenTransfer(adyenTransferId, button));
-  } else {
-    button.textContent = 'No Adyen Transfer';
-    button.disabled = true;
-    button.title = 'This entry has no associated Adyen transfer';
-  }
-  
-  container.appendChild(button);
-  shadowRoot.appendChild(container);
-}
+    // Attach a shadow DOM tree to completely isolate our styles
+    const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
 
-/**
- * Handle clicking the "View in Adyen" button
- * @param {string} adyenTransferId - The Adyen transfer ID
- * @param {HTMLButtonElement} buttonElement - The button element
- */
-function handleViewAdyenTransfer(adyenTransferId, buttonElement) {
-  const originalText = buttonElement.textContent;
-  buttonElement.textContent = '⏳ Opening...';
-  buttonElement.disabled = true;
-  
-  try {
-    // Open Adyen transfer URL in a new tab
-    const adyenUrl = `${ADYEN_TRANSFERS_BASE_URL}${adyenTransferId}`;
-    window.open(adyenUrl, '_blank');
-    
-    // Show success message
-    if (window.PowerCloudFeatures.card?.showResult) {
-      window.PowerCloudFeatures.card.showResult('Opened Adyen transfer in new tab');
-    }
-  } catch (error) {
-    // Show error message
-    if (window.PowerCloudFeatures.card?.showResult) {
-      window.PowerCloudFeatures.card.showResult(`Error opening Adyen transfer: ${error.message}`);
+    // Add external stylesheet to shadow DOM
+    const linkElem = document.createElement('link');
+    linkElem.rel = 'stylesheet';
+    linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+    shadowRoot.appendChild(linkElem);
+
+    // Create button container with styling
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'powercloud-container powercloud-button-container';
+    buttonContainer.id = 'powercloud-button-container';
+
+    // Create the button
+    const button = document.createElement('button');
+    button.id = 'powercloud-entries-info-btn';
+    button.className = 'powercloud-button';
+
+    // Set button text and state based on adyenTransferId availability
+    if (this.adyenTransferId) {
+      button.textContent = 'View Transfer in Adyen';
+      button.addEventListener('click', () => this.handleEntriesInfoClick());
     } else {
-      console.error('Error opening Adyen transfer:', error);
+      button.textContent = 'No Adyen Transfer ID';
+      button.disabled = true;
+      button.className += ' powercloud-button-disabled';
+      button.title = 'This entry is not linked to an Adyen transfer';
     }
-  }
-  
-  // Reset button state
-  buttonElement.textContent = originalText;
-  buttonElement.disabled = false;
-}
 
-/**
- * Clean up UI elements added by the Entries Feature
- */
-function cleanupEntriesFeature() {
-  // Check for the standard shadow host
-  const shadowHost = document.getElementById(FEATURE_HOST_ID);
-  if (shadowHost) {
-    // Only remove if it's ours (check for our button)
-    // Note: we can't directly check the shadow DOM due to closed mode,
-    // so we just check if another feature is active that might be using it
-    const isBookActive = window.PowerCloudFeatures?.book?.isActive?.();
-    const isCardActive = window.PowerCloudFeatures?.card?.isActive?.();
+    // Add button to container and container to shadow DOM
+    buttonContainer.appendChild(button);
+    shadowRoot.appendChild(buttonContainer);
+
+    // Add shadow host to the page
+    document.body.appendChild(shadowHost);
     
-    if (!isBookActive && !isCardActive) {
-      shadowHost.remove();
-    } else {
+    this.log('Entries info button added', { 
+      hasTransferId: !!this.adyenTransferId,
+      transferId: this.adyenTransferId 
+    });
+  }
+
+  /**
+   * Handle entries info button click
+   */
+  async handleEntriesInfoClick() {
+    let attempt = 0;
+    const maxAttempts = this.config.retryAttempts;
+    
+    while (attempt < maxAttempts) {
+      try {
+        if (!this.adyenTransferId) {
+          this.showEntriesInfoResult('No Adyen Transfer ID found for this entry');
+          return;
+        }
+
+        const adyenUrl = `${ADYEN_TRANSFERS_BASE_URL}${this.adyenTransferId}`;
+        
+        this.log(`Opening Adyen transfer (attempt ${attempt + 1}/${maxAttempts})`, { transferId: this.adyenTransferId });
+        
+        // Open Adyen URL in new tab with timeout
+        await this.sendMessageWithTimeout({
+          action: "openTab",
+          url: adyenUrl
+        }, this.config.timeout);
+        
+        this.showEntriesInfoResult('Transfer opened in Adyen');
+        this.clearApiError('openTab');
+        return;
+        
+      } catch (error) {
+        attempt++;
+        this.trackApiError('openTab', error);
+        
+        if (attempt >= maxAttempts) {
+          const errorMessage = this.config.showDetailedErrors
+            ? `Failed to open transfer after ${maxAttempts} attempts: ${error.message}`
+            : 'Unable to open transfer in Adyen';
+            
+          this.handleError('Failed to handle entries info click', error, {
+            showUserMessage: true,
+            userMessage: errorMessage
+          });
+          
+          if (this.config.fallbackToDefaultBehavior) {
+            this.showEntriesInfoResult('Error: Unable to open transfer. You can try navigating manually.');
+          } else {
+            this.showEntriesInfoResult('Error: Unable to open transfer');
+          }
+          return;
+        } else {
+          // Wait before retry with exponential backoff
+          const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
+          this.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
   }
-  
-  // Always check for our custom shadow host
-  const customShadowHost = document.getElementById('powercloud-adyen-entries-host');
-  if (customShadowHost) {
-    customShadowHost.remove();
+
+  /**
+   * Removes the entries information button and any related UI elements
+   */
+  removeEntriesInfoButton() {
+    // Remove the shadow host for the button
+    this.removeHostElement();
+
+    // Also remove any result shadow host that might be showing
+    const resultHost = document.getElementById('powercloud-result-host');
+    if (resultHost) {
+      resultHost.remove();
+    }
+    
+    this.log('Entries info button removed');
+  }
+
+  /**
+   * Shows a result message for entries info operations
+   * @param {string} message - The message to display
+   */
+  showEntriesInfoResult(message) {
+    // Check if result display already exists
+    const existingResult = document.getElementById('powercloud-result-host');
+    if (existingResult) {
+      existingResult.remove();
+    }
+
+    // Create shadow DOM host for result
+    const resultHost = document.createElement('div');
+    resultHost.id = 'powercloud-result-host';
+    
+    // Attach a shadow DOM tree
+    const shadowRoot = resultHost.attachShadow({ mode: 'closed' });
+    
+    // Add link to our external stylesheet in shadow DOM
+    const linkElem = document.createElement('link');
+    linkElem.rel = 'stylesheet';
+    linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+    shadowRoot.appendChild(linkElem);
+    
+    // Create result container
+    const resultContainer = document.createElement('div');
+    resultContainer.className = 'powercloud-result-container';
+    
+    // Add message
+    const messageElem = document.createElement('div');
+    messageElem.className = 'powercloud-result-message';
+    messageElem.textContent = message;
+    resultContainer.appendChild(messageElem);
+    
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'powercloud-result-close';
+    closeButton.textContent = '×';
+    closeButton.addEventListener('click', () => resultHost.remove());
+    resultContainer.appendChild(closeButton);
+    
+    // Add container to shadow DOM
+    shadowRoot.appendChild(resultContainer);
+    
+    // Add to page
+    document.body.appendChild(resultHost);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      if (document.body.contains(resultHost)) {
+        resultHost.remove();
+      }
+    }, 10000);
+    
+    this.log('Entries info result shown', { message });
   }
 }
 
-// Register functions in the PowerCloudFeatures namespace
-window.PowerCloudFeatures.entries.init = initEntriesFeature;
-window.PowerCloudFeatures.entries.cleanup = cleanupEntriesFeature;
+// Create instance and register with PowerCloud features
+const adyenEntriesFeature = new AdyenEntriesFeature();
+
+// Create namespace for PowerCloud features if it doesn't exist
+window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+
+console.log('[PowerCloud] Registering adyen-entries feature');
+
+// Register entries feature with backward compatibility
+window.PowerCloudFeatures.entries = {
+  init: async (match) => {
+    console.log('[PowerCloud] adyen-entries feature init called with match:', match);
+    try {
+      await adyenEntriesFeature.onInit(match);
+      await adyenEntriesFeature.onActivate();
+    } catch (error) {
+      console.error('[PowerCloud] adyen-entries feature initialization error:', error);
+      adyenEntriesFeature.onError(error, 'initialization');
+    }
+  },
+  cleanup: async () => {
+    console.log('[PowerCloud] adyen-entries feature cleanup called');
+    try {
+      await adyenEntriesFeature.onDeactivate();
+      await adyenEntriesFeature.onCleanup();
+    } catch (error) {
+      console.error('[PowerCloud] adyen-entries feature cleanup error:', error);
+      adyenEntriesFeature.onError(error, 'cleanup');
+    }
+  }
+};
+
+console.log('[PowerCloud] adyen-entries feature registered successfully');

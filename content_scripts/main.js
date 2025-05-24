@@ -124,10 +124,14 @@ const features = [
  * Adds functionality specific to card pages
  * @param {object} match - The URL match result containing capture groups
  */
-function initCardFeature(match) {
+async function initCardFeature(match) {
+  console.log('[PowerCloud] initCardFeature called with match:', match);
   // Call the implementation from adyen-card.js using the PowerCloudFeatures namespace
   if (window.PowerCloudFeatures?.card?.init) {
-    return window.PowerCloudFeatures.card.init(match);
+    console.log('[PowerCloud] Calling adyen-card feature init');
+    return await window.PowerCloudFeatures.card.init(match);
+  } else {
+    console.warn('[PowerCloud] window.PowerCloudFeatures.card.init not found');
   }
 }
 
@@ -135,11 +139,14 @@ function initCardFeature(match) {
  * Load and initialize the book feature
  * @param {object} match - The URL match result containing capture groups  
  */
-function loadBookFeature(match) {
+async function loadBookFeature(match) {
+  console.log('[PowerCloud] loadBookFeature called with match:', match);
   // Use the implementation from adyen-book.js which is loaded via manifest
   if (window.PowerCloudFeatures?.book?.init) {
-    return window.PowerCloudFeatures.book.init(match);
+    console.log('[PowerCloud] Calling adyen-book feature init');
+    return await window.PowerCloudFeatures.book.init(match);
   } else {
+    console.warn('[PowerCloud] window.PowerCloudFeatures.book.init not found');
     // Feature not found - should never happen with manifest loading
   }
 }
@@ -148,11 +155,14 @@ function loadBookFeature(match) {
  * Load and initialize the entries feature
  * @param {object} match - The URL match result containing capture groups  
  */
-function loadEntriesFeature(match) {
+async function loadEntriesFeature(match) {
+  console.log('[PowerCloud] loadEntriesFeature called with match:', match);
   // Use the implementation from adyen-entries.js which is loaded via manifest
   if (window.PowerCloudFeatures?.entries?.init) {
-    return window.PowerCloudFeatures.entries.init(match);
+    console.log('[PowerCloud] Calling adyen-entries feature init');
+    return await window.PowerCloudFeatures.entries.init(match);
   } else {
+    console.warn('[PowerCloud] window.PowerCloudFeatures.entries.init not found');
     // Feature not found - should never happen with manifest loading
   }
 }
@@ -197,8 +207,20 @@ function removeCardInfoButton() {
 // Initialize the extension using enhanced SafeFeatureManager with error boundaries
 async function initializeExtension() {
   try {
+    console.log('[PowerCloud] Starting extension initialization...');
+    
+    // Check if PowerCloudFeatures namespace is populated
+    console.log('[PowerCloud] PowerCloudFeatures at initialization:', {
+      exists: !!window.PowerCloudFeatures,
+      keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+      card: !!window.PowerCloudFeatures?.card,
+      book: !!window.PowerCloudFeatures?.book,
+      entries: !!window.PowerCloudFeatures?.entries
+    });
+    
     // Register features with the SafeFeatureManager for better error handling
     for (const feature of features) {
+      console.log('[PowerCloud] Registering feature with SafeFeatureManager:', feature.name);
       await safeFeatureManager.registerFeature(feature.name, {
         init: () => {
           // Create a feature manager instance for this specific feature
@@ -214,6 +236,7 @@ async function initializeExtension() {
     console.log('[PowerCloud] All features registered with enhanced error handling');
     
     // Also initialize with the traditional feature manager for backward compatibility
+    console.log('[PowerCloud] Initializing traditional FeatureManager with', features.length, 'features');
     const featureManager = new window.FeatureManager(features).init();
     
   } catch (error) {
@@ -222,4 +245,18 @@ async function initializeExtension() {
 }
 
 // Initialize the extension
+console.log('[PowerCloud] About to initialize extension...');
+console.log('[PowerCloud] Current URL:', window.location.href);
+
+// Test URL patterns against current URL for debugging
+console.log('[PowerCloud] Testing URL patterns against current URL:');
+features.forEach(feature => {
+  const match = window.location.href.match(feature.urlPattern);
+  console.log(`[PowerCloud] Feature "${feature.name}":`, {
+    pattern: feature.urlPattern.toString(),
+    matches: !!match,
+    match: match
+  });
+});
+
 initializeExtension();
