@@ -4,7 +4,7 @@
  * Handles processing of card details requests and data extraction.
  */
 
-import { getCardDetails as apiGetCardDetails } from '../../shared/api.js';
+import { getCardDetails as apiGetCardDetails } from '../../shared/api-module.js';
 
 /**
  * Process card details request and extract relevant information

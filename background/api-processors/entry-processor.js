@@ -5,7 +5,7 @@
  * Extracts adyenTransferId from book entry resources.
  */
 
-import { getEntryDetails as apiGetEntryDetails } from '../../shared/api.js';
+import { getEntryDetails as apiGetEntryDetails } from '../../shared/api-module.js';
 
 /**
  * Process entry details request and extract relevant information

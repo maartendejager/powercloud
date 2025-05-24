@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PowerCloud Extension Token Capture Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        .results { background: #f5f5f5; padding: 10px; margin: 10px 0; white-space: pre-wrap; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>PowerCloud Extension Token Capture Test</h1>
+    
+    <div class="section">
+        <h2>Test Token Capture</h2>
+        <p>This page simulates making an API request to test if the extension captures authentication tokens.</p>
+        
+        <button onclick="testTokenCapture()">Test Token Capture</button>
+        <button onclick="checkExtensionTokens()">Check Extension Tokens</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toISOString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            results.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            console.log(`[test-page] ${message}`);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testTokenCapture() {
+            log('Starting token capture test...');
+            
+            try {
+                // Simulate an API request to spend.cloud with auth header
+                const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNjE2MjM5MDIyfQ.test-signature-here';
+                
+                const testUrl = 'https://test.spend.cloud/api/test';
+                
+                log(`Simulating API request to: ${testUrl}`);
+                log(`With auth token: ${testToken.substring(0, 50)}...`);
+                
+                // Use fetch with a fake API request (this will fail but should trigger the extension)
+                try {
+                    await fetch(testUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${testToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } catch (fetchError) {
+                    log('Fetch failed as expected (no real API), but extension should have captured the token', 'info');
+                }
+                
+                log('Test request completed. Check if extension captured the token.', 'success');
+                
+            } catch (error) {
+                log(`Error during test: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkExtensionTokens() {
+            log('Checking extension tokens...');
+            
+            try {
+                // Try to communicate with the extension
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    chrome.runtime.sendMessage({action: "getAuthTokens"}, (response) => {
+                        if (chrome.runtime.lastError) {
+                            log(`Extension communication error: ${chrome.runtime.lastError.message}`, 'error');
+                            return;
+                        }
+                        
+                        if (response && response.authTokens) {
+                            log(`Extension has ${response.authTokens.length} tokens:`, 'success');
+                            response.authTokens.forEach((token, index) => {
+                                log(`Token ${index + 1}: ${token.token.substring(0, 50)}... (from ${token.url})`, 'info');
+                            });
+                        } else {
+                            log('No tokens found in extension', 'info');
+                        }
+                    });
+                } else {
+                    log('Chrome extension API not available. This page needs to be accessed from a browser with the PowerCloud extension installed.', 'error');
+                }
+            } catch (error) {
+                log(`Error checking extension tokens: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run when page loads
+        window.addEventListener('load', () => {
+            log('Test page loaded. PowerCloud extension token capture test ready.');
+            log('Note: This page is for testing token capture. Make sure the PowerCloud extension is installed and active.');
+        });
+    </script>
+</body>
+</html>

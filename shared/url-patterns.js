@@ -446,3 +446,4 @@ if (typeof window !== 'undefined') {
   window.createPatternMatcher = createPatternMatcher;
   window.testPatternAgainstUrls = testPatternAgainstUrls;
 }
+console.log('📝 URL PATTERNS LOADED AT:', new Date().toISOString());

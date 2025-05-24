@@ -33,13 +33,19 @@ const messageHandlers = {
 };
 
 // Set up web request listener for token capture
+console.log('[service-worker] Setting up web request listener...');
 setupWebRequestListener();
+console.log('[service-worker] Web request listener setup complete');
 
 // Initialize from storage on startup
 chrome.runtime.onInstalled.addListener(() => {
+  console.log('[service-worker] Extension installed, initializing tokens...');
   initializeTokens()
+    .then(tokens => {
+      console.log(`[service-worker] Tokens initialized successfully, count: ${tokens.length}`);
+    })
     .catch(error => {
-      console.error('Error initializing tokens:', error);
+      console.error('[service-worker] Error initializing tokens:', error);
     });
 });
 

@@ -5,7 +5,7 @@
  * Extracts balance account relationships directly from book resources.
  */
 
-import { getBookDetails as apiGetBookDetails } from '../../shared/api.js';
+import { getBookDetails as apiGetBookDetails } from '../../shared/api-module.js';
 
 /**
  * Process book details request and extract relevant information

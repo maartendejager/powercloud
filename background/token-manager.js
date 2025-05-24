@@ -5,7 +5,7 @@
  * Handles token storage, retrieval, and web request interception.
  */
 
-import { getAllTokens, saveTokens, removeToken, clearTokens, handleAuthHeaderFromWebRequest, isValidJWT } from '../shared/auth.js';
+import { getAllTokens, saveTokens, removeToken, clearTokens, handleAuthHeaderFromWebRequest, isValidJWT } from '../shared/auth-module.js';
 import { isApiRoute } from '../shared/url-patterns-module.js';
 
 // Local reference to tokens for quicker access
@@ -43,22 +43,30 @@ export function initializeTokens() {
  * Set up web request listener for token capture
  */
 export function setupWebRequestListener() {
+  console.log('[token-manager] Setting up chrome.webRequest.onSendHeaders listener...');
+  
   chrome.webRequest.onSendHeaders.addListener(
     (details) => {
+      console.log(`[token-manager] Web request intercepted: ${details.url}`);
       handleAuthHeaderFromWebRequest(details)
         .then(updatedTokens => {
           if (updatedTokens) {
             // Update local reference if a token was processed
             authTokens = updatedTokens;
+            console.log(`[token-manager] Token processed successfully, updated local cache with ${updatedTokens.length} tokens`);
+          } else {
+            console.log(`[token-manager] No token found in request to ${details.url}`);
           }
         })
         .catch(error => {
-          console.error('Error handling auth header from web request:', error);
+          console.error('[token-manager] Error handling auth header from web request:', error);
         });
     },
-    { urls: ["*://*.spend.cloud/api/*"] }, // Only monitor API routes
+    { urls: ["*://*.spend.cloud/api/*", "*://*.dev.spend.cloud/api/*"] }, // Monitor both production and dev API routes
     ["requestHeaders", "extraHeaders"]
   );
+  
+  console.log('[token-manager] Web request listener registered for URLs: *://*.spend.cloud/api/*, *://*.dev.spend.cloud/api/*');
 }
 
 /**

@@ -22,7 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Function to fetch and display tokens
   const fetchAndDisplayTokens = () => {
+    console.log('[popup] Requesting auth tokens from background...');
     chrome.runtime.sendMessage({action: "getAuthTokens"}, (response) => {
+    console.log('[popup] Received response from background:', response);
     const tokensList = document.getElementById('tokens-list');
     
     if (!response || !response.authTokens || response.authTokens.length === 0) {

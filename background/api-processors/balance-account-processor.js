@@ -4,7 +4,7 @@
  * Handles processing of balance account details requests and data extraction.
  */
 
-import { getBalanceAccountDetails as apiGetBalanceAccountDetails } from '../../shared/api.js';
+import { getBalanceAccountDetails as apiGetBalanceAccountDetails } from '../../shared/api-module.js';
 
 /**
  * Process balance account details request and extract relevant information

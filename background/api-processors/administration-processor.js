@@ -4,7 +4,7 @@
  * Handles processing of administration details requests and data extraction.
  */
 
-import { getAdministrationDetails as apiGetAdministrationDetails } from '../../shared/api.js';
+import { getAdministrationDetails as apiGetAdministrationDetails } from '../../shared/api-module.js';
 
 /**
  * Process administration details request and extract relevant information

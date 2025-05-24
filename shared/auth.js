@@ -6,7 +6,6 @@
  */
 
 // Note: This module depends on url-patterns.js being loaded first
-// URL pattern utilities are available via window.API_ROUTE_PATTERN and window.isApiRoute
 
 /**
  * Maximum number of tokens to store in history
@@ -329,17 +328,4 @@ if (typeof window !== 'undefined') {
   window.isDevelopmentRoute = isDevelopmentRoute;
 }
 
-// ES6 exports for service worker (module environment)
-export {
-  getAllTokens,
-  getToken,
-  setToken,
-  saveTokens,
-  clearTokens,
-  removeToken,
-  isValidJWT,
-  getTokenPayload,
-  handleAuthHeaderFromWebRequest,
-  extractClientEnvironment,
-  isDevelopmentRoute
-};
+console.log('🔐 AUTH MODULE LOADED AT:', new Date().toISOString());

@@ -1,12 +1,12 @@
 /**
- * Shared API Service Module for PowerCloud Chrome Extension
- * 
- * This module provides centralized functionality for making authenticated 
- * requests to spend.cloud APIs.
+ * ES6 Module wrapper for api.js
+ * This module provides ES6 exports by duplicating the core functionality
+ * Content scripts use the window exports from api.js
+ * Background scripts and popup use this ES6 module
  */
 
-// Note: This module depends on auth.js being loaded first
-// Auth functions are available via window.getToken, window.extractClientEnvironment, window.isDevelopmentRoute
+// Static imports for service worker compatibility
+import { getToken, extractClientEnvironment, isDevelopmentRoute } from './auth-module.js';
 
 /**
  * Makes an authenticated request to an API endpoint
@@ -20,11 +20,11 @@
 async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, additionalHeaders = {}) {
   try {
     // Extract client environment and isDev from the endpoint URL
-    const clientEnvironment = endpoint.includes('spend.cloud') ? window.extractClientEnvironment(endpoint) : undefined;
-    const isDev = endpoint.includes('spend.cloud') ? window.isDevelopmentRoute(endpoint) : undefined;
+    const clientEnvironment = endpoint.includes('spend.cloud') ? extractClientEnvironment(endpoint) : undefined;
+    const isDev = endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : undefined;
     
     // Get the current authentication token appropriate for this request
-    const token = await window.getToken(clientEnvironment, isDev);
+    const token = await getToken(clientEnvironment, isDev);
     
     // Prepare headers
     const headers = {
@@ -50,24 +50,19 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
       options.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
     
-    // Make the request
+    console.log(`Making ${method} request to: ${endpoint}`);
     const response = await fetch(endpoint, options);
     
-    // Check if response is ok (status in the range 200-299)
+    // Check if response is ok
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    // Check content type to determine how to parse the response
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
-    } else {
-      return await response.text();
-    }
+    // Parse JSON response
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error('API request error:', error);
+    console.error(`API request failed for ${endpoint}:`, error);
     throw error;
   }
 }
@@ -85,23 +80,23 @@ async function get(endpoint, additionalHeaders = {}) {
 /**
  * Makes a POST request to an API endpoint
  * @param {string} endpoint - The API endpoint URL
- * @param {Object} data - The data to send in the request body
+ * @param {Object} body - The request body
  * @param {Object} [additionalHeaders] - Optional additional headers to include
  * @returns {Promise<Object>} The parsed response data
  */
-async function post(endpoint, data, additionalHeaders = {}) {
-  return makeAuthenticatedRequest(endpoint, 'POST', data, additionalHeaders);
+async function post(endpoint, body, additionalHeaders = {}) {
+  return makeAuthenticatedRequest(endpoint, 'POST', body, additionalHeaders);
 }
 
 /**
  * Makes a PUT request to an API endpoint
  * @param {string} endpoint - The API endpoint URL
- * @param {Object} data - The data to send in the request body
+ * @param {Object} body - The request body
  * @param {Object} [additionalHeaders] - Optional additional headers to include
  * @returns {Promise<Object>} The parsed response data
  */
-async function put(endpoint, data, additionalHeaders = {}) {
-  return makeAuthenticatedRequest(endpoint, 'PUT', data, additionalHeaders);
+async function put(endpoint, body, additionalHeaders = {}) {
+  return makeAuthenticatedRequest(endpoint, 'PUT', body, additionalHeaders);
 }
 
 /**
@@ -133,8 +128,21 @@ function buildApiUrl(customer, path, isDev = false) {
  * @returns {Promise<Object>} The card details
  */
 async function getCardDetails(customer, cardId, isDev = false) {
+  if (!customer || !cardId) {
+    console.error('Invalid parameters for getCardDetails');
+    console.trace('Trace for invalid parameters');
+    throw new Error(`Invalid parameters: customer=${customer}, cardId=${cardId}`);
+  }
+  
   const url = buildApiUrl(customer, `/cards/${cardId}`, isDev);
-  return get(url);
+  
+  try {
+    const response = await get(url);
+    return response;
+  } catch (error) {
+    console.error(`Card API request failed: ${error.message}`);
+    throw error;
+  }
 }
 
 /**
@@ -145,8 +153,21 @@ async function getCardDetails(customer, cardId, isDev = false) {
  * @returns {Promise<Object>} The book details
  */
 async function getBookDetails(customer, bookId, isDev = false) {
+  if (!customer || !bookId) {
+    console.error('Invalid parameters for getBookDetails');
+    console.trace('Trace for invalid parameters');
+    throw new Error(`Invalid parameters: customer=${customer}, bookId=${bookId}`);
+  }
+  
   const url = buildApiUrl(customer, `/books/${bookId}`, isDev);
-  return get(url);
+  
+  try {
+    const response = await get(url);
+    return response;
+  } catch (error) {
+    console.error(`Book API request failed: ${error.message}`);
+    throw error;
+  }
 }
 
 /**
@@ -163,36 +184,14 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
     throw new Error(`Invalid parameters: customer=${customer}, administrationId=${administrationId}`);
   }
   
-  // Try both API endpoints since we're not sure which one is correct
-  // First, try the /administrations/ endpoint as specified in the requirements
   const url = buildApiUrl(customer, `/administrations/${administrationId}`, isDev);
-  
-  // For debugging, add details about token
-  try {
-    const token = await window.getToken(customer, isDev);
-    if (!token) {
-      console.warn('No token available for administration API request!');
-    }
-  } catch (error) {
-    console.error('Error checking token:', error);
-  }
   
   try {
     const response = await get(url);
-    
-    // Check if the response has the expected structure
     return response;
-  } catch (primaryError) {
-    console.error(`Primary administration API request failed: ${primaryError.message}`);
-    
-    // Try fallback endpoint in case the primary fails
-    try {
-      const alternateUrl = buildApiUrl(customer, `/api/v1/administrations/${administrationId}`, isDev);
-      return await get(alternateUrl);
-    } catch (fallbackError) {
-      console.error(`Alternative administration API request also failed: ${fallbackError.message}`);
-      throw primaryError; // Throw the original error
-    }
+  } catch (error) {
+    console.error(`Administration API request failed: ${error.message}`);
+    throw error;
   }
 }
 
@@ -246,19 +245,18 @@ async function getEntryDetails(customer, entryId, isDev = false) {
   }
 }
 
-// Export for browser extension environment (content scripts)
-if (typeof window !== 'undefined') {
-  window.makeAuthenticatedRequest = makeAuthenticatedRequest;
-  window.get = get;
-  window.post = post;
-  window.put = put;
-  window.del = del;
-  window.buildApiUrl = buildApiUrl;
-  window.getCardDetails = getCardDetails;
-  window.getBookDetails = getBookDetails;
-  window.getAdministrationDetails = getAdministrationDetails;
-  window.getBalanceAccountDetails = getBalanceAccountDetails;
-  window.getEntryDetails = getEntryDetails;
-}
+console.log('🚀 API MODULE (ES6) LOADED AT:', new Date().toISOString());
 
-console.log('🚀 API MODULE LOADED AT:', new Date().toISOString());
+export {
+  makeAuthenticatedRequest,
+  get,
+  post,
+  put,
+  del,
+  buildApiUrl,
+  getCardDetails,
+  getBookDetails,
+  getAdministrationDetails,
+  getBalanceAccountDetails,
+  getEntryDetails
+};
