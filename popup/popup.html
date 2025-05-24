@@ -20,6 +20,7 @@
   <div class="tabs">
     <div class="tab active" id="tokens-tab">Auth Tokens</div>
     <div class="tab" id="card-tab">Card Info</div>
+    <div class="tab" id="health-tab">Health Dashboard</div>
   </div>
   
   <div id="tokens-section">
@@ -52,6 +53,74 @@
     <div id="card-result" class="result-box" style="display: none;">
       <h4>Result:</h4>
       <div id="card-result-content"></div>
+    </div>
+  </div>
+
+  <div id="health-section" style="display: none;">
+    <h3>Extension Health Dashboard</h3>
+    
+    <div class="health-overview">
+      <div class="health-status-card">
+        <h4>System Status</h4>
+        <div id="system-status" class="status-indicator">
+          <span class="status-dot unknown"></span>
+          <span class="status-text">Checking...</span>
+        </div>
+      </div>
+      
+      <div class="health-metrics">
+        <div class="metric-card">
+          <h5>Features</h5>
+          <div id="feature-count">-</div>
+          <small>Active features</small>
+        </div>
+        <div class="metric-card">
+          <h5>Memory</h5>
+          <div id="memory-usage">-</div>
+          <small>MB used</small>
+        </div>
+        <div class="metric-card">
+          <h5>Performance</h5>
+          <div id="avg-performance">-</div>
+          <small>ms avg</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="health-controls">
+      <button id="refresh-health-btn" class="action-button">Refresh Health Data</button>
+      <button id="clear-debug-btn" class="action-button secondary">Clear Debug Data</button>
+      <button id="export-health-btn" class="action-button secondary">Export Health Report</button>
+    </div>
+
+    <div class="health-details">
+      <div class="detail-section">
+        <h4>Feature Status</h4>
+        <div id="feature-status-list" class="status-list">
+          Loading feature status...
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4>Performance Metrics</h4>
+        <div id="performance-metrics" class="metrics-display">
+          Loading performance data...
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4>Recent Debug Logs</h4>
+        <div id="debug-logs" class="logs-display">
+          Loading debug logs...
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4>Error Reports</h4>
+        <div id="error-reports" class="error-display">
+          No errors reported
+        </div>
+      </div>
     </div>
   </div>
 </body>

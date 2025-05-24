@@ -17,6 +17,21 @@
 // All feature scripts should be loaded via manifest.json before this code runs
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
+// Initialize enhanced debugging system
+if (window.enhancedDebug && window.loggerFactory) {
+  const mainLogger = window.loggerFactory.createLogger('Main');
+  window.enhancedDebug.initialize(mainLogger, {
+    enabled: true,
+    mode: window.DebugMode?.BASIC || 1,
+    enablePerformanceTracking: true,
+    enableUsageTracking: true
+  });
+  
+  mainLogger.info('Enhanced debugging system initialized');
+} else {
+  console.log('[main] Enhanced debugging system not available, using basic logging');
+}
+
 // Initialize the enhanced feature manager with error boundaries
 const safeFeatureManager = new window.PowerCloudSafeFeatureManager();
 window.PowerCloudFeatureManager = safeFeatureManager;

@@ -240,14 +240,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hide all sections
     document.getElementById('tokens-section').style.display = 'none';
     document.getElementById('card-section').style.display = 'none';
+    document.getElementById('health-section').style.display = 'none';
     
     // Remove active class from all tabs
     document.getElementById('tokens-tab').classList.remove('active');
     document.getElementById('card-tab').classList.remove('active');
+    document.getElementById('health-tab').classList.remove('active');
     
     // Show the selected section and activate the tab
     document.getElementById(tabId + '-section').style.display = 'block';
     document.getElementById(tabId + '-tab').classList.add('active');
+    
+    // Load health data when health tab is activated
+    if (tabId === 'health') {
+      loadHealthDashboard();
+    }
   }
   
   document.getElementById('tokens-tab').addEventListener('click', () => switchToTab('tokens'));
@@ -344,4 +351,220 @@ document.addEventListener('DOMContentLoaded', () => {
     
     resultContent.style.backgroundColor = isSuccess ? '#e8f5e9' : '#ffebee';
   }
+  
+  // Health tab event listener
+  document.getElementById('health-tab').addEventListener('click', () => switchToTab('health'));
+  
+  // Health dashboard functionality
+  function loadHealthDashboard() {
+    updateSystemStatus();
+    loadFeatureStatus();
+    loadPerformanceMetrics();
+    loadDebugLogs();
+    loadErrorReports();
+  }
+  
+  function updateSystemStatus() {
+    // Get overall system status
+    chrome.runtime.sendMessage({action: "getExtensionHealth"}, (response) => {
+      const statusDot = document.querySelector('#system-status .status-dot');
+      const statusText = document.querySelector('#system-status .status-text');
+      
+      if (!response || !response.success) {
+        statusDot.className = 'status-dot error';
+        statusText.textContent = 'Extension Error';
+        return;
+      }
+      
+      const health = response.health;
+      const featureCount = health.features ? Object.keys(health.features).length : 0;
+      const errorCount = health.errors ? health.errors.length : 0;
+      
+      // Update status based on health data
+      if (errorCount > 0) {
+        statusDot.className = 'status-dot error';
+        statusText.textContent = `${errorCount} Error(s)`;
+      } else if (featureCount === 0) {
+        statusDot.className = 'status-dot warning';
+        statusText.textContent = 'No Features Active';
+      } else {
+        statusDot.className = 'status-dot healthy';
+        statusText.textContent = 'All Systems Operational';
+      }
+      
+      // Update metric cards
+      document.getElementById('feature-count').textContent = featureCount;
+      
+      if (health.memory && health.memory.current) {
+        document.getElementById('memory-usage').textContent = health.memory.current.used;
+      }
+      
+      if (health.performance && Object.keys(health.performance).length > 0) {
+        const avgPerf = Object.values(health.performance)
+          .reduce((sum, metric) => sum + (metric.average || 0), 0) / Object.keys(health.performance).length;
+        document.getElementById('avg-performance').textContent = Math.round(avgPerf * 100) / 100;
+      }
+    });
+  }
+  
+  function loadFeatureStatus() {
+    chrome.runtime.sendMessage({action: "getFeatureStatus"}, (response) => {
+      const statusList = document.getElementById('feature-status-list');
+      
+      if (!response || !response.success || !response.features) {
+        statusList.innerHTML = '<div class="empty-state">No feature status available</div>';
+        return;
+      }
+      
+      const features = response.features;
+      if (Object.keys(features).length === 0) {
+        statusList.innerHTML = '<div class="empty-state">No features currently active</div>';
+        return;
+      }
+      
+      statusList.innerHTML = '';
+      Object.entries(features).forEach(([name, status]) => {
+        const item = document.createElement('div');
+        item.className = 'feature-status-item';
+        
+        const healthClass = status.isHealthy ? 'healthy' : 
+                           status.hasErrors ? 'error' : 'warning';
+        
+        item.innerHTML = `
+          <span class="feature-name">${name}</span>
+          <span class="feature-health ${healthClass}">
+            ${status.isHealthy ? 'Healthy' : status.hasErrors ? 'Error' : 'Warning'}
+          </span>
+        `;
+        
+        statusList.appendChild(item);
+      });
+    });
+  }
+  
+  function loadPerformanceMetrics() {
+    chrome.runtime.sendMessage({action: "getPerformanceMetrics"}, (response) => {
+      const metricsDisplay = document.getElementById('performance-metrics');
+      
+      if (!response || !response.success || !response.metrics) {
+        metricsDisplay.innerHTML = '<div class="empty-state">No performance data available</div>';
+        return;
+      }
+      
+      const metrics = response.metrics;
+      if (Object.keys(metrics).length === 0) {
+        metricsDisplay.innerHTML = '<div class="empty-state">No performance metrics collected</div>';
+        return;
+      }
+      
+      metricsDisplay.innerHTML = '';
+      Object.entries(metrics).forEach(([name, metric]) => {
+        const item = document.createElement('div');
+        item.className = 'performance-metric';
+        
+        item.innerHTML = `
+          <span class="performance-metric-name">${name}</span>
+          <span class="performance-metric-value">${metric.average || 0}ms (${metric.count || 0}x)</span>
+        `;
+        
+        metricsDisplay.appendChild(item);
+      });
+    });
+  }
+  
+  function loadDebugLogs() {
+    chrome.runtime.sendMessage({action: "getDebugLogs"}, (response) => {
+      const logsDisplay = document.getElementById('debug-logs');
+      
+      if (!response || !response.success || !response.logs) {
+        logsDisplay.innerHTML = '<div class="empty-state">No debug logs available</div>';
+        return;
+      }
+      
+      const logs = response.logs;
+      if (logs.length === 0) {
+        logsDisplay.innerHTML = '<div class="empty-state">No debug logs collected</div>';
+        return;
+      }
+      
+      logsDisplay.innerHTML = '';
+      logs.slice(-20).forEach(log => { // Show last 20 logs
+        const entry = document.createElement('div');
+        entry.className = 'debug-log-entry';
+        
+        const timestamp = new Date(log.timestamp).toLocaleTimeString();
+        
+        entry.innerHTML = `
+          <span class="log-timestamp">${timestamp}</span>
+          <span class="log-level ${log.level}">${log.level.toUpperCase()}</span>
+          <span class="log-message">${log.message}</span>
+        `;
+        
+        logsDisplay.appendChild(entry);
+      });
+    });
+  }
+  
+  function loadErrorReports() {
+    chrome.runtime.sendMessage({action: "getErrorReports"}, (response) => {
+      const errorDisplay = document.getElementById('error-reports');
+      
+      if (!response || !response.success || !response.errors) {
+        errorDisplay.innerHTML = '<div class="empty-state">No error reports available</div>';
+        return;
+      }
+      
+      const errors = response.errors;
+      if (errors.length === 0) {
+        errorDisplay.innerHTML = '<div class="empty-state">No errors reported</div>';
+        return;
+      }
+      
+      errorDisplay.innerHTML = '';
+      errors.slice(-10).forEach(error => { // Show last 10 errors
+        const item = document.createElement('div');
+        item.className = 'error-report-item';
+        
+        const timestamp = new Date(error.timestamp).toLocaleString();
+        
+        item.innerHTML = `
+          <div class="error-title">${error.enhanced ? error.enhanced.title : 'Unknown Error'}</div>
+          <div class="error-description">${error.enhanced ? error.enhanced.description : error.originalMessage}</div>
+          <div class="error-timestamp">${timestamp}</div>
+        `;
+        
+        errorDisplay.appendChild(item);
+      });
+    });
+  }
+  
+  // Health dashboard controls
+  document.getElementById('refresh-health-btn').addEventListener('click', () => {
+    loadHealthDashboard();
+  });
+  
+  document.getElementById('clear-debug-btn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({action: "clearDebugData"}, (response) => {
+      if (response && response.success) {
+        loadHealthDashboard(); // Refresh the display
+      }
+    });
+  });
+  
+  document.getElementById('export-health-btn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({action: "exportHealthReport"}, (response) => {
+      if (response && response.success && response.report) {
+        // Create and download the health report
+        const blob = new Blob([JSON.stringify(response.report, null, 2)], 
+                             { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `powercloud-health-report-${new Date().toISOString().slice(0, 19)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    });
+  });
+
 });

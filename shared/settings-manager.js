@@ -60,6 +60,16 @@ const CONFIG_SCHEMA = {
     verboseLogging: { type: 'boolean', default: false },
     enableTestMode: { type: 'boolean', default: false },
     showDebugPanel: { type: 'boolean', default: false }
+  },
+  
+  // Enhanced debugging features
+  debugging: {
+    enableExtensionHealthDashboard: { type: 'boolean', default: false },
+    trackFeatureUsage: { type: 'boolean', default: false },
+    enableAdvancedErrorMessages: { type: 'boolean', default: false },
+    logRetentionHours: { type: 'number', default: 24, min: 1, max: 168 }, // 1 week max
+    enablePerformanceProfiler: { type: 'boolean', default: false },
+    enableMemoryMonitor: { type: 'boolean', default: false }
   }
 };
 

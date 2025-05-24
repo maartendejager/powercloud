@@ -12,14 +12,21 @@ class FeatureManager {
     this.features = features;
     this.activeFeatures = new Set();
     this.lastUrl = window.location.href;
+    this.featurePerformance = new Map();
     
     // Initialize logger if available (Phase 1.2 integration)
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('FeatureManager') || {
+    this.logger = window.loggerFactory?.createLogger('FeatureManager') || {
       debug: (...args) => console.log('[DEBUG][FeatureManager]', ...args),
       info: (...args) => console.log('[INFO][FeatureManager]', ...args),
       warn: (...args) => console.warn('[WARN][FeatureManager]', ...args),
       error: (...args) => console.error('[ERROR][FeatureManager]', ...args)
     };
+    
+    // Initialize enhanced debugging if available
+    this.enhancedDebug = window.enhancedDebug || null;
+    if (this.enhancedDebug) {
+      this.enhancedDebug.log('FeatureManager initialized', { featureCount: features.length });
+    }
   }
   
   /**
@@ -75,11 +82,58 @@ class FeatureManager {
       // Initialize the feature
       try {
         this.logger.info(`Initializing feature: ${feature.name}`);
+        
+        // Track initialization performance
+        const startTime = performance.now();
+        if (this.enhancedDebug) {
+          this.enhancedDebug.performanceTracker.startTiming(`feature-init-${feature.name}`);
+          this.enhancedDebug.usageTracker.trackUsage(feature.name, 'initialization-start');
+        }
+        
         feature.init(match);
         this.activeFeatures.add(feature.name);
-        this.logger.info(`Successfully initialized feature: ${feature.name}`);
+        
+        // Record performance metrics
+        const initTime = performance.now() - startTime;
+        this.featurePerformance.set(feature.name, {
+          initTime,
+          lastInit: Date.now(),
+          errorCount: 0
+        });
+        
+        if (this.enhancedDebug) {
+          const duration = this.enhancedDebug.performanceTracker.endTiming(`feature-init-${feature.name}`);
+          this.enhancedDebug.usageTracker.trackUsage(feature.name, 'initialization-complete', { 
+            duration 
+          });
+          
+          // Report to background for health monitoring
+          this.reportFeatureHealth(feature.name, true, { initTime });
+        }
+        
+        this.logger.info(`Successfully initialized feature: ${feature.name} (${Math.round(initTime)}ms)`);
       } catch (error) {
         this.logger.error(`Failed to initialize feature ${feature.name}:`, error);
+        
+        // Track error in performance metrics
+        const perfData = this.featurePerformance.get(feature.name) || { errorCount: 0 };
+        perfData.errorCount++;
+        this.featurePerformance.set(feature.name, perfData);
+        
+        if (this.enhancedDebug) {
+          this.enhancedDebug.reportError(error, {
+            feature: feature.name,
+            action: 'initialization',
+            url: window.location.href
+          });
+          
+          this.enhancedDebug.usageTracker.trackUsage(feature.name, 'initialization-error', { 
+            error: true 
+          });
+          
+          // Report error to background
+          this.reportFeatureHealth(feature.name, false, { error: error.message });
+        }
       }
     });
   }
@@ -128,15 +182,104 @@ class FeatureManager {
       if (this.activeFeatures.has(feature.name) && feature.cleanup) {
         try {
           this.logger.debug(`Cleaning up feature: ${feature.name}`);
+          
+          // Track cleanup performance
+          const startTime = performance.now();
+          if (this.enhancedDebug) {
+            this.enhancedDebug.performanceTracker.startTiming(`feature-cleanup-${feature.name}`);
+            this.enhancedDebug.usageTracker.trackUsage(feature.name, 'cleanup-start');
+          }
+          
           feature.cleanup();
           this.activeFeatures.delete(feature.name);
+          
+          // Record cleanup performance
+          const cleanupTime = performance.now() - startTime;
+          const perfData = this.featurePerformance.get(feature.name) || {};
+          perfData.cleanupTime = cleanupTime;
+          this.featurePerformance.set(feature.name, perfData);
+          
+          if (this.enhancedDebug) {
+            const duration = this.enhancedDebug.performanceTracker.endTiming(`feature-cleanup-${feature.name}`);
+            this.enhancedDebug.usageTracker.trackUsage(feature.name, 'cleanup-complete', { 
+              duration 
+            });
+          }
+          
+          this.logger.debug(`Successfully cleaned up feature: ${feature.name} (${Math.round(cleanupTime)}ms)`);
         } catch (error) {
           this.logger.error(`Failed to cleanup feature ${feature.name}:`, error);
+          
+          if (this.enhancedDebug) {
+            this.enhancedDebug.reportError(error, {
+              feature: feature.name,
+              action: 'cleanup',
+              url: window.location.href
+            });
+            
+            this.enhancedDebug.usageTracker.trackUsage(feature.name, 'cleanup-error', { 
+              error: true 
+            });
+          }
+          
           // Still remove from active features even if cleanup failed
           this.activeFeatures.delete(feature.name);
         }
       }
     });
+  }
+
+  /**
+   * Report feature health status to background for monitoring
+   * @param {string} featureName - Name of the feature
+   * @param {boolean} isHealthy - Whether the feature is healthy
+   * @param {Object} additionalData - Additional health data
+   */
+  reportFeatureHealth(featureName, isHealthy, additionalData = {}) {
+    try {
+      const healthData = {
+        name: featureName,
+        isHealthy,
+        isActive: this.activeFeatures.has(featureName),
+        url: window.location.href,
+        timestamp: Date.now(),
+        performance: this.featurePerformance.get(featureName) || {},
+        ...additionalData
+      };
+      
+      // Send to background for health monitoring
+      chrome.runtime.sendMessage({
+        action: 'updateFeatureHealth',
+        feature: featureName,
+        health: healthData
+      }).catch(error => {
+        // Ignore messaging errors as they're not critical
+        this.logger.debug('Could not report feature health to background:', error);
+      });
+    } catch (error) {
+      this.logger.debug('Error reporting feature health:', error);
+    }
+  }
+  
+  /**
+   * Get current health status of all features
+   * @returns {Object} Health status object
+   */
+  getHealthStatus() {
+    const status = {
+      activeFeatures: Array.from(this.activeFeatures),
+      featureCount: this.activeFeatures.size,
+      performance: Object.fromEntries(this.featurePerformance),
+      url: window.location.href,
+      timestamp: Date.now()
+    };
+    
+    // Add enhanced debug health if available
+    if (this.enhancedDebug) {
+      status.debugHealth = this.enhancedDebug.getHealthInfo();
+    }
+    
+    return status;
   }
 
   /**

@@ -6,6 +6,28 @@ The extension works on both production (`https://[customer].spend.cloud/*`) and 
 
 For technical details on how the extension is structured and how to add new features, please see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
+## Project Structure
+
+```
+PowerCloud/
+├── manifest.json                    # Extension configuration
+├── README.md                       # Project overview
+├── ARCHITECTURE.md                 # Technical documentation  
+├── IMPROVEMENT_PLAN.md             # Development roadmap
+├── DEVELOPMENT_NOTES.md            # Development notes & troubleshooting
+│
+├── popup/                          # Extension popup interface
+├── background/                     # Service worker & API processing
+├── content_scripts/                # Page interaction & features
+├── shared/                         # Shared utilities & modules
+├── images/                         # Extension icons & assets
+│
+├── testing/                        # Testing framework & test files
+└── docs/                           # Additional documentation
+```
+
+For development notes, debugging procedures, and troubleshooting, see [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md).
+
 ## Features
 
 - **Authentication Token Capture**: Automatically captures JWT tokens from network requests to spend.cloud domains

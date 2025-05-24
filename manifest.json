@@ -24,6 +24,7 @@
       "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"],
       "js": [
         "shared/logger.js",
+        "shared/enhanced-debug.js",
         "shared/error-handling.js",
         "shared/debug-mode.js",
         "shared/url-patterns.js",
@@ -31,7 +32,6 @@
         "shared/api.js",
         "shared/settings-manager.js",
         "shared/base-feature.js",
-        "shared/test-framework.js",
         "shared/feature-validation.js",
         "shared/performance-monitor.js",
         "shared/error-tracker.js",
