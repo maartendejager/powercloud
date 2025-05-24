@@ -313,16 +313,17 @@ function isDevelopmentRoute(url) {
          url.includes('dev-');
 }
 
-export {
-  getToken,
-  setToken,
-  clearTokens,
-  removeToken,
-  getAllTokens,
-  isValidJWT,
-  saveTokens,
-  getTokenPayload,
-  handleAuthHeaderFromWebRequest,
-  extractClientEnvironment,
-  isDevelopmentRoute
-};
+// Export for browser extension environment
+if (typeof window !== 'undefined') {
+  window.getToken = getToken;
+  window.setToken = setToken;
+  window.clearTokens = clearTokens;
+  window.removeToken = removeToken;
+  window.getAllTokens = getAllTokens;
+  window.isValidJWT = isValidJWT;
+  window.saveTokens = saveTokens;
+  window.getTokenPayload = getTokenPayload;
+  window.handleAuthHeaderFromWebRequest = handleAuthHeaderFromWebRequest;
+  window.extractClientEnvironment = extractClientEnvironment;
+  window.isDevelopmentRoute = isDevelopmentRoute;
+}

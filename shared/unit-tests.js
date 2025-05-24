@@ -554,4 +554,7 @@ window.PowerCloudUnitTests = {
   runSuite: (name) => pcTest.runSuite(name)
 };
 
-export { setupUnitTests };
+// Export for browser extension environment
+if (typeof window !== 'undefined') {
+  window.setupUnitTests = setupUnitTests;
+}

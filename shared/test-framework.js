@@ -677,4 +677,10 @@ window.pcTest = {
   mock: MockUtils
 };
 
-export { PowerCloudTestFramework, TestSuite, TestContext, MockUtils };
+// Export for browser extension environment (no ES6 modules)
+if (typeof window !== 'undefined') {
+  window.PowerCloudTestFramework = PowerCloudTestFramework;
+  window.TestSuite = TestSuite;
+  window.TestContext = TestContext;
+  window.MockUtils = MockUtils;
+}

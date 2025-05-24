@@ -568,4 +568,7 @@ window.PowerCloudIntegrationTests = {
   runPerformance: () => pcTest.runSuite('Feature Loading Performance')
 };
 
-export { setupIntegrationTests };
+// Export for browser extension environment
+if (typeof window !== 'undefined') {
+  window.setupIntegrationTests = setupIntegrationTests;
+}

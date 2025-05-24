@@ -418,31 +418,31 @@ function testPatternAgainstUrls(pattern, testUrls) {
   return results;
 }
 
-// Export all patterns and functions
-export {
+// Export all patterns and functions for browser extension environment
+if (typeof window !== 'undefined') {
   // Pattern constants
-  DOMAIN_PATTERN,
-  ANY_SPEND_CLOUD_DOMAIN,
-  API_ROUTE_PATTERN,
-  CARD_PATTERNS,
-  BOOK_PATTERN,
-  BOOK_ENTRY_PATTERN,
+  window.DOMAIN_PATTERN = DOMAIN_PATTERN;
+  window.ANY_SPEND_CLOUD_DOMAIN = ANY_SPEND_CLOUD_DOMAIN;
+  window.API_ROUTE_PATTERN = API_ROUTE_PATTERN;
+  window.CARD_PATTERNS = CARD_PATTERNS;
+  window.BOOK_PATTERN = BOOK_PATTERN;
+  window.BOOK_ENTRY_PATTERN = BOOK_ENTRY_PATTERN;
   
   // Basic extraction functions
-  isApiRoute,
-  isSpendCloudDomain,
-  extractCustomerDomain,
-  extractCardInfo,
-  extractBookInfo,
-  extractEntryInfo,
+  window.isApiRoute = isApiRoute;
+  window.isSpendCloudDomain = isSpendCloudDomain;
+  window.extractCustomerDomain = extractCustomerDomain;
+  window.extractCardInfo = extractCardInfo;
+  window.extractBookInfo = extractBookInfo;
+  window.extractEntryInfo = extractEntryInfo;
   
   // Phase 1.3 Enhancements
-  URL_PATTERN_TYPES,
-  SPECIFICITY_WEIGHTS,
-  validateUrlPattern,
-  calculatePatternSpecificity,
-  categorizeUrl,
-  findBestPatternMatch,
-  createPatternMatcher,
-  testPatternAgainstUrls
-};
+  window.URL_PATTERN_TYPES = URL_PATTERN_TYPES;
+  window.SPECIFICITY_WEIGHTS = SPECIFICITY_WEIGHTS;
+  window.validateUrlPattern = validateUrlPattern;
+  window.calculatePatternSpecificity = calculatePatternSpecificity;
+  window.categorizeUrl = categorizeUrl;
+  window.findBestPatternMatch = findBestPatternMatch;
+  window.createPatternMatcher = createPatternMatcher;
+  window.testPatternAgainstUrls = testPatternAgainstUrls;
+}
