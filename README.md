@@ -104,7 +104,50 @@ To verify functionality on development domains:
 3. Confirm that the extension features appear and work correctly
 4. Test token capture by making API requests on the development domain
 
+## Development
+
+### Feature Development with BaseFeature
+
+Starting with version 1.2.0, new features can be built using the BaseFeature foundation for standardized structure and enhanced reliability:
+
+```javascript
+class MyNewFeature extends BaseFeature {
+  constructor() {
+    super('myNewFeature', {
+      enableDebugLogging: true // Enable for development
+    });
+  }
+
+  onInit(match) {
+    super.onInit(match);
+    // Your initialization code here
+  }
+
+  onCleanup() {
+    // Your cleanup code here
+    super.onCleanup();
+  }
+}
+```
+
+**Benefits:**
+- Standardized lifecycle management
+- Built-in error handling with context
+- Debug logging for troubleshooting  
+- State tracking (isInitialized, isActive)
+- Backward compatibility with existing features
+
+See `shared/base-feature-docs.md` for complete documentation and migration examples.
+
 ## Changelog
+
+### 1.2.0 - May 24, 2025
+- **NEW**: BaseFeature foundation for standardized feature development
+- Added BaseFeature class with lifecycle hooks (onInit, onCleanup, onActivate, onDeactivate)
+- Implemented error handling with context information for all features
+- Added debug logging capabilities for development
+- Enhanced architecture foundation for future improvements
+- Full backward compatibility maintained - no breaking changes
 
 ### 1.1.1 - May 22, 2025
 - Enhanced API handling to properly support development environment API requests

@@ -23,6 +23,7 @@
     {
       "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"],
       "js": [
+        "shared/base-feature.js",
         "content_scripts/features/adyen-card.js",
         "content_scripts/features/adyen-book.js",
         "content_scripts/features/adyen-entries.js",
