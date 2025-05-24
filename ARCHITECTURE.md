@@ -107,6 +107,31 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
     *   `auth.js`: Contains functions for authentication token management, including storing, retrieving, and validating JWT tokens. The `getToken` function retrieves tokens appropriate for specific client environments and development statuses.
     *   `url-patterns.js`: Provides URL pattern matching utilities for consistent domain handling.
 
+#### Core Infrastructure Modules
+
+*   **BaseFeature (`base-feature.js`)**: Abstract base class providing standardized feature structure with lifecycle hooks, error handling, and logging integration.
+*   **Logger (`logger.js`)**: Centralized logging system with configurable levels, error boundaries, and debug mode support.
+*   **FeatureManager (`feature-manager.js`)**: Manages feature lifecycle, URL pattern matching, and safe feature loading with graceful degradation.
+
+#### Testing and Validation Framework (Phase 2.2)
+
+*   **FeatureValidator (`feature-validation.js`)**: Comprehensive validation framework for feature functionality including initialization validation, health checks, and property validation.
+*   **PerformanceMonitor (`performance-monitor.js`)**: Performance monitoring system with timing measurements, memory tracking, and threshold violation detection.
+*   **ErrorTracker (`error-tracker.js`)**: Error tracking and categorization system with pattern recognition and resolution management.
+*   **FeatureDebugger (`feature-debugger.js`)**: Advanced debugging utilities with debug sessions, breakpoints, and state inspection capabilities.
+*   **FeatureValidationManager (`feature-validation-manager.js`)**: Central orchestrator integrating all validation components for comprehensive feature testing.
+*   **TestFramework (`test-framework.js`)**: Lightweight testing framework with assertion utilities and test result reporting.
+
+#### Configuration Management (Phase 3.1)
+
+*   **SettingsManager (`settings-manager.js`)**: Centralized configuration management system providing:
+    *   User preference storage and retrieval with Chrome storage integration
+    *   Feature toggle system for dynamic feature control
+    *   Environment-specific configuration support (development, production, testing)
+    *   Configuration validation with schema enforcement
+    *   Import/export capabilities for settings backup and sharing
+    *   Change listener system for real-time configuration updates
+
 ## Communication Flow
 
 *   **Content Script to Background**: `chrome.runtime.sendMessage()` from content script, `chrome.runtime.onMessage.addListener()` in background.
@@ -122,6 +147,45 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 *   `chrome.storage.local` or `chrome.storage.sync`: Used for persisting extension settings, captured tokens, or other data.
     *   `local`: For larger data, or data that shouldn't be synced across devices.
     *   `sync`: For user settings that should be available across their synced browsers.
+
+## Development Workflow and Architecture Patterns
+
+### Feature Development Lifecycle
+
+1. **Feature Planning**: Define feature requirements, URL patterns, and dependencies
+2. **Development**: Implement feature using BaseFeature class and established patterns
+3. **Validation**: Use FeatureValidator to ensure feature meets quality standards
+4. **Testing**: Create comprehensive tests using the shared testing framework
+5. **Configuration**: Add feature toggles and settings via SettingsManager
+6. **Integration**: Register feature in FeatureManager and update manifest
+7. **Documentation**: Add JSDoc documentation following established standards
+
+### Code Quality Standards
+
+*   **JSDoc Documentation**: All classes, methods, and functions must have comprehensive JSDoc documentation following the established standards
+*   **Error Handling**: Use custom error classes and consistent error handling patterns
+*   **Performance Monitoring**: Integrate with PerformanceMonitor for timing and memory tracking
+*   **Configuration Management**: Use SettingsManager for all configurable options
+*   **Testing**: Maintain test coverage for all new functionality
+
+### Validation and Quality Assurance
+
+The extension includes a comprehensive validation framework that ensures:
+
+*   **Feature Initialization**: Validates that features initialize correctly with proper dependencies
+*   **Performance Monitoring**: Tracks initialization time, memory usage, and response times
+*   **Error Tracking**: Categorizes and tracks errors with pattern recognition
+*   **Health Checks**: Ongoing monitoring of feature health and functionality
+*   **Debug Capabilities**: Advanced debugging tools for development and troubleshooting
+
+### Configuration Architecture
+
+*   **Centralized Configuration**: All settings managed through SettingsManager
+*   **Environment Support**: Different configurations for development, production, and testing
+*   **User Preferences**: Persistent user settings with Chrome storage integration
+*   **Feature Toggles**: Dynamic enable/disable of features without code changes
+*   **Validation**: Schema-based validation of all configuration values
+*   **Import/Export**: Configuration backup and sharing capabilities
 
 ## Key Functionalities & Their Likely Implementation
 

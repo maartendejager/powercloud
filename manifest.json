@@ -26,6 +26,7 @@
         "shared/logger.js",
         "shared/error-handling.js",
         "shared/debug-mode.js",
+        "shared/settings-manager.js",
         "shared/base-feature.js",
         "shared/test-framework.js",
         "shared/feature-validation.js",
