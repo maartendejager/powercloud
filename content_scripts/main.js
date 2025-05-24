@@ -126,13 +126,29 @@ const features = [
  */
 async function initCardFeature(match) {
   console.log('[PowerCloud] initCardFeature called with match:', match);
-  // Call the implementation from adyen-card.js using the PowerCloudFeatures namespace
-  if (window.PowerCloudFeatures?.card?.init) {
-    console.log('[PowerCloud] Calling adyen-card feature init');
-    return await window.PowerCloudFeatures.card.init(match);
-  } else {
-    console.warn('[PowerCloud] window.PowerCloudFeatures.card.init not found');
+  console.log('[PowerCloud] PowerCloudFeatures state:', {
+    exists: !!window.PowerCloudFeatures,
+    keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+    card: !!window.PowerCloudFeatures?.card
+  });
+  
+  // Wait for adyen-card feature to be available (with timeout)
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 100; // 100ms between attempts
+  
+  while (attempts < maxAttempts) {
+    if (window.PowerCloudFeatures?.card?.init) {
+      console.log('[PowerCloud] Calling adyen-card feature init (attempt', attempts + 1, ')');
+      return await window.PowerCloudFeatures.card.init(match);
+    }
+    
+    attempts++;
+    console.log('[PowerCloud] Waiting for adyen-card feature to register (attempt', attempts, '/', maxAttempts, ')');
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
+  
+  console.error('[PowerCloud] adyen-card feature failed to register after', maxAttempts, 'attempts');
 }
 
 /**
@@ -141,14 +157,29 @@ async function initCardFeature(match) {
  */
 async function loadBookFeature(match) {
   console.log('[PowerCloud] loadBookFeature called with match:', match);
-  // Use the implementation from adyen-book.js which is loaded via manifest
-  if (window.PowerCloudFeatures?.book?.init) {
-    console.log('[PowerCloud] Calling adyen-book feature init');
-    return await window.PowerCloudFeatures.book.init(match);
-  } else {
-    console.warn('[PowerCloud] window.PowerCloudFeatures.book.init not found');
-    // Feature not found - should never happen with manifest loading
+  console.log('[PowerCloud] PowerCloudFeatures state:', {
+    exists: !!window.PowerCloudFeatures,
+    keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+    book: !!window.PowerCloudFeatures?.book
+  });
+  
+  // Wait for adyen-book feature to be available (with timeout)
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 100; // 100ms between attempts
+  
+  while (attempts < maxAttempts) {
+    if (window.PowerCloudFeatures?.book?.init) {
+      console.log('[PowerCloud] Calling adyen-book feature init (attempt', attempts + 1, ')');
+      return await window.PowerCloudFeatures.book.init(match);
+    }
+    
+    attempts++;
+    console.log('[PowerCloud] Waiting for adyen-book feature to register (attempt', attempts, '/', maxAttempts, ')');
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
+  
+  console.error('[PowerCloud] adyen-book feature failed to register after', maxAttempts, 'attempts');
 }
 
 /**
@@ -157,14 +188,29 @@ async function loadBookFeature(match) {
  */
 async function loadEntriesFeature(match) {
   console.log('[PowerCloud] loadEntriesFeature called with match:', match);
-  // Use the implementation from adyen-entries.js which is loaded via manifest
-  if (window.PowerCloudFeatures?.entries?.init) {
-    console.log('[PowerCloud] Calling adyen-entries feature init');
-    return await window.PowerCloudFeatures.entries.init(match);
-  } else {
-    console.warn('[PowerCloud] window.PowerCloudFeatures.entries.init not found');
-    // Feature not found - should never happen with manifest loading
+  console.log('[PowerCloud] PowerCloudFeatures state:', {
+    exists: !!window.PowerCloudFeatures,
+    keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+    entries: !!window.PowerCloudFeatures?.entries
+  });
+  
+  // Wait for adyen-entries feature to be available (with timeout)
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 100; // 100ms between attempts
+  
+  while (attempts < maxAttempts) {
+    if (window.PowerCloudFeatures?.entries?.init) {
+      console.log('[PowerCloud] Calling adyen-entries feature init (attempt', attempts + 1, ')');
+      return await window.PowerCloudFeatures.entries.init(match);
+    }
+    
+    attempts++;
+    console.log('[PowerCloud] Waiting for adyen-entries feature to register (attempt', attempts, '/', maxAttempts, ')');
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
+  
+  console.error('[PowerCloud] adyen-entries feature failed to register after', maxAttempts, 'attempts');
 }
 
 // Card feature functions are now imported from adyen-card.js
