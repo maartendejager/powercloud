@@ -567,4 +567,327 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Enhanced Health Dashboard Variables
+  let realtimeStreamActive = false;
+  let streamPaused = false;
+  let streamInterval = null;
+  let logFilters = {
+    level: '',
+    feature: '',
+    category: ''
+  };
+
+  // Real-time log streaming controls
+  document.getElementById('toggle-realtime-btn').addEventListener('click', () => {
+    toggleRealtimeStreaming();
+  });
+
+  document.getElementById('pause-stream').addEventListener('click', () => {
+    toggleStreamPause();
+  });
+
+  document.getElementById('clear-log-stream').addEventListener('click', () => {
+    clearLogStream();
+  });
+
+  // Filter controls
+  document.getElementById('log-level-filter').addEventListener('change', (e) => {
+    logFilters.level = e.target.value;
+    if (realtimeStreamActive) {
+      updateLogStream();
+    }
+  });
+
+  document.getElementById('feature-filter').addEventListener('change', (e) => {
+    logFilters.feature = e.target.value;
+    if (realtimeStreamActive) {
+      updateLogStream();
+    }
+  });
+
+  document.getElementById('category-filter').addEventListener('change', (e) => {
+    logFilters.category = e.target.value;
+    if (realtimeStreamActive) {
+      updateLogStream();
+    }
+  });
+
+  // Enhanced Health Dashboard Functions
+  function toggleRealtimeStreaming() {
+    const button = document.getElementById('toggle-realtime-btn');
+    const statusDiv = document.querySelector('.stream-status');
+    
+    if (!realtimeStreamActive) {
+      // Start streaming
+      realtimeStreamActive = true;
+      streamPaused = false;
+      button.textContent = 'Disable Real-time';
+      button.classList.add('active');
+      statusDiv.textContent = 'Real-time streaming active';
+      statusDiv.classList.add('active');
+      
+      // Update feature filter options
+      updateFeatureFilterOptions();
+      
+      // Start streaming interval
+      streamInterval = setInterval(updateLogStream, 2000); // Update every 2 seconds
+      updateLogStream(); // Initial load
+    } else {
+      // Stop streaming
+      realtimeStreamActive = false;
+      button.textContent = 'Enable Real-time';
+      button.classList.remove('active');
+      statusDiv.textContent = 'Real-time streaming disabled';
+      statusDiv.classList.remove('active', 'paused');
+      
+      if (streamInterval) {
+        clearInterval(streamInterval);
+        streamInterval = null;
+      }
+    }
+  }
+
+  function toggleStreamPause() {
+    const button = document.getElementById('pause-stream');
+    const statusDiv = document.querySelector('.stream-status');
+    
+    if (!realtimeStreamActive) return;
+    
+    streamPaused = !streamPaused;
+    
+    if (streamPaused) {
+      button.textContent = 'Resume';
+      statusDiv.textContent = 'Real-time streaming paused';
+      statusDiv.classList.add('paused');
+      statusDiv.classList.remove('active');
+    } else {
+      button.textContent = 'Pause';
+      statusDiv.textContent = 'Real-time streaming active';
+      statusDiv.classList.add('active');
+      statusDiv.classList.remove('paused');
+    }
+  }
+
+  function clearLogStream() {
+    const container = document.getElementById('realtime-logs');
+    const entries = container.querySelectorAll('.realtime-log-entry');
+    entries.forEach(entry => entry.remove());
+  }
+
+  function updateLogStream() {
+    if (!realtimeStreamActive || streamPaused) return;
+
+    // Get filtered logs from health dashboard
+    chrome.runtime.sendMessage({
+      action: "getFilteredLogs",
+      limit: 50,
+      level: logFilters.level || null,
+      feature: logFilters.feature || null,
+      category: logFilters.category || null
+    }, (response) => {
+      if (response && response.success && response.logs) {
+        displayRealtimeLogs(response.logs);
+      }
+    });
+  }
+
+  function displayRealtimeLogs(logs) {
+    const container = document.getElementById('realtime-logs');
+    const statusDiv = container.querySelector('.stream-status');
+    
+    if (statusDiv) {
+      statusDiv.remove();
+    }
+
+    // Clear old entries if too many
+    const existingEntries = container.querySelectorAll('.realtime-log-entry');
+    if (existingEntries.length > 100) {
+      for (let i = 0; i < 20; i++) {
+        existingEntries[i].remove();
+      }
+    }
+
+    // Add new log entries (only show last 20 for performance)
+    const recentLogs = logs.slice(-20);
+    const existingIds = new Set(Array.from(existingEntries).map(e => e.dataset.logId));
+
+    recentLogs.forEach(log => {
+      if (!existingIds.has(log.id)) {
+        const entry = createRealtimeLogEntry(log);
+        container.appendChild(entry);
+        
+        // Add animation for new entries
+        entry.classList.add('new-entry');
+        setTimeout(() => entry.classList.remove('new-entry'), 1000);
+      }
+    });
+
+    // Auto-scroll to bottom
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function createRealtimeLogEntry(log) {
+    const entry = document.createElement('div');
+    entry.className = `realtime-log-entry ${log.level}`;
+    entry.dataset.logId = log.id;
+
+    const timestamp = new Date(log.timestamp).toLocaleTimeString();
+    
+    entry.innerHTML = `
+      <span class="log-timestamp-realtime">${timestamp}</span>
+      <span class="log-level-realtime">${log.level}</span>
+      <span class="log-feature-realtime">${log.feature || 'sys'}</span>
+      <span class="log-message-realtime">${log.message}</span>
+    `;
+
+    return entry;
+  }
+
+  function updateFeatureFilterOptions() {
+    chrome.runtime.sendMessage({action: "getFeatureChannels"}, (response) => {
+      if (response && response.success && response.channels) {
+        const select = document.getElementById('feature-filter');
+        
+        // Clear existing options except "All Features"
+        const options = select.querySelectorAll('option');
+        for (let i = 1; i < options.length; i++) {
+          options[i].remove();
+        }
+
+        // Add feature options
+        Object.keys(response.channels).forEach(feature => {
+          const option = document.createElement('option');
+          option.value = feature;
+          option.textContent = feature;
+          select.appendChild(option);
+        });
+      }
+    });
+  }
+
+  // Enhanced feature health cards
+  function loadFeatureHealthCards() {
+    chrome.runtime.sendMessage({action: "getFeatureStatus"}, (response) => {
+      if (!response || !response.success || !response.features) {
+        document.getElementById('feature-health-cards').innerHTML = 
+          '<div class="empty-state">No feature health data available</div>';
+        return;
+      }
+
+      const container = document.getElementById('feature-health-cards');
+      container.innerHTML = '';
+
+      Object.entries(response.features).forEach(([name, status]) => {
+        const card = createFeatureHealthCard(name, status);
+        container.appendChild(card);
+      });
+    });
+  }
+
+  function createFeatureHealthCard(name, status) {
+    const card = document.createElement('div');
+    
+    // Determine card health status
+    let healthClass = 'unknown';
+    let healthText = 'Unknown';
+    
+    if (status.hasErrors) {
+      healthClass = 'error';
+      healthText = 'Error';
+    } else if (!status.isActive) {
+      healthClass = 'warning';
+      healthText = 'Inactive';
+    } else if (status.isHealthy !== false) {
+      healthClass = 'healthy';
+      healthText = 'Healthy';
+    }
+
+    card.className = `feature-health-card ${healthClass}`;
+    
+    // Get metrics for this feature
+    const errorCount = status.lastError ? 1 : 0;
+    const lastUpdate = status.lastUpdate ? new Date(status.lastUpdate).toLocaleTimeString() : 'Never';
+    const performance = status.averagePerformance || 0;
+
+    card.innerHTML = `
+      <div class="feature-card-header">
+        <span class="feature-card-name">${name}</span>
+        <div class="feature-card-status">
+          <span class="status-dot ${healthClass}"></span>
+          <span>${healthText}</span>
+        </div>
+      </div>
+      <div class="feature-card-metrics">
+        <div class="feature-metric">
+          <div class="feature-metric-value">${errorCount}</div>
+          <div class="feature-metric-label">Errors</div>
+        </div>
+        <div class="feature-metric">
+          <div class="feature-metric-value">${Math.round(performance)}ms</div>
+          <div class="feature-metric-label">Avg Performance</div>
+        </div>
+        <div class="feature-metric">
+          <div class="feature-metric-value">${lastUpdate}</div>
+          <div class="feature-metric-label">Last Update</div>
+        </div>
+      </div>
+    `;
+
+    return card;
+  }
+
+  // Enhanced system status with error count
+  function updateSystemStatus() {
+    // Get overall system status
+    chrome.runtime.sendMessage({action: "getExtensionHealth"}, (response) => {
+      const statusDot = document.querySelector('#system-status .status-dot');
+      const statusText = document.querySelector('#system-status .status-text');
+      
+      if (!response || !response.success) {
+        statusDot.className = 'status-dot error';
+        statusText.textContent = 'Extension Error';
+        return;
+      }
+      
+      const health = response.health;
+      const featureCount = health.features ? Object.keys(health.features).length : 0;
+      const errorCount = health.errorReports ? health.errorReports.length : 0;
+      
+      // Update status based on health data
+      if (errorCount > 0) {
+        statusDot.className = 'status-dot error';
+        statusText.textContent = `${errorCount} Error(s)`;
+      } else if (featureCount === 0) {
+        statusDot.className = 'status-dot warning';
+        statusText.textContent = 'No Features Active';
+      } else {
+        statusDot.className = 'status-dot healthy';
+        statusText.textContent = 'All Systems Operational';
+      }
+      
+      // Update metric cards
+      document.getElementById('feature-count').textContent = featureCount;
+      document.getElementById('error-count').textContent = errorCount;
+      
+      if (health.memory && health.memory.current) {
+        document.getElementById('memory-usage').textContent = health.memory.current.used;
+      }
+      
+      if (health.performance && Object.keys(health.performance).length > 0) {
+        const avgPerf = Object.values(health.performance)
+          .reduce((sum, metric) => sum + (metric.average || 0), 0) / Object.keys(health.performance).length;
+        document.getElementById('avg-performance').textContent = Math.round(avgPerf * 100) / 100;
+      }
+    });
+  }
+
+  // Enhanced health dashboard loading
+  function loadHealthDashboard() {
+    updateSystemStatus();
+    loadFeatureHealthCards(); // Replace loadFeatureStatus with this
+    loadPerformanceMetrics();
+    loadDebugLogs();
+    loadErrorReports();
+  }
+
 });

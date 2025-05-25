@@ -184,6 +184,22 @@ async function setToken(token, metadata = {}) {
     
     return true;
   } catch (error) {
+    // Record authentication error in health dashboard
+    if (typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'auth',
+        category: 'auth',
+        message: 'Failed to set authentication token',
+        data: { 
+          error: error.message,
+          context: 'setToken',
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     logger.error('Failed to set token:', error);
     return false;
   }
@@ -340,6 +356,23 @@ async function handleAuthHeaderFromWebRequest(details) {
     }
     return null; // No relevant header found
   } catch (error) {
+    // Record authentication error in health dashboard
+    if (typeof chrome !== 'undefined' && chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'auth',
+        category: 'auth',
+        message: 'Failed to handle authentication header from web request',
+        data: { 
+          error: error.message,
+          url: details?.url,
+          context: 'handleAuthHeader',
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     logger.error('Failed to handle auth header:', error);
     return null;
   }

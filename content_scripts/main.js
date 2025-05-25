@@ -329,6 +329,22 @@ async function initializeExtension() {
   const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
   
   try {
+    // Record extension initialization start event in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'extension',
+        event: 'init',
+        level: 'info',
+        logMessage: 'Extension initialization started',
+        data: { 
+          url: window.location.href,
+          timestamp: Date.now(),
+          userAgent: navigator.userAgent
+        }
+      }).catch(() => {}); // Ignore errors to avoid blocking initialization
+    }
+    
     if (logger) {
       logger.info('Starting extension initialization');
     }
@@ -365,6 +381,21 @@ async function initializeExtension() {
       logger.info('All features registered with enhanced error handling');
     }
     
+    // Record successful feature registration in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'extension',
+        event: 'activate',
+        level: 'info',
+        logMessage: 'All features registered successfully',
+        data: { 
+          featureCount: features.length,
+          registeredFeatures: features.map(f => f.name)
+        }
+      }).catch(() => {});
+    }
+    
     // Also initialize with the traditional feature manager for backward compatibility
     if (logger) {
       logger.info('Initializing traditional FeatureManager', { featureCount: features.length });
@@ -372,6 +403,22 @@ async function initializeExtension() {
     const featureManager = new window.FeatureManager(features).init();
     
   } catch (error) {
+    // Record initialization failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'extension',
+        event: 'error',
+        level: 'error',
+        logMessage: 'Extension initialization failed',
+        data: { 
+          error: error.message,
+          stack: error.stack,
+          url: window.location.href
+        }
+      }).catch(() => {});
+    }
+    
     if (logger) {
       logger.error('Extension initialization failed', { 
         error: error.message, 

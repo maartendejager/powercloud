@@ -722,20 +722,98 @@ bookLogger.info('Registering adyen-book feature');
 window.PowerCloudFeatures.book = {
   init: async (match) => {
     bookLogger.info('Feature init called', { match });
+    
+    // Record feature initialization in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'adyenBook',
+        event: 'init',
+        level: 'info',
+        logMessage: 'Adyen Book feature initialization started',
+        data: { 
+          match: match,
+          url: window.location.href,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     try {
       await adyenBookFeature.onInit(match);
       await adyenBookFeature.onActivate();
+      
+      // Record successful activation
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordFeatureEvent',
+          featureName: 'adyenBook',
+          event: 'activate',
+          level: 'info',
+          logMessage: 'Adyen Book feature activated successfully',
+          data: { match: match }
+        }).catch(() => {});
+      }
     } catch (error) {
+      // Record initialization error in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordFeatureEvent',
+          featureName: 'adyenBook',
+          event: 'error',
+          level: 'error',
+          logMessage: 'Adyen Book feature initialization failed',
+          data: { 
+            error: error.message,
+            stack: error.stack,
+            match: match,
+            context: 'initialization'
+          }
+        }).catch(() => {});
+      }
+      
       bookLogger.error('Feature initialization error', { error: error.message, stack: error.stack });
       adyenBookFeature.onError(error, 'initialization');
     }
   },
   cleanup: async () => {
     bookLogger.info('Feature cleanup called');
+    
+    // Record feature deactivation in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'adyenBook',
+        event: 'deactivate',
+        level: 'info',
+        logMessage: 'Adyen Book feature cleanup started',
+        data: { 
+          url: window.location.href,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     try {
       await adyenBookFeature.onDeactivate();
       await adyenBookFeature.onCleanup();
     } catch (error) {
+      // Record cleanup error in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordFeatureEvent',
+          featureName: 'adyenBook',
+          event: 'error',
+          level: 'error',
+          logMessage: 'Adyen Book feature cleanup failed',
+          data: { 
+            error: error.message,
+            stack: error.stack,
+            context: 'cleanup'
+          }
+        }).catch(() => {});
+      }
+      
       bookLogger.error('Feature cleanup error', { error: error.message, stack: error.stack });
       adyenBookFeature.onError(error, 'cleanup');
     }

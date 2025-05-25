@@ -84,6 +84,11 @@
           <div id="avg-performance">-</div>
           <small>ms avg</small>
         </div>
+        <div class="metric-card">
+          <h5>Errors</h5>
+          <div id="error-count">-</div>
+          <small>Active errors</small>
+        </div>
       </div>
     </div>
 
@@ -91,13 +96,56 @@
       <button id="refresh-health-btn" class="action-button">Refresh Health Data</button>
       <button id="clear-debug-btn" class="action-button secondary">Clear Debug Data</button>
       <button id="export-health-btn" class="action-button secondary">Export Health Report</button>
+      <button id="toggle-realtime-btn" class="action-button secondary">Enable Real-time</button>
     </div>
 
+    <!-- Enhanced Feature Health Cards -->
     <div class="health-details">
       <div class="detail-section">
-        <h4>Feature Status</h4>
-        <div id="feature-status-list" class="status-list">
-          Loading feature status...
+        <h4>Feature Health Cards</h4>
+        <div id="feature-health-cards" class="feature-cards-container">
+          Loading feature health data...
+        </div>
+      </div>
+
+      <!-- Real-time Log Streaming with Filtering -->
+      <div class="detail-section">
+        <h4>Real-time Log Stream</h4>
+        <div class="log-controls">
+          <div class="filter-group">
+            <label for="log-level-filter">Log Level:</label>
+            <select id="log-level-filter">
+              <option value="">All Levels</option>
+              <option value="debug">Debug</option>
+              <option value="info">Info</option>
+              <option value="warn">Warning</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="feature-filter">Feature:</label>
+            <select id="feature-filter">
+              <option value="">All Features</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="category-filter">Category:</label>
+            <select id="category-filter">
+              <option value="">All Categories</option>
+              <option value="auth">Authentication</option>
+              <option value="api">API</option>
+              <option value="feature">Features</option>
+              <option value="performance">Performance</option>
+              <option value="system">System</option>
+              <option value="ui">UI</option>
+              <option value="error">Errors</option>
+            </select>
+          </div>
+          <button id="clear-log-stream" class="action-button mini">Clear</button>
+          <button id="pause-stream" class="action-button mini">Pause</button>
+        </div>
+        <div id="realtime-logs" class="realtime-logs-display">
+          <div class="stream-status">Real-time streaming disabled</div>
         </div>
       </div>
 

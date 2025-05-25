@@ -89,6 +89,25 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
     return data;
   } catch (error) {
     logger.error(`API request failed for ${endpoint}:`, error);
+    
+    // Record API failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'API module request failed',
+        data: {
+          endpoint: endpoint,
+          method: method,
+          error: error.message,
+          stack: error.stack,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw error;
   }
 }
@@ -157,6 +176,23 @@ async function getCardDetails(customer, cardId, isDev = false) {
   if (!customer || !cardId) {
     const errorMsg = 'Invalid parameters for getCardDetails';
     logger.error(errorMsg, { customer, cardId });
+    
+    // Record parameter validation error in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Card API called with invalid parameters',
+        data: {
+          customer: customer,
+          cardId: cardId,
+          error: errorMsg
+        }
+      }).catch(() => {});
+    }
+    
     throw new Error(`Invalid parameters: customer=${customer}, cardId=${cardId}`);
   }
   
@@ -167,6 +203,26 @@ async function getCardDetails(customer, cardId, isDev = false) {
     return response;
   } catch (error) {
     logger.error(`Card API request failed: ${error.message}`);
+    
+    // Record card API failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Card API request failed',
+        data: {
+          customer: customer,
+          cardId: cardId,
+          endpoint: url,
+          error: error.message,
+          stack: error.stack,
+          isDev: isDev
+        }
+      }).catch(() => {});
+    }
+    
     throw error;
   }
 }
@@ -182,6 +238,23 @@ async function getBookDetails(customer, bookId, isDev = false) {
   if (!customer || !bookId) {
     const errorMsg = 'Invalid parameters for getBookDetails';
     logger.error(errorMsg, { customer, bookId });
+    
+    // Record parameter validation error in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Book API called with invalid parameters',
+        data: {
+          customer: customer,
+          bookId: bookId,
+          error: errorMsg
+        }
+      }).catch(() => {});
+    }
+    
     throw new Error(`Invalid parameters: customer=${customer}, bookId=${bookId}`);
   }
   
@@ -192,6 +265,26 @@ async function getBookDetails(customer, bookId, isDev = false) {
     return response;
   } catch (error) {
     logger.error(`Book API request failed: ${error.message}`);
+    
+    // Record book API failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Book API request failed',
+        data: {
+          customer: customer,
+          bookId: bookId,
+          endpoint: url,
+          error: error.message,
+          stack: error.stack,
+          isDev: isDev
+        }
+      }).catch(() => {});
+    }
+    
     throw error;
   }
 }
@@ -207,6 +300,24 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
   if (!customer || !administrationId) {
     const errorMsg = 'Invalid parameters for getAdministrationDetails';
     logger.error(errorMsg, { customer, administrationId });
+    
+    // Record parameter validation error in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Administration API called with invalid parameters',
+        data: {
+          customer: customer,
+          administrationId: administrationId,
+          error: errorMsg,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw new Error(`Invalid parameters: customer=${customer}, administrationId=${administrationId}`);
   }
   
@@ -217,6 +328,27 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
     return response;
   } catch (error) {
     logger.error(`Administration API request failed: ${error.message}`);
+    
+    // Record administration API failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Administration API request failed',
+        data: {
+          customer: customer,
+          administrationId: administrationId,
+          endpoint: url,
+          error: error.message,
+          stack: error.stack,
+          isDev: isDev,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw error;
   }
 }
@@ -232,6 +364,24 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
   if (!customer || !balanceAccountId) {
     const errorMsg = 'Invalid parameters for getBalanceAccountDetails';
     logger.error(errorMsg, { customer, balanceAccountId });
+    
+    // Record parameter validation error in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Balance account API called with invalid parameters',
+        data: {
+          customer: customer,
+          balanceAccountId: balanceAccountId,
+          error: errorMsg,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw new Error(`Invalid parameters: customer=${customer}, balanceAccountId=${balanceAccountId}`);
   }
   
@@ -242,6 +392,27 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
     return response;
   } catch (error) {
     logger.error(`Balance account API request failed: ${error.message}`);
+    
+    // Record balance account API failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Balance account API request failed',
+        data: {
+          customer: customer,
+          balanceAccountId: balanceAccountId,
+          endpoint: url,
+          error: error.message,
+          stack: error.stack,
+          isDev: isDev,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw error;
   }
 }
@@ -257,6 +428,24 @@ async function getEntryDetails(customer, entryId, isDev = false) {
   if (!customer || !entryId) {
     const errorMsg = 'Invalid parameters for getEntryDetails';
     logger.error(errorMsg, { customer, entryId });
+    
+    // Record parameter validation error in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Entry API called with invalid parameters',
+        data: {
+          customer: customer,
+          entryId: entryId,
+          error: errorMsg,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw new Error(`Invalid parameters: customer=${customer}, entryId=${entryId}`);
   }
   
@@ -267,6 +456,27 @@ async function getEntryDetails(customer, entryId, isDev = false) {
     return response;
   } catch (error) {
     logger.error(`Entry API request failed: ${error.message}`);
+    
+    // Record entry API failure in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'error',
+        feature: 'api',
+        category: 'api',
+        message: 'Entry API request failed',
+        data: {
+          customer: customer,
+          entryId: entryId,
+          endpoint: url,
+          error: error.message,
+          stack: error.stack,
+          isDev: isDev,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     throw error;
   }
 }

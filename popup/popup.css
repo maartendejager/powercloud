@@ -551,3 +551,295 @@ h3 {
   font-style: italic;
   padding: 20px;
 }
+
+/* Enhanced Health Dashboard Styles */
+
+/* Feature Health Cards */
+.feature-cards-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.feature-health-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.feature-health-card:hover {
+  border-color: #2196F3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+}
+
+.feature-health-card.error {
+  border-color: #f44336;
+  background: #ffebee;
+}
+
+.feature-health-card.warning {
+  border-color: #FF9800;
+  background: #fff3e0;
+}
+
+.feature-health-card.healthy {
+  border-color: #4CAF50;
+  background: #e8f5e9;
+}
+
+.feature-card-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.feature-card-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+}
+
+.feature-card-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.feature-card-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.feature-metric {
+  text-align: center;
+}
+
+.feature-metric-value {
+  font-weight: bold;
+  color: #333;
+  font-size: 12px;
+}
+
+.feature-metric-label {
+  font-size: 10px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* Real-time Log Streaming */
+.log-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #555;
+  white-space: nowrap;
+}
+
+.filter-group select {
+  font-size: 11px;
+  padding: 2px 4px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: white;
+}
+
+.action-button.mini {
+  padding: 3px 6px;
+  font-size: 10px;
+  margin: 0;
+}
+
+.realtime-logs-display {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.stream-status {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+  font-size: 12px;
+}
+
+.stream-status.active {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.stream-status.paused {
+  color: #FF9800;
+}
+
+.realtime-log-entry {
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.realtime-log-entry:last-child {
+  border-bottom: none;
+}
+
+.realtime-log-entry.debug {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.realtime-log-entry.info {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.realtime-log-entry.warn {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.realtime-log-entry.error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.log-timestamp-realtime {
+  color: #666;
+  font-size: 9px;
+  min-width: 60px;
+}
+
+.log-level-realtime {
+  font-weight: bold;
+  text-transform: uppercase;
+  min-width: 40px;
+}
+
+.log-feature-realtime {
+  color: #7c3aed;
+  font-weight: 500;
+  min-width: 50px;
+}
+
+.log-message-realtime {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Enhanced metric cards */
+.health-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.metric-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.metric-card h5 {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}
+
+.metric-card div {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 2px 0;
+}
+
+.metric-card small {
+  font-size: 9px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .health-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .log-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    justify-content: space-between;
+  }
+}
+
+/* Animation for real-time updates */
+@keyframes pulse-update {
+  0% { background-color: #e3f2fd; }
+  100% { background-color: transparent; }
+}
+
+.realtime-log-entry.new-entry {
+  animation: pulse-update 1s ease-out;
+}
+
+/* Loading states */
+.feature-health-card.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.feature-health-card.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #2196F3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

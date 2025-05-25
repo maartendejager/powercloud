@@ -523,20 +523,98 @@ entriesLogger.info('Registering adyen-entries feature');
 window.PowerCloudFeatures.entries = {
   init: async (match) => {
     entriesLogger.info('Feature init called', { match });
+    
+    // Record feature initialization in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'adyenEntries',
+        event: 'init',
+        level: 'info',
+        logMessage: 'Adyen Entries feature initialization started',
+        data: { 
+          match: match,
+          url: window.location.href,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     try {
       await adyenEntriesFeature.onInit(match);
       await adyenEntriesFeature.onActivate();
+      
+      // Record successful activation
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordFeatureEvent',
+          featureName: 'adyenEntries',
+          event: 'activate',
+          level: 'info',
+          logMessage: 'Adyen Entries feature activated successfully',
+          data: { match: match }
+        }).catch(() => {});
+      }
     } catch (error) {
+      // Record initialization error in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordFeatureEvent',
+          featureName: 'adyenEntries',
+          event: 'error',
+          level: 'error',
+          logMessage: 'Adyen Entries feature initialization failed',
+          data: { 
+            error: error.message,
+            stack: error.stack,
+            match: match,
+            context: 'initialization'
+          }
+        }).catch(() => {});
+      }
+      
       entriesLogger.error('Feature initialization error', { error: error.message, stack: error.stack });
       adyenEntriesFeature.onError(error, 'initialization');
     }
   },
   cleanup: async () => {
     entriesLogger.info('Feature cleanup called');
+    
+    // Record feature deactivation in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordFeatureEvent',
+        featureName: 'adyenEntries',
+        event: 'deactivate',
+        level: 'info',
+        logMessage: 'Adyen Entries feature cleanup started',
+        data: { 
+          url: window.location.href,
+          timestamp: Date.now()
+        }
+      }).catch(() => {});
+    }
+    
     try {
       await adyenEntriesFeature.onDeactivate();
       await adyenEntriesFeature.onCleanup();
     } catch (error) {
+      // Record cleanup error in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordFeatureEvent',
+          featureName: 'adyenEntries',
+          event: 'error',
+          level: 'error',
+          logMessage: 'Adyen Entries feature cleanup failed',
+          data: { 
+            error: error.message,
+            stack: error.stack,
+            context: 'cleanup'
+          }
+        }).catch(() => {});
+      }
+      
       entriesLogger.error('Feature cleanup error', { error: error.message, stack: error.stack });
       adyenEntriesFeature.onError(error, 'cleanup');
     }

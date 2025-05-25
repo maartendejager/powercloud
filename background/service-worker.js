@@ -17,12 +17,8 @@ import {
   handleFetchBookDetails,
   handleFetchAdministrationDetails,
   handleFetchBalanceAccountDetails,
-  handleFetchEntryDetails
-} from './message-handlers/index.js';
-
-// Import health monitoring handlers
-import {
-  initializeHealthMonitoring,
+  handleFetchEntryDetails,
+  // Enhanced health monitoring handlers (Phase 2.1)
   handleGetExtensionHealth,
   handleGetFeatureStatus,
   handleGetPerformanceMetrics,
@@ -32,8 +28,15 @@ import {
   handleExportHealthReport,
   handleUpdateFeatureHealth,
   handleRecordPerformanceMetric,
+  handleGetFilteredLogs,
+  handleGetFeatureChannels,
+  handleGetPerformanceSummary,
+  handleUpdatePerformanceThresholds,
+  handleRecordStructuredLog,
+  handleRecordFeatureEvent,
+  initializeHealthMonitoring,
   recordDebugLog
-} from './message-handlers/health-handlers.js';
+} from './message-handlers/index.js';
 
 // Set up message action handlers map for cleaner code
 const messageHandlers = {
@@ -55,6 +58,13 @@ const messageHandlers = {
   "exportHealthReport": handleExportHealthReport,
   "updateFeatureHealth": handleUpdateFeatureHealth,
   "recordPerformanceMetric": handleRecordPerformanceMetric,
+  // Phase 2.1 enhanced health API
+  "getFilteredLogs": handleGetFilteredLogs,
+  "getFeatureChannels": handleGetFeatureChannels,
+  "getPerformanceSummary": handleGetPerformanceSummary,
+  "updatePerformanceThresholds": handleUpdatePerformanceThresholds,
+  "recordStructuredLog": handleRecordStructuredLog,
+  "recordFeatureEvent": handleRecordFeatureEvent,
   // Tab management
   "openTab": handleOpenTab
 };

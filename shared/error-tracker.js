@@ -469,21 +469,57 @@ class ErrorTracker {
   _logError(errorRecord) {
     const logMessage = `[${errorRecord.context}] ${errorRecord.featureName}: ${errorRecord.message}`;
     
+    // Determine appropriate log level for both logger and health dashboard
+    let logLevel;
     switch (errorRecord.severity) {
       case 'critical':
+        logLevel = 'error';
         this.logger.error(logMessage, errorRecord);
         break;
       case 'high':
+        logLevel = 'error';
         this.logger.error(logMessage, errorRecord);
         break;
       case 'medium':
+        logLevel = 'warn';
         this.logger.warn(logMessage, errorRecord);
         break;
       case 'low':
+        logLevel = 'info';
         this.logger.info(logMessage, errorRecord);
         break;
       default:
+        logLevel = 'warn';
         this.logger.warn(logMessage, errorRecord);
+    }
+    
+    // Send structured error data to health dashboard
+    try {
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordStructuredLog',
+          level: logLevel,
+          logMessage: `Error tracked for ${errorRecord.featureName}`,
+          data: {
+            errorId: errorRecord.id,
+            featureName: errorRecord.featureName,
+            context: errorRecord.context,
+            category: errorRecord.category,
+            severity: errorRecord.severity,
+            message: errorRecord.message,
+            stack: errorRecord.stack,
+            timestamp: errorRecord.timestamp,
+            occurredAt: errorRecord.occurredAt,
+            metadata: errorRecord.metadata
+          },
+          feature: errorRecord.featureName,
+          category: 'error'
+        }).catch(() => {
+          // Silently ignore if background script is not available
+        });
+      }
+    } catch (error) {
+      // Silently ignore health dashboard errors to prevent logging loops
     }
   }
 }

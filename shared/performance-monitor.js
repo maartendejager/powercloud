@@ -431,6 +431,32 @@ class PerformanceMonitor {
     
     if (violations.length > 0) {
       this.logger.warn(`Performance threshold violations for ${metrics.featureName}:`, violations);
+      
+      // Record performance threshold violations in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        violations.forEach(violation => {
+          chrome.runtime.sendMessage({
+            action: 'recordStructuredLog',
+            level: 'warn',
+            feature: 'performance',
+            category: 'performance',
+            message: `Performance threshold violation: ${violation.type}`,
+            data: {
+              featureName: metrics.featureName,
+              operation: metrics.operation,
+              violationType: violation.type,
+              threshold: violation.threshold,
+              actual: violation.actual,
+              message: violation.message,
+              measurementId: metrics.measurementId,
+              timestamp: metrics.timestamp,
+              duration: metrics.duration,
+              memoryDelta: metrics.memoryDelta,
+              domElementDelta: metrics.domElementDelta
+            }
+          }).catch(() => {});
+        });
+      }
     }
   }
 
