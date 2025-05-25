@@ -119,7 +119,7 @@ const features = [
   },
   {
     name: 'bookInfo',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/,
     init: loadBookFeature,
     cleanup: function() {
       // Use the book-specific cleanup function from the namespace

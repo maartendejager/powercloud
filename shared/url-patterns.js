@@ -42,7 +42,7 @@ const CARD_PATTERNS = {
  * Book-related URL pattern
  * @type {RegExp}
  */
-const BOOK_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/([^\/]+)(\/.*|$)/;
+const BOOK_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/;
 
 /**
  * Book entry URL pattern for kasboek.boekingen/show?id=
