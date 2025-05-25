@@ -87,13 +87,13 @@ export function handleFetchBookDetails(message, sender, sendResponse) {
   
   // Determine environment and process the request
   determineDevelopmentStatus(sender)
-    .then(isDev => {
-      processBookDetailsRequest(customer, bookId, isDev, requestId, sendResponse);
+    .then(async (isDev) => {
+      await processBookDetailsRequest(customer, bookId, isDev, requestId, sendResponse);
     })
-    .catch(error => {
+    .catch(async (error) => {
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
-      processBookDetailsRequest(customer, bookId, false, requestId, sendResponse);
+      await processBookDetailsRequest(customer, bookId, false, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response

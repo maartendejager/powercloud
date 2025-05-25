@@ -36,8 +36,14 @@ if (response.card && response.card.adyenCardToken) {
 
 #### Book Feature (`adyen-book.js`)
 ```javascript
-// NEW: Handle both old and new response formats for balance account ID
-this.balanceAccountId = response.balanceAccountId || response.adyenBalanceAccountId;
+// NEW: Separate internal and Adyen balance account IDs
+this.balanceAccountId = response.balanceAccountId; // Internal ID (like "1")
+this.adyenBalanceAccountId = response.adyenBalanceAccountId || 
+                             response.balanceAccountId || 
+                             null; // Adyen ID (like "BA_...")
+
+// CRITICAL FIX: Use correct Adyen ID for URL construction
+const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${this.adyenBalanceAccountId}`;
 ```
 
 #### Entries Feature (`adyen-entries.js`)
@@ -74,7 +80,27 @@ Created multiple testing tools:
 - **`final-validation-test.js`**: Comprehensive logic validation without API calls
 - **Enhanced existing test scripts**: Updated for new response structures
 
-### **4. Documentation Updates**
+### **4. Critical Balance Account ID Fix**
+
+**ISSUE DISCOVERED**: Book feature was using internal balance account ID (like "1") instead of actual Adyen balance account ID (like "BA_...") for URL construction.
+
+**FIX IMPLEMENTED**:
+- **Separated IDs**: Distinguished between internal database ID and Adyen balance account ID
+- **Proper URL Construction**: Always use Adyen balance account ID for Adyen URLs
+- **Fallback Handling**: Support both old and new API response formats
+- **Enhanced Debugging**: Added logging to track both ID types
+
+```javascript
+// BEFORE: Used wrong ID for Adyen URL
+const adyenUrl = `.../${response.balanceAccountId}`; // Could be "1"
+
+// AFTER: Use correct Adyen balance account ID
+this.balanceAccountId = response.balanceAccountId; // Internal ID ("1")
+this.adyenBalanceAccountId = response.adyenBalanceAccountId || response.balanceAccountId; // Adyen ID ("BA_...")
+const adyenUrl = `.../${this.adyenBalanceAccountId}`; // Always correct Adyen ID
+```
+
+### **5. Documentation Updates**
 
 - **`ADYEN_CONFIG.md`**: Updated with response structure fix details
 - **`IMPROVEMENT_PLAN.md`**: Marked Phase 5.1 as complete with detailed accomplishments
@@ -91,8 +117,8 @@ Created multiple testing tools:
 ✅ **Overall Result**: ALL TESTS PASS
 
 ### **Feature Status After Fixes**
-- **Card Feature**: ✅ Working correctly - button appears and opens Adyen tabs
-- **Book Feature**: ✅ Fixed - handles response structure correctly
+- **Card Feature**: ✅ Working correctly - button appears and opens correct Adyen tabs
+- **Book Feature**: ✅ Fixed completely - handles response structure and uses correct Adyen balance account ID
 - **Entries Feature**: ✅ Fixed - handles response structure correctly
 
 ---

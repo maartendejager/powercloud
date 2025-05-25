@@ -24,7 +24,8 @@ class AdyenBookFeature extends BaseFeature {
     this.customer = null;
     this.bookId = null;
     this.bookType = null;
-    this.balanceAccountId = null;
+    this.balanceAccountId = null; // Internal balance account ID 
+    this.adyenBalanceAccountId = null; // Actual Adyen balance account ID (BA_...)
     this.administrationId = null;
     this.balanceAccountReference = null;
     
@@ -150,17 +151,32 @@ class AdyenBookFeature extends BaseFeature {
 
         if (response && response.success) {
           this.bookType = response.bookType;
-          // Handle both old and new response formats for balance account ID
-          this.balanceAccountId = response.balanceAccountId || response.adyenBalanceAccountId;
+          // Store both internal and Adyen balance account IDs separately
+          this.balanceAccountId = response.balanceAccountId; // Internal ID (like "1")
+          
+          // Handle different response structures for Adyen balance account ID
+          // Only use the actual Adyen balance account ID, never fall back to internal ID
+          this.adyenBalanceAccountId = response.adyenBalanceAccountId || null; // Adyen ID (like "BA_...")
+          
           this.administrationId = response.administrationId;
           this.balanceAccountReference = response.balanceAccountReference;
           
           console.log('[PowerCloud] Book API response structure:', {
             hasBalanceAccountId: !!response.balanceAccountId,
             hasAdyenBalanceAccountId: !!response.adyenBalanceAccountId,
-            finalBalanceAccountId: this.balanceAccountId,
-            bookType: this.bookType
+            internalBalanceAccountId: this.balanceAccountId,
+            adyenBalanceAccountId: this.adyenBalanceAccountId,
+            bookType: this.bookType,
+            warning: !this.adyenBalanceAccountId ? 'No Adyen balance account ID found - using internal ID would be incorrect!' : null
           });
+
+          // Don't create button if no Adyen balance account ID
+          if (!this.adyenBalanceAccountId) {
+            console.warn('[PowerCloud] Cannot create Adyen button: No Adyen balance account ID available');
+            console.log('[PowerCloud] Internal balance account ID available:', this.balanceAccountId);
+            this.log('Skipping button creation - no Adyen balance account ID found');
+            return;
+          }
           
           // Check if book type is supported
           if (this.config.enableBookTypeFiltering && 
@@ -406,21 +422,23 @@ class AdyenBookFeature extends BaseFeature {
   async handleBookInfoClick() {
     try {
       console.log('[PowerCloud] Book info click handler called', {
-        hasBalanceAccountId: !!this.balanceAccountId,
-        balanceAccountId: this.balanceAccountId,
+        hasInternalBalanceAccountId: !!this.balanceAccountId,
+        hasAdyenBalanceAccountId: !!this.adyenBalanceAccountId,
+        internalBalanceAccountId: this.balanceAccountId,
+        adyenBalanceAccountId: this.adyenBalanceAccountId,
         bookType: this.bookType
       });
       
-      if (!this.balanceAccountId) {
-        console.log('[PowerCloud] No balance account ID available for book');
+      if (!this.adyenBalanceAccountId) {
+        console.log('[PowerCloud] No Adyen balance account ID available for book');
         this.showBookInfoResult('No Adyen Balance Account ID found for this book');
         return;
       }
 
-      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${this.balanceAccountId}`;
+      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${this.adyenBalanceAccountId}`;
       
       console.log('[PowerCloud] Opening Adyen balance account:', {
-        balanceAccountId: this.balanceAccountId,
+        adyenBalanceAccountId: this.adyenBalanceAccountId,
         url: adyenUrl
       });
       
@@ -454,80 +472,7 @@ class AdyenBookFeature extends BaseFeature {
     this.log('Book info button removed');
   }
 
-  /**
-   * Handle balance account button click with enhanced error handling
-   */
-  async handleBalanceAccountClick() {
-    try {
-      // Update button state
-      const button = document.querySelector('#powercloud-book-info-btn');
-      if (button) {
-        const originalText = button.textContent;
-        button.textContent = '⏳ Loading...';
-        button.disabled = true;
-        
-        let attempt = 0;
-        let lastError = null;
-        
-        while (attempt < this.config.retryAttempts) {
-          try {
-            attempt++;
-            this.log(`Fetching balance account ID (attempt ${attempt}/${this.config.retryAttempts})`);
-            
-            const response = await this.sendMessageWithTimeout({
-              action: "fetchBalanceAccountId",
-              customer: this.customer,
-              bookId: this.bookId,
-              administrationId: this.administrationId
-            }, this.config.timeout);
 
-            if (response && response.success && response.balanceAccountId) {
-              const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${response.balanceAccountId}`;
-              
-              // Open Adyen URL in new tab
-              chrome.runtime.sendMessage({
-                action: "openTab",
-                url: adyenUrl
-              });
-              
-              this.showBookInfoResult('Balance account opened in Adyen');
-              
-              // Clear any previous errors on success
-              this.clearApiError('fetchBalanceAccountId');
-              break;
-              
-            } else {
-              const error = new Error(response?.error || 'Balance account ID not found');
-              error.apiResponse = response;
-              throw error;
-            }
-            
-          } catch (error) {
-            lastError = error;
-            this.trackApiError('fetchBalanceAccountId', error, attempt);
-            
-            if (attempt < this.config.retryAttempts) {
-              const delay = this.config.retryDelay * attempt;
-              this.log(`Retrying balance account fetch in ${delay}ms due to error: ${error.message}`);
-              await this.delay(delay);
-            }
-          }
-        }
-        
-        // If all attempts failed
-        if (attempt >= this.config.retryAttempts) {
-          this.handleAdyenApiFailure('fetchBalanceAccountId', lastError);
-        }
-        
-        // Reset button state
-        button.textContent = originalText;
-        button.disabled = false;
-      }
-    } catch (error) {
-      this.handleError('Failed to handle balance account click', error);
-      this.showBookInfoResult('Error: Unable to retrieve balance account information');
-    }
-  }
 
   /**
    * Shows a result message for book info operations

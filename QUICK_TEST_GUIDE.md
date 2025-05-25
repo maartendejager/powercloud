@@ -22,8 +22,9 @@ document.head.appendChild(script);
 #### Test Book Feature  
 1. Navigate to: `https://[customer].spend.cloud/books/[book-id]`
 2. **Expected**: Button appears saying "View Book in Adyen" 
-3. **Click Button**: Should open Adyen balance account page
-4. **Console Check**: Look for response structure detection logs
+3. **Click Button**: Should open Adyen balance account page with correct BA_... ID
+4. **Console Check**: Look for response structure detection logs and balance account ID separation
+5. **Quick Console Test**: Copy and paste from `/testing/book-feature-console-test.js`
 
 #### Test Entries Feature
 1. Navigate to: `https://[customer].spend.cloud/proactive/kasboek.boekingen/show?id=[entry-id]`
@@ -49,6 +50,19 @@ Use the response structure test script for detailed API analysis:
 
 ### **🔍 Console Debug Messages**
 Look for these console messages:
+
+**Card Feature**:
+- `[PowerCloud] Card API response structure: { hasPaymentInstrumentId: true, usingFallback: false }`
+- `[PowerCloud] Opening Adyen payment instrument: PI_...`
+
+**Book Feature**:  
+- `[PowerCloud] Book API response structure: { hasAdyenBalanceAccountId: true, usingFallback: false }`
+- `[PowerCloud] Opening Adyen balance account: { adyenBalanceAccountId: "BA_..." }`
+- ⚠️ **Important**: Check that `adyenBalanceAccountId` starts with "BA_" not just "1" or another internal ID
+
+**Entries Feature**:
+- `[PowerCloud] Entries API response structure: { hasAdyenTransferId: true, transferIdLocation: "..." }`
+- `[PowerCloud] Opening Adyen transfer: TR_...`
 ```
 [PowerCloud] Using old format: [value]
 [PowerCloud] Using new format: [value]  

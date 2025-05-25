@@ -105,6 +105,12 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 - [x] Enhanced debug logging and error tracking
 - [x] Added comprehensive testing tools (`response-structure-test.js`, `final-validation-test.js`)
 - [x] Created configuration documentation (`ADYEN_CONFIG.md`)
+- [x] **BOOK ID FIX**: Fixed book feature using wrong balance account ID in Adyen URLs
+  - [x] Separated internal balance account ID from Adyen balance account ID
+  - [x] Removed incorrect fallback to internal ID
+  - [x] Added validation to prevent button creation without proper Adyen ID
+  - [x] Created comprehensive test suite (`book-adyen-id-fix-test.js`)
+  - [x] Documentation: `BOOK_ADYEN_ID_FIX_SUMMARY.md`
 
 ### 5.2 UI/UX Improvements
 - [ ] Standardize UI components across features
