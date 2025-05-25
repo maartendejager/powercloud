@@ -435,7 +435,7 @@ class AdyenBookFeature extends BaseFeature {
         return;
       }
 
-      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${this.adyenBalanceAccountId}`;
+      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${this.adyenBalanceAccountId}`;
       
       console.log('[PowerCloud] Opening Adyen balance account:', {
         adyenBalanceAccountId: this.adyenBalanceAccountId,
