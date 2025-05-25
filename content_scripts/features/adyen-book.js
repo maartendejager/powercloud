@@ -7,11 +7,40 @@
  * 
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
+ * 
+ * UI/UX: Uses PowerCloud UI component system with shadow DOM isolation,
+ * accessibility support, and responsive design.
  */
+
+// Import PowerCloud UI component system
+(function loadPowerCloudUI() {
+  if (typeof PowerCloudUI === 'undefined') {
+    // Load UI components if not available
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('shared/ui-components.js');
+    script.onload = () => {
+      console.log('[PowerCloud] UI components loaded for adyen-book feature');
+    };
+    script.onerror = (error) => {
+      console.error('[PowerCloud] Failed to load UI components for adyen-book feature:', error);
+    };
+    document.head.appendChild(script);
+
+    // Also load accessibility utilities
+    const accessibilityScript = document.createElement('script');
+    accessibilityScript.src = chrome.runtime.getURL('shared/accessibility-utils.js');
+    document.head.appendChild(accessibilityScript);
+
+    // Also load responsive design utilities
+    const responsiveScript = document.createElement('script');
+    responsiveScript.src = chrome.runtime.getURL('shared/responsive-design.js');
+    document.head.appendChild(responsiveScript);
+  }
+})();
 
 /**
  * AdyenBookFeature class extending BaseFeature
- * Provides balance account viewing functionality
+ * Provides balance account viewing functionality with enhanced UI/UX
  */
 class AdyenBookFeature extends BaseFeature {
   constructor() {
@@ -277,9 +306,9 @@ class AdyenBookFeature extends BaseFeature {
     
     // Show user-friendly error message if configured
     if (this.config.showDetailedErrors) {
-      this.showBookInfoResult(`API Error: ${operation} failed after ${this.config.retryAttempts} attempts. ${error.message}`);
+      this.showBookInfoResult(`API Error: ${operation} failed after ${this.config.retryAttempts} attempts. ${error.message}`, 'error');
     } else {
-      this.showBookInfoResult('Unable to connect to services. Please try again later.');
+      this.showBookInfoResult('Unable to connect to services. Please try again later.', 'error');
     }
   }
 
@@ -355,7 +384,7 @@ class AdyenBookFeature extends BaseFeature {
   }
 
   /**
-   * Adds a button to view balance account information at Adyen
+   * Adds a button to view balance account information at Adyen using PowerCloud UI components
    */
   addBookInfoButton() {
     // Check if button already exists
@@ -363,6 +392,80 @@ class AdyenBookFeature extends BaseFeature {
       return;
     }
 
+    // Wait for PowerCloud UI to be available
+    this.waitForPowerCloudUI().then(() => {
+      // Create button configuration based on balance account availability
+      const buttonConfig = {
+        text: this.balanceAccountId ? 'View Balance Account in Adyen' : 'No Adyen Balance Account',
+        variant: this.balanceAccountId ? 'primary' : 'secondary',
+        disabled: !this.balanceAccountId,
+        size: 'medium',
+        id: 'powercloud-book-info-btn',
+        ariaLabel: this.balanceAccountId 
+          ? 'Open Adyen balance account in new tab'
+          : 'This monetary account is not linked to an Adyen balance account',
+        onClick: this.balanceAccountId ? () => this.handleBookInfoClick() : null
+      };
+
+      // Create button using PowerCloud UI
+      const button = PowerCloudUI.createButton(buttonConfig);
+
+      // Create container using PowerCloud UI
+      const container = PowerCloudUI.createContainer({
+        id: this.hostElementId,
+        className: 'powercloud-button-container',
+        children: [button]
+      });
+
+      // Check if buttons should be hidden by default
+      chrome.storage.local.get('showButtons', (result) => {
+        const showButtons = result.showButtons === undefined ? true : result.showButtons;
+        container.style.display = showButtons ? 'block' : 'none';
+      });
+
+      // Add to page
+      document.body.appendChild(container);
+      
+      this.log('Book info button added with PowerCloud UI', { 
+        hasBalanceAccount: !!this.balanceAccountId,
+        balanceAccountId: this.balanceAccountId,
+        buttonVariant: buttonConfig.variant
+      });
+    }).catch(error => {
+      this.handleError('Failed to create PowerCloud UI button', error);
+      // Fallback to basic button creation if PowerCloud UI fails
+      this.createFallbackButton();
+    });
+  }
+
+  /**
+   * Wait for PowerCloud UI to be available
+   * @returns {Promise}
+   */
+  waitForPowerCloudUI() {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max wait
+      
+      const checkUI = () => {
+        if (typeof PowerCloudUI !== 'undefined') {
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          reject(new Error('PowerCloud UI not available after timeout'));
+        } else {
+          attempts++;
+          setTimeout(checkUI, 100);
+        }
+      };
+      
+      checkUI();
+    });
+  }
+
+  /**
+   * Create fallback button if PowerCloud UI is not available
+   */
+  createFallbackButton() {
     // Create shadow DOM host element
     const shadowHost = document.createElement('div');
     shadowHost.id = this.hostElementId;
@@ -410,7 +513,7 @@ class AdyenBookFeature extends BaseFeature {
     // Add shadow host to the page
     document.body.appendChild(shadowHost);
     
-    this.log('Book info button added', { 
+    this.log('Fallback book info button added', { 
       hasBalanceAccount: !!this.balanceAccountId,
       balanceAccountId: this.balanceAccountId 
     });
@@ -431,7 +534,7 @@ class AdyenBookFeature extends BaseFeature {
       
       if (!this.adyenBalanceAccountId) {
         console.log('[PowerCloud] No Adyen balance account ID available for book');
-        this.showBookInfoResult('No Adyen Balance Account ID found for this book');
+        this.showBookInfoResult('No Adyen Balance Account ID found for this book', 'warning');
         return;
       }
 
@@ -448,11 +551,11 @@ class AdyenBookFeature extends BaseFeature {
         url: adyenUrl
       });
       
-      this.showBookInfoResult('Balance Account opened in Adyen');
+      this.showBookInfoResult('Balance Account opened in Adyen', 'success');
     } catch (error) {
       console.error('[PowerCloud] Book info click error:', error);
       this.handleError('Failed to handle book info click', error);
-      this.showBookInfoResult('Error: Unable to open balance account');
+      this.showBookInfoResult('Error: Unable to open balance account', 'error');
     }
   }
 
@@ -475,16 +578,56 @@ class AdyenBookFeature extends BaseFeature {
 
 
   /**
-   * Shows a result message for book info operations
+   * Shows a result message for book info operations using PowerCloud UI components
    * @param {string} message - The message to display
+   * @param {string} type - The type of message ('success', 'error', 'warning', 'info')
    */
-  showBookInfoResult(message) {
-    // Check if result display already exists
+  showBookInfoResult(message, type = 'info') {
+    // Remove any existing result
     const existingResult = document.getElementById('powercloud-result-host');
     if (existingResult) {
       existingResult.remove();
     }
 
+    // Try to use PowerCloud UI, fallback to basic implementation
+    this.waitForPowerCloudUI().then(() => {
+      // Create alert using PowerCloud UI
+      const alert = PowerCloudUI.createAlert({
+        message: message,
+        variant: type,
+        dismissible: true,
+        autoHide: true,
+        autoHideDelay: 10000,
+        id: 'powercloud-book-result',
+        ariaLabel: `Book operation result: ${message}`
+      });
+
+      // Create container for the alert
+      const container = PowerCloudUI.createContainer({
+        id: 'powercloud-result-host',
+        className: 'powercloud-result-container',
+        children: [alert]
+      });
+
+      // Add to page
+      document.body.appendChild(container);
+      
+      this.log('Book info result shown with PowerCloud UI', { 
+        message, 
+        type 
+      });
+    }).catch(error => {
+      this.handleError('Failed to create PowerCloud UI alert', error);
+      // Fallback to basic result display
+      this.createFallbackResult(message);
+    });
+  }
+
+  /**
+   * Create fallback result display if PowerCloud UI is not available
+   * @param {string} message - The message to display
+   */
+  createFallbackResult(message) {
     // Create shadow DOM host for result
     const resultHost = document.createElement('div');
     resultHost.id = 'powercloud-result-host';
@@ -528,7 +671,7 @@ class AdyenBookFeature extends BaseFeature {
       }
     }, 10000);
     
-    this.log('Book info result shown', { message });
+    this.log('Fallback book info result shown', { message });
   }
 }
 

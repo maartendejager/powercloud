@@ -31,6 +31,9 @@
         "shared/auth.js",
         "shared/api.js",
         "shared/settings-manager.js",
+        "shared/ui-components.js",
+        "shared/accessibility-utils.js",
+        "shared/responsive-design.js",
         "shared/base-feature.js",
         "shared/feature-validation.js",
         "shared/performance-monitor.js",
@@ -49,7 +52,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content_scripts/styles.css"],
+      "resources": [
+        "content_scripts/styles.css",
+        "shared/ui-components.js",
+        "shared/accessibility-utils.js",
+        "shared/responsive-design.js"
+      ],
       "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"]
     }
   ],
