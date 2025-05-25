@@ -15,12 +15,9 @@ class DebugModeController {
     this.debugPanel = null;
     this.startTime = Date.now();
     
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('DebugMode') || {
-      debug: (...args) => console.log('[DEBUG][DebugMode]', ...args),
-      info: (...args) => console.log('[INFO][DebugMode]', ...args),
-      warn: (...args) => console.warn('[WARN][DebugMode]', ...args),
-      error: (...args) => console.error('[ERROR][DebugMode]', ...args)
-    };
+    // Initialize logger with improved fallback pattern
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('DebugMode') || 
+      window.PowerCloudLoggerFactory?.createFallbackLogger('DebugMode');
 
     if (this.isDebugEnabled) {
       this.initializeDebugMode();

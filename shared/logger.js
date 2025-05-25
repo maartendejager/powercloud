@@ -2,7 +2,8 @@
  * Logger Class for PowerCloud Extension
  * 
  * Provides centralized, configurable logging functionality for all extension components.
- * Supports multiple log levels, context tracking, and extension-specific formatting.
+ * Supports multiple log levels, context tracking, extension-specific formatting, and
+ * integration with the health dashboard for comprehensive logging.
  * 
  * This class enhances the basic logging in BaseFeature while maintaining backward compatibility.
  */
@@ -19,6 +20,38 @@ const LogLevel = {
 };
 
 /**
+ * Health Dashboard integration helper
+ */
+class HealthDashboardIntegration {
+  static recordToHealthDashboard(level, message, data, context) {
+    // Try to record to health dashboard if available
+    try {
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordDebugLog',
+          level,
+          message: `[${context}] ${message}`,
+          data: data || {}
+        }).catch(() => {
+          // Silently ignore if background script is not available
+        });
+      }
+    } catch (error) {
+      // Silently ignore health dashboard errors to prevent logging loops
+    }
+  }
+
+  static shouldLogToConsole(level, globalLevel) {
+    // Only log ERROR and WARN to console by default
+    // DEBUG and INFO go primarily to health dashboard
+    if (globalLevel === LogLevel.DEBUG) {
+      return true; // Debug mode - log everything to console
+    }
+    return level >= LogLevel.WARN;
+  }
+}
+
+/**
  * Logger class for PowerCloud extension components
  */
 class Logger {
@@ -30,6 +63,7 @@ class Logger {
    * @param {boolean} [options.enableTimestamp=true] - Include timestamps in log messages
    * @param {boolean} [options.enableContext=true] - Include context in log messages
    * @param {string} [options.prefix='PowerCloud'] - Prefix for all log messages
+   * @param {boolean} [options.useHealthDashboard=true] - Send logs to health dashboard
    */
   constructor(context, options = {}) {
     this.context = context;
@@ -37,6 +71,7 @@ class Logger {
     this.enableTimestamp = options.enableTimestamp !== false;
     this.enableContext = options.enableContext !== false;
     this.prefix = options.prefix || 'PowerCloud';
+    this.useHealthDashboard = options.useHealthDashboard !== false;
   }
 
   /**
@@ -99,10 +134,19 @@ class Logger {
     if (!this.shouldLog(LogLevel.DEBUG)) return;
     
     const formattedMessage = this.formatMessage('DEBUG', message);
-    if (data !== null) {
-      console.debug(formattedMessage, data);
-    } else {
-      console.debug(formattedMessage);
+    
+    // Send to health dashboard
+    if (this.useHealthDashboard) {
+      HealthDashboardIntegration.recordToHealthDashboard('debug', message, data, this.context);
+    }
+    
+    // Only log to console in debug mode or if health dashboard is disabled
+    if (HealthDashboardIntegration.shouldLogToConsole(LogLevel.DEBUG, this.level) || !this.useHealthDashboard) {
+      if (data !== null) {
+        console.debug(formattedMessage, data);
+      } else {
+        console.debug(formattedMessage);
+      }
     }
   }
 
@@ -115,10 +159,19 @@ class Logger {
     if (!this.shouldLog(LogLevel.INFO)) return;
     
     const formattedMessage = this.formatMessage('INFO', message);
-    if (data !== null) {
-      console.info(formattedMessage, data);
-    } else {
-      console.info(formattedMessage);
+    
+    // Send to health dashboard
+    if (this.useHealthDashboard) {
+      HealthDashboardIntegration.recordToHealthDashboard('info', message, data, this.context);
+    }
+    
+    // Only log to console in debug mode or if health dashboard is disabled
+    if (HealthDashboardIntegration.shouldLogToConsole(LogLevel.INFO, this.level) || !this.useHealthDashboard) {
+      if (data !== null) {
+        console.info(formattedMessage, data);
+      } else {
+        console.info(formattedMessage);
+      }
     }
   }
 
@@ -131,6 +184,13 @@ class Logger {
     if (!this.shouldLog(LogLevel.WARN)) return;
     
     const formattedMessage = this.formatMessage('WARN', message);
+    
+    // Send to health dashboard
+    if (this.useHealthDashboard) {
+      HealthDashboardIntegration.recordToHealthDashboard('warn', message, data, this.context);
+    }
+    
+    // Always log warnings to console
     if (data !== null) {
       console.warn(formattedMessage, data);
     } else {
@@ -147,6 +207,13 @@ class Logger {
     if (!this.shouldLog(LogLevel.ERROR)) return;
     
     const formattedMessage = this.formatMessage('ERROR', message);
+    
+    // Send to health dashboard
+    if (this.useHealthDashboard) {
+      HealthDashboardIntegration.recordToHealthDashboard('error', message, data, this.context);
+    }
+    
+    // Always log errors to console
     if (data !== null) {
       console.error(formattedMessage, data);
     } else {
@@ -166,7 +233,8 @@ class Logger {
         level: this.level,
         enableTimestamp: this.enableTimestamp,
         enableContext: this.enableContext,
-        prefix: this.prefix
+        prefix: this.prefix,
+        useHealthDashboard: this.useHealthDashboard
       }
     );
   }
@@ -184,7 +252,13 @@ class LoggerFactory {
     this.globalConfig = {
       enableTimestamp: true,
       enableContext: true,
-      prefix: 'PowerCloud'
+      prefix: 'PowerCloud',
+      useHealthDashboard: true
+    };
+    this.loggers = new Map();
+    this.stats = {
+      totalLoggers: 0,
+      globalLevel: 'INFO'
     };
   }
 
@@ -194,6 +268,7 @@ class LoggerFactory {
    */
   setDefaultLevel(level) {
     this.defaultLevel = level;
+    this.stats.globalLevel = Object.keys(LogLevel)[level] || 'UNKNOWN';
   }
 
   /**
@@ -217,7 +292,20 @@ class LoggerFactory {
       ...options
     };
     
-    return new Logger(context, config);
+    const logger = new Logger(context, config);
+    this.loggers.set(context, logger);
+    this.stats.totalLoggers = this.loggers.size;
+    
+    return logger;
+  }
+
+  /**
+   * Get an existing logger or create a new one
+   * @param {string} context - The context/component name
+   * @returns {Logger} Logger instance
+   */
+  getLogger(context) {
+    return this.loggers.get(context) || this.createLogger(context);
   }
 
   /**
@@ -225,6 +313,10 @@ class LoggerFactory {
    */
   enableDebugMode() {
     this.setDefaultLevel(LogLevel.DEBUG);
+    // Update existing loggers
+    for (const logger of this.loggers.values()) {
+      logger.setLevel(LogLevel.DEBUG);
+    }
   }
 
   /**
@@ -232,6 +324,56 @@ class LoggerFactory {
    */
   disableLogging() {
     this.setDefaultLevel(LogLevel.NONE);
+    // Update existing loggers
+    for (const logger of this.loggers.values()) {
+      logger.setLevel(LogLevel.NONE);
+    }
+  }
+
+  /**
+   * Get logger statistics
+   * @returns {Object} Logger statistics
+   */
+  getStats() {
+    return { ...this.stats };
+  }
+
+  /**
+   * Create a fallback logger for use when the factory is not available
+   * @param {string} context - Context for the fallback logger
+   * @returns {Object} Fallback logger object
+   */
+  static createFallbackLogger(context) {
+    return {
+      debug: (message, data) => {
+        // Send to health dashboard if possible
+        HealthDashboardIntegration.recordToHealthDashboard('debug', message, data, context);
+        // Only log to console in debug environments
+        if (window.PowerCloudDebug) {
+          console.debug(`[DEBUG][${context}]`, message, data || '');
+        }
+      },
+      info: (message, data) => {
+        // Send to health dashboard if possible
+        HealthDashboardIntegration.recordToHealthDashboard('info', message, data, context);
+        // Only log to console in debug environments
+        if (window.PowerCloudDebug) {
+          console.info(`[INFO][${context}]`, message, data || '');
+        }
+      },
+      warn: (message, data) => {
+        // Send to health dashboard if possible
+        HealthDashboardIntegration.recordToHealthDashboard('warn', message, data, context);
+        // Always log warnings to console
+        console.warn(`[WARN][${context}]`, message, data || '');
+      },
+      error: (message, data) => {
+        // Send to health dashboard if possible
+        HealthDashboardIntegration.recordToHealthDashboard('error', message, data, context);
+        // Always log errors to console
+        console.error(`[ERROR][${context}]`, message, data || '');
+      }
+    };
   }
 }
 
@@ -244,7 +386,10 @@ window.LogLevel = LogLevel;
 window.LoggerFactory = LoggerFactory;
 window.loggerFactory = loggerFactory;
 
+// Improved global logger factory with better fallback support
+window.PowerCloudLoggerFactory = loggerFactory;
+
 // Export for potential module usage in the future
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Logger, LogLevel, LoggerFactory, loggerFactory };
+  module.exports = { Logger, LogLevel, LoggerFactory, loggerFactory, HealthDashboardIntegration };
 }

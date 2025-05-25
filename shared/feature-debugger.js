@@ -16,13 +16,9 @@ class FeatureDebugger {
     this.watchExpressions = new Map();
     this.inspectionData = new Map();
     
-    // Initialize logger
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('FeatureDebugger') || {
-      debug: (...args) => console.log('[DEBUG][FeatureDebugger]', ...args),
-      info: (...args) => console.log('[INFO][FeatureDebugger]', ...args),
-      warn: (...args) => console.warn('[WARN][FeatureDebugger]', ...args),
-      error: (...args) => console.error('[ERROR][FeatureDebugger]', ...args)
-    };
+    // Initialize logger with improved fallback pattern
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('FeatureDebugger') || 
+      window.PowerCloudLoggerFactory?.createFallbackLogger('FeatureDebugger');
     
     this._initializeDebugInterface();
   }

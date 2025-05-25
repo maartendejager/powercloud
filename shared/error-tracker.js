@@ -24,13 +24,9 @@ class ErrorTracker {
       UNKNOWN: 'unknown'
     };
     
-    // Initialize logger
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('ErrorTracker') || {
-      debug: (...args) => console.log('[DEBUG][ErrorTracker]', ...args),
-      info: (...args) => console.log('[INFO][ErrorTracker]', ...args),
-      warn: (...args) => console.warn('[WARN][ErrorTracker]', ...args),
-      error: (...args) => console.error('[ERROR][ErrorTracker]', ...args)
-    };
+    // Initialize logger with improved fallback pattern
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('ErrorTracker') || 
+      window.PowerCloudLoggerFactory?.createFallbackLogger('ErrorTracker');
     
     this._initializeErrorPatterns();
   }

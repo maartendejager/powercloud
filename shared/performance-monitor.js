@@ -22,13 +22,25 @@ class PerformanceMonitor {
       eventListenerLimit: 50
     };
     
-    // Initialize logger
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('PerformanceMonitor') || {
-      debug: (...args) => console.log('[DEBUG][PerformanceMonitor]', ...args),
-      info: (...args) => console.log('[INFO][PerformanceMonitor]', ...args),
-      warn: (...args) => console.warn('[WARN][PerformanceMonitor]', ...args),
-      error: (...args) => console.error('[ERROR][PerformanceMonitor]', ...args)
-    };
+    // Initialize logger with improved fallback
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('PerformanceMonitor') || 
+      window.LoggerFactory?.createFallbackLogger('PerformanceMonitor') || 
+      {
+        debug: (message, data) => {
+          // Only log performance debug info in debug mode
+          if (window.PowerCloudDebug) {
+            console.debug('[DEBUG][PerformanceMonitor]', message, data || '');
+          }
+        },
+        info: (message, data) => {
+          // Reduce console noise - only log in debug mode
+          if (window.PowerCloudDebug) {
+            console.info('[INFO][PerformanceMonitor]', message, data || '');
+          }
+        },
+        warn: (...args) => console.warn('[WARN][PerformanceMonitor]', ...args),
+        error: (...args) => console.error('[ERROR][PerformanceMonitor]', ...args)
+      };
     
     this._initializePerformanceObserver();
   }

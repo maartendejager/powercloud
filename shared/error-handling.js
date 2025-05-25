@@ -11,12 +11,25 @@
  */
 class FeatureErrorBoundary {
   constructor() {
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('ErrorBoundary') || {
-      debug: (...args) => console.log('[DEBUG][ErrorBoundary]', ...args),
-      info: (...args) => console.log('[INFO][ErrorBoundary]', ...args),
-      warn: (...args) => console.warn('[WARN][ErrorBoundary]', ...args),
-      error: (...args) => console.error('[ERROR][ErrorBoundary]', ...args)
-    };
+    // Use improved fallback logger pattern
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('ErrorBoundary') || 
+      window.LoggerFactory?.createFallbackLogger('ErrorBoundary') || 
+      {
+        debug: (message, data) => {
+          // Only log debug info in debug mode
+          if (window.PowerCloudDebug) {
+            console.debug('[DEBUG][ErrorBoundary]', message, data || '');
+          }
+        },
+        info: (message, data) => {
+          // Reduce console noise - only log in debug mode
+          if (window.PowerCloudDebug) {
+            console.info('[INFO][ErrorBoundary]', message, data || '');
+          }
+        },
+        warn: (...args) => console.warn('[WARN][ErrorBoundary]', ...args),
+        error: (...args) => console.error('[ERROR][ErrorBoundary]', ...args)
+      };
     
     this.failedFeatures = new Set();
     this.retryAttempts = new Map();
@@ -158,12 +171,25 @@ class SafeFeatureManager {
   constructor() {
     this.errorBoundary = new FeatureErrorBoundary();
     this.features = new Map();
-    this.logger = window.PowerCloudLoggerFactory?.getLogger('SafeFeatureManager') || {
-      debug: (...args) => console.log('[DEBUG][SafeFeatureManager]', ...args),
-      info: (...args) => console.log('[INFO][SafeFeatureManager]', ...args),
-      warn: (...args) => console.warn('[WARN][SafeFeatureManager]', ...args),
-      error: (...args) => console.error('[ERROR][SafeFeatureManager]', ...args)
-    };
+    // Use improved fallback logger pattern
+    this.logger = window.PowerCloudLoggerFactory?.getLogger('SafeFeatureManager') || 
+      window.LoggerFactory?.createFallbackLogger('SafeFeatureManager') || 
+      {
+        debug: (message, data) => {
+          // Only log debug info in debug mode
+          if (window.PowerCloudDebug) {
+            console.debug('[DEBUG][SafeFeatureManager]', message, data || '');
+          }
+        },
+        info: (message, data) => {
+          // Reduce console noise - only log in debug mode
+          if (window.PowerCloudDebug) {
+            console.info('[INFO][SafeFeatureManager]', message, data || '');
+          }
+        },
+        warn: (...args) => console.warn('[WARN][SafeFeatureManager]', ...args),
+        error: (...args) => console.error('[ERROR][SafeFeatureManager]', ...args)
+      };
   }
 
   /**
