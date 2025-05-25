@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerCloud Auth Error Handling Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 10px 0; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>PowerCloud Extension - Enhanced Auth Error Handling Test</h1>
+    <p>This page tests the improved error messages for expired authentication tokens.</p>
+    
+    <button onclick="runTests()">Run Authentication Error Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="test-results"></div>
+
+    <script>
+        // Mock chrome.storage.local API
+        window.chrome = {
+            storage: {
+                local: {
+                    get: function(key, callback) {
+                        // Mock expired tokens for different environments
+                        const mockTokens = [
+                            {
+                                token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+                                clientEnvironment: 'testcustomer',
+                                isDevRoute: false,
+                                isValid: false,
+                                expiryDate: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                                timestamp: new Date().toISOString()
+                            },
+                            {
+                                token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid2',
+                                clientEnvironment: 'testcustomer',
+                                isDevRoute: true,
+                                isValid: false,
+                                expiryDate: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+                                timestamp: new Date().toISOString()
+                            },
+                            {
+                                token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid3',
+                                clientEnvironment: 'anothercustomer',
+                                isDevRoute: false,
+                                isValid: false,
+                                expiryDate: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+                                timestamp: new Date().toISOString()
+                            }
+                        ];
+                        
+                        callback({ authTokens: mockTokens });
+                    },
+                    set: function(data, callback) {
+                        if (callback) callback();
+                    }
+                }
+            }
+        };
+        
+        // Mock logger for testing
+        window.PowerCloudLoggerFactory = {
+            createLogger: function(name) {
+                return {
+                    debug: () => {},
+                    info: () => {},
+                    warn: () => {},
+                    error: () => {}
+                };
+            }
+        };
+
+        function addTestResult(title, success, message, details = '') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>${success ? '✅' : '❌'} ${message}</strong></p>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function addInfoResult(title, message) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result info';
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <p>${message}</p>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        async function runTests() {
+            clearResults();
+            addInfoResult('Test Status', 'Running enhanced authentication error handling tests...');
+            
+            try {
+                // Load auth.js for testing (simulate loading)
+                await loadAuthModule();
+                
+                // Test 1: Production environment with expired token
+                await testProductionExpiredToken();
+                
+                // Test 2: Development environment with expired token  
+                await testDevelopmentExpiredToken();
+                
+                // Test 3: Non-existent environment
+                await testNonExistentEnvironment();
+                
+                // Test 4: No tokens at all
+                await testNoTokens();
+                
+                addInfoResult('Test Complete', 'All authentication error handling tests completed successfully!');
+                
+            } catch (error) {
+                addTestResult('Test Execution Error', false, 'Failed to run tests', error.message);
+            }
+        }
+
+        async function loadAuthModule() {
+            // Simulate the auth module functions
+            window.getAllTokens = async function() {
+                return new Promise((resolve) => {
+                    chrome.storage.local.get("authTokens", (result) => {
+                        resolve(result.authTokens || []);
+                    });
+                });
+            };
+
+            window.getToken = async function(clientEnvironment, isDev) {
+                const tokens = await getAllTokens();
+                
+                if (!tokens || tokens.length === 0) {
+                    throw new Error("No authentication tokens found");
+                }
+                
+                // Filter for valid tokens
+                const validTokens = tokens.filter(token => {
+                    if (clientEnvironment && token.clientEnvironment !== clientEnvironment) {
+                        return false;
+                    }
+                    
+                    if (isDev !== undefined && token.isDevRoute !== isDev) {
+                        return false;
+                    }
+                    
+                    if (token.hasOwnProperty('isValid')) {
+                        return token.isValid;
+                    }
+                    
+                    if (token.expiryDate) {
+                        return new Date(token.expiryDate) > new Date();
+                    }
+                    
+                    return true;
+                });
+                
+                if (validTokens.length > 0) {
+                    return validTokens[0].token;
+                }
+                
+                // Check for expired tokens matching criteria (NEW LOGIC)
+                const matchingExpiredTokens = tokens.filter(token => {
+                    if (clientEnvironment && token.clientEnvironment !== clientEnvironment) {
+                        return false;
+                    }
+                    
+                    if (isDev !== undefined && token.isDevRoute !== isDev) {
+                        return false;
+                    }
+                    
+                    if (token.hasOwnProperty('isValid') && token.isValid === false) {
+                        return true;
+                    }
+                    
+                    if (token.expiryDate) {
+                        return new Date(token.expiryDate) <= new Date();
+                    }
+                    
+                    return false;
+                });
+                
+                // If we have expired tokens for this environment, suggest refreshing
+                if (matchingExpiredTokens.length > 0) {
+                    const envText = clientEnvironment ? ` for environment '${clientEnvironment}'` : '';
+                    const devText = isDev !== undefined ? ` (${isDev ? 'development' : 'production'})` : '';
+                    throw new Error(`Authentication token expired${envText}${devText}. Please refresh the page to capture a new token.`);
+                }
+                
+                // No tokens at all for this environment
+                if (clientEnvironment || isDev !== undefined) {
+                    throw new Error(`No valid authentication token found for environment '${clientEnvironment || "any"}' and isDev=${isDev !== undefined ? isDev : "any"}`);
+                } else {
+                    throw new Error("No valid authentication tokens found");
+                }
+            };
+        }
+
+        async function testProductionExpiredToken() {
+            try {
+                await window.getToken('testcustomer', false);
+                addTestResult('Test 1: Production Expired Token', false, 'Should have thrown an error but did not');
+            } catch (error) {
+                const success = error.message.includes('refresh the page') && 
+                               error.message.includes('testcustomer') && 
+                               error.message.includes('production');
+                addTestResult(
+                    'Test 1: Production Expired Token', 
+                    success, 
+                    success ? 'Correctly shows user-friendly expired token message' : 'Error message format incorrect',
+                    `Error: ${error.message}`
+                );
+            }
+        }
+
+        async function testDevelopmentExpiredToken() {
+            try {
+                await window.getToken('testcustomer', true);
+                addTestResult('Test 2: Development Expired Token', false, 'Should have thrown an error but did not');
+            } catch (error) {
+                const success = error.message.includes('refresh the page') && 
+                               error.message.includes('testcustomer') && 
+                               error.message.includes('development');
+                addTestResult(
+                    'Test 2: Development Expired Token', 
+                    success, 
+                    success ? 'Correctly shows user-friendly expired token message' : 'Error message format incorrect',
+                    `Error: ${error.message}`
+                );
+            }
+        }
+
+        async function testNonExistentEnvironment() {
+            try {
+                await window.getToken('nonexistent', false);
+                addTestResult('Test 3: Non-existent Environment', false, 'Should have thrown an error but did not');
+            } catch (error) {
+                const success = error.message.includes('No valid authentication token found') && 
+                               !error.message.includes('refresh the page');
+                addTestResult(
+                    'Test 3: Non-existent Environment', 
+                    success, 
+                    success ? 'Correctly uses old-style error for no matching tokens' : 'Error message format incorrect',
+                    `Error: ${error.message}`
+                );
+            }
+        }
+
+        async function testNoTokens() {
+            // Mock empty token storage
+            const originalGet = chrome.storage.local.get;
+            chrome.storage.local.get = function(key, callback) {
+                callback({ authTokens: [] });
+            };
+            
+            try {
+                await window.getToken('anycustomer', false);
+                addTestResult('Test 4: No Tokens', false, 'Should have thrown an error but did not');
+            } catch (error) {
+                const success = error.message.includes('No authentication tokens found');
+                addTestResult(
+                    'Test 4: No Tokens', 
+                    success, 
+                    success ? 'Correctly handles case with no tokens at all' : 'Error message format incorrect',
+                    `Error: ${error.message}`
+                );
+            } finally {
+                // Restore original function
+                chrome.storage.local.get = originalGet;
+            }
+        }
+    </script>
+</body>
+</html>

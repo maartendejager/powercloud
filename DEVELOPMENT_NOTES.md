@@ -7,6 +7,15 @@ This document contains consolidated development notes, debugging procedures, and
 
 ## Recent Major Changes & Bug Fixes
 
+### Enhanced Authentication Error Handling (May 25, 2025)
+- **Problem**: Generic error messages when no valid tokens found didn't provide helpful user guidance
+- **Solution**: Implemented context-aware error messages that:
+  - Check for expired tokens matching the current environment and dev status
+  - Show "refresh the page" guidance when expired tokens exist for the current context
+  - Provide environment-specific error messages (e.g., "for environment 'customer' (production)")
+  - Maintain backward compatibility for cases with no tokens at all
+- **Files affected**: `shared/auth.js`, `shared/auth-module.js`, `shared/api.js`, `shared/api-module.js`
+
 ### ES6 Module System Implementation (May 2025)
 - **Problem**: Chrome extension service worker couldn't handle mixed ES6/traditional module contexts
 - **Solution**: Implemented dual module system:

@@ -90,6 +90,16 @@ async function validateTokenBeforeRequest(token, clientEnvironment, isDev) {
     try {
       return await getToken(clientEnvironment, isDev);
     } catch (error) {
+      // Use the more specific error message from getToken if available
+      if (error.message && error.message.includes('refresh the page')) {
+        // Pass through the improved error message from getToken
+        const authError = new Error(error.message);
+        authError.isAuthError = true;
+        authError.status = 401;
+        throw authError;
+      }
+      
+      // Fallback for other errors
       const authError = new Error('No valid authentication token available. Please refresh the page to capture a new token.');
       authError.isAuthError = true;
       authError.status = 401;

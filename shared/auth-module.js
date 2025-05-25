@@ -105,6 +105,48 @@ async function getToken(clientEnvironment, isDev) {
       return validTokens[0].token;
     }
     
+    // Check if there are expired tokens that match the criteria before throwing an error
+    const matchingExpiredTokens = tokens.filter(token => {
+      // Check if token matches environment filter
+      if (clientEnvironment && token.clientEnvironment !== clientEnvironment) {
+        return false;
+      }
+      
+      // Check if token matches dev environment filter  
+      if (isDev !== undefined && token.isDevRoute !== isDev) {
+        return false;
+      }
+      
+      // Check if token is expired
+      if (token.hasOwnProperty('isValid') && token.isValid === false) {
+        return true;
+      }
+      
+      if (token.expiryDate) {
+        return new Date(token.expiryDate) <= new Date();
+      }
+      
+      // Try to parse the JWT to check expiration
+      try {
+        const payload = JSON.parse(atob(token.token.split('.')[1]));
+        if (payload.exp) {
+          return new Date(payload.exp * 1000) <= new Date();
+        }
+      } catch (e) {
+        // Skip error
+      }
+      
+      return false;
+    });
+    
+    // If we have expired tokens for this environment, suggest refreshing
+    if (matchingExpiredTokens.length > 0) {
+      const envText = clientEnvironment ? ` for environment '${clientEnvironment}'` : '';
+      const devText = isDev !== undefined ? ` (${isDev ? 'development' : 'production'})` : '';
+      throw new Error(`Authentication token expired${envText}${devText}. Please refresh the page to capture a new token.`);
+    }
+    
+    // No tokens at all for this environment
     if (clientEnvironment || isDev !== undefined) {
       throw new Error(`No valid authentication token found for environment '${clientEnvironment || "any"}' and isDev=${isDev !== undefined ? isDev : "any"}`);
     } else {
