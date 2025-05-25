@@ -35,6 +35,129 @@ const logger = (() => {
 })();
 
 /**
+ * Validates if a JWT token is expired
+ * @param {string} token - The JWT token to validate
+ * @returns {boolean} True if token is expired, false otherwise
+ */
+function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp) {
+      return new Date(payload.exp * 1000) <= new Date();
+    }
+  } catch (e) {
+    logger.warn('Failed to parse JWT token for expiration check', e);
+  }
+  return false; // If we can't parse, assume not expired
+}
+
+/**
+ * Validates a token before making API requests
+ * @param {string} token - The token to validate
+ * @param {string} clientEnvironment - The client environment
+ * @param {boolean} isDev - Whether this is a development environment
+ * @returns {Promise<string>} The validated token or throws if invalid
+ */
+async function validateTokenBeforeRequest(token, clientEnvironment, isDev) {
+  if (isTokenExpired(token)) {
+    logger.warn('Token expired before API request', {
+      clientEnvironment,
+      isDev,
+      tokenExpired: true
+    });
+    
+    // Record token expiration in health dashboard
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'recordStructuredLog',
+        level: 'warn',
+        feature: 'auth',
+        category: 'auth',
+        message: 'Token expired before API request',
+        data: {
+          clientEnvironment,
+          isDev,
+          timestamp: Date.now(),
+          url: globalThis?.location?.href || 'unknown'
+        }
+      }).catch(() => {});
+    }
+    
+    // Clear expired token and try to get a fresh one
+    await clearExpiredToken(clientEnvironment, isDev);
+    
+    // Try to get a new token
+    try {
+      return await getToken(clientEnvironment, isDev);
+    } catch (error) {
+      const authError = new Error('No valid authentication token available. Please refresh the page to capture a new token.');
+      authError.isAuthError = true;
+      authError.status = 401;
+      throw authError;
+    }
+  }
+  
+  return token;
+}
+
+/**
+ * Clears expired tokens from storage for a specific environment
+ * @param {string} clientEnvironment - The client environment
+ * @param {boolean} isDev - Whether this is a development environment
+ */
+async function clearExpiredToken(clientEnvironment, isDev) {
+  try {
+    const tokens = await new Promise((resolve) => {
+      chrome.storage.local.get("authTokens", (result) => {
+        resolve(result.authTokens || []);
+      });
+    });
+    
+    // Filter out expired tokens for this environment
+    const filteredTokens = tokens.filter(tokenEntry => {
+      // Skip tokens that don't match the environment
+      if (clientEnvironment !== undefined && tokenEntry.clientEnvironment !== clientEnvironment) {
+        return true; // Keep tokens from other environments
+      }
+      
+      if (isDev !== undefined && tokenEntry.isDevRoute !== isDev) {
+        return true; // Keep tokens from other dev status
+      }
+      
+      // Check if this token is expired
+      return !isTokenExpired(tokenEntry.token);
+    });
+    
+    if (filteredTokens.length !== tokens.length) {
+      // Save the filtered tokens back to storage
+      chrome.storage.local.set({ authTokens: filteredTokens });
+      
+      logger.info(`Cleared ${tokens.length - filteredTokens.length} expired tokens for environment: ${clientEnvironment}, isDev: ${isDev}`);
+      
+      // Record token cleanup in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordStructuredLog',
+          level: 'info',
+          feature: 'auth',
+          category: 'auth',
+          message: 'Cleared expired tokens from storage',
+          data: {
+            clientEnvironment,
+            isDev,
+            tokensRemoved: tokens.length - filteredTokens.length,
+            tokensRemaining: filteredTokens.length,
+            timestamp: Date.now()
+          }
+        }).catch(() => {});
+      }
+    }
+  } catch (error) {
+    logger.error('Failed to clear expired tokens:', error);
+  }
+}
+
+/**
  * Makes an authenticated request to an API endpoint
  * @param {string} endpoint - The API endpoint URL (complete URL)
  * @param {string} method - The HTTP method (GET, POST, PUT, DELETE, etc.)
@@ -50,7 +173,10 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
     const isDev = endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : undefined;
     
     // Get the current authentication token appropriate for this request
-    const token = await getToken(clientEnvironment, isDev);
+    let token = await getToken(clientEnvironment, isDev);
+    
+    // Validate the token before making the request
+    token = await validateTokenBeforeRequest(token, clientEnvironment, isDev);
     
     // Prepare headers
     const headers = {
@@ -79,7 +205,46 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
     logger.debug(`Making ${method} request to: ${endpoint}`);
     const response = await fetch(endpoint, options);
     
-    // Check if response is ok
+    // Handle 401 Unauthorized responses specifically
+    if (response.status === 401) {
+      logger.warn('401 Unauthorized response detected - token may be expired', {
+        endpoint,
+        method,
+        clientEnvironment,
+        isDev
+      });
+      
+      // Send structured log to health dashboard about authentication failure
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordStructuredLog',
+          level: 'warn',
+          feature: 'auth',
+          category: 'auth',
+          message: 'API request failed with 401 Unauthorized - token expired',
+          data: {
+            endpoint: endpoint,
+            method: method,
+            clientEnvironment: clientEnvironment,
+            isDev: isDev,
+            timestamp: Date.now(),
+            url: globalThis?.location?.href || 'unknown'
+          }
+        }).catch(() => {});
+      }
+      
+      // Clear potentially expired token from storage
+      await clearExpiredToken(clientEnvironment, isDev);
+      
+      const errorText = await response.text();
+      const authError = new Error(`Authentication failed - token expired. Please refresh the page to capture a new token.`);
+      authError.status = 401;
+      authError.isAuthError = true;
+      authError.originalMessage = errorText;
+      throw authError;
+    }
+    
+    // Check if response is ok (status in the range 200-299)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

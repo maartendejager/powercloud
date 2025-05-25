@@ -89,12 +89,20 @@ This plan addresses three key areas for improvement:
 
 ## **Phase 3: 401 Error Handling Implementation** 🔐
 
-### **Step 3.1: Token Expiration Detection**
-- [ ] **Enhance API error handling** in `/shared/api.js` and `/shared/api-module.js`:
-  - [ ] Detect 401 responses in `makeAuthenticatedRequest()`
-  - [ ] Check token expiration before API calls
-  - [ ] Implement automatic token validation
-  - [ ] Add token refresh mechanism
+### **Step 3.1: Token Expiration Detection** ✅
+- [x] **Enhance API error handling** in `/shared/api.js` and `/shared/api-module.js`:
+  - [x] Detect 401 responses in `makeAuthenticatedRequest()`
+  - [x] Check token expiration before API calls
+  - [x] Implement automatic token validation
+  - [x] Add token refresh mechanism
+  - [x] **Implementation Details:**
+    - **Token Validation Functions**: Added `isTokenExpired()`, `validateTokenBeforeRequest()`, and `clearExpiredToken()` functions to both API modules
+    - **401 Response Handling**: Enhanced `makeAuthenticatedRequest()` to specifically detect and handle 401 Unauthorized responses
+    - **Pre-request Validation**: Added automatic token expiration checking before making API calls
+    - **Automatic Token Cleanup**: Implemented expired token removal from storage when 401 errors occur
+    - **Health Dashboard Integration**: Added structured logging for authentication failures and token cleanup events
+    - **User-friendly Error Messages**: Created specific error messages for expired tokens with guidance for users
+    - **Comprehensive Coverage**: Applied enhancements to both `/shared/api.js` (content scripts) and `/shared/api-module.js` (background/popup)
 
 ### **Step 3.2: Graceful Authentication Recovery**
 - [ ] **Implement recovery flows**:
