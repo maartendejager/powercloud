@@ -242,31 +242,102 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
     
     // Check if response is ok (status in the range 200-299)
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Create more descriptive error messages based on status code
+      let errorMessage;
+      let logLevel = 'error';
+      
+      switch (response.status) {
+        case 400:
+          errorMessage = `Bad Request (400): Invalid parameters sent to ${endpoint}`;
+          break;
+        case 401:
+          errorMessage = `Unauthorized (401): Authentication failed for ${endpoint}`;
+          break;
+        case 403:
+          errorMessage = `Forbidden (403): Access denied to ${endpoint}`;
+          break;
+        case 404:
+          errorMessage = `Not Found (404): Resource not found at ${endpoint}`;
+          logLevel = 'warn'; // 404s are often expected (missing resources)
+          break;
+        case 409:
+          errorMessage = `Conflict (409): Resource conflict at ${endpoint}`;
+          break;
+        case 422:
+          errorMessage = `Unprocessable Entity (422): Invalid data sent to ${endpoint}`;
+          break;
+        case 429:
+          errorMessage = `Too Many Requests (429): Rate limited at ${endpoint}`;
+          break;
+        case 500:
+          errorMessage = `Internal Server Error (500): Server error at ${endpoint}`;
+          break;
+        case 502:
+          errorMessage = `Bad Gateway (502): Gateway error for ${endpoint}`;
+          break;
+        case 503:
+          errorMessage = `Service Unavailable (503): Service down for ${endpoint}`;
+          break;
+        default:
+          errorMessage = `HTTP error! status: ${response.status} for ${endpoint}`;
+      }
+      
+      // Record specific HTTP error in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordStructuredLog',
+          level: logLevel,
+          feature: 'api',
+          category: 'api',
+          message: `HTTP ${response.status} error`,
+          data: {
+            endpoint: endpoint,
+            method: method,
+            statusCode: response.status,
+            statusText: response.statusText,
+            timestamp: Date.now(),
+            clientEnvironment: endpoint.includes('spend.cloud') ? extractClientEnvironment(endpoint) : 'unknown',
+            isDev: endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : false
+          }
+        }).catch(() => {});
+      }
+      
+      const httpError = new Error(errorMessage);
+      httpError.status = response.status;
+      httpError.statusText = response.statusText;
+      httpError.endpoint = endpoint;
+      throw httpError;
     }
     
     // Parse JSON response
     const data = await response.json();
     return data;
   } catch (error) {
-    logger.error(`API request failed for ${endpoint}:`, error);
-    
-    // Record API failure in health dashboard
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({
-        action: 'recordStructuredLog',
-        level: 'error',
-        feature: 'api',
-        category: 'api',
-        message: 'API module request failed',
-        data: {
-          endpoint: endpoint,
-          method: method,
-          error: error.message,
-          stack: error.stack,
-          timestamp: Date.now()
-        }
-      }).catch(() => {});
+    // Only log if it's not an HTTP error we already handled above
+    if (!error.status) {
+      logger.error(`API request failed for ${endpoint}:`, error);
+      
+      // Record general API failure in health dashboard
+      if (chrome?.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({
+          action: 'recordStructuredLog',
+          level: 'error',
+          feature: 'api',
+          category: 'api',
+          message: 'API module request failed',
+          data: {
+            endpoint: endpoint,
+            method: method,
+            error: error.message,
+            stack: error.stack,
+            timestamp: Date.now()
+          }
+        }).catch(() => {});
+      }
+    } else {
+      // For HTTP errors, use appropriate log level
+      const logLevel = error.status === 404 ? 'warn' : 'error';
+      logger[logLevel](`API request failed for ${endpoint}:`, error);
     }
     
     throw error;

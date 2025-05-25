@@ -49,6 +49,14 @@ const MAX_ERROR_REPORTS = 50;
 const MAX_LOGS_PER_CHANNEL = 50;
 const MAX_LOGS_PER_CATEGORY = 30;
 
+// Step 4.2 - Performance optimization constants
+const LOG_LEVEL_PRIORITY = { debug: 0, info: 1, warn: 2, error: 3 };
+const MAX_LOGS_TOTAL = 500; // Total log limit across all categories
+const LOG_ROTATION_THRESHOLD = 0.8; // Rotate when 80% full
+const CLEANUP_INTERVAL_MS = 60000; // Clean up every minute
+const MAX_LOG_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PERFORMANCE_LOG_BATCH_SIZE = 10; // Process logs in batches
+
 // Log level constants
 const LOG_LEVELS = {
   DEBUG: 0,
@@ -60,6 +68,12 @@ const LOG_LEVELS = {
 // Step 3.2 - Authentication error prevention
 let authErrorCooldown = new Map(); // Prevent cascading 401 errors
 const AUTH_ERROR_COOLDOWN_MS = 5000; // 5 seconds between auth errors per endpoint
+
+// Step 4.2 - Performance optimization variables
+let logLevelFilter = 1; // Default: INFO and above (debug filtered out in production)
+let debugModeEnabled = false;
+let lastCleanupTime = Date.now();
+let logProcessingQueue = [];
 
 /**
  * Check if authentication error should be suppressed to prevent cascading failures
@@ -77,6 +91,37 @@ function shouldSuppressAuthError(endpoint) {
   
   authErrorCooldown.set(endpoint, now);
   return false;
+}
+
+/**
+ * Set minimum log level for filtering - Step 4.2 enhancement
+ * @param {string} level - Minimum log level (debug, info, warn, error)
+ */
+function setLogLevelFilter(level) {
+  if (LOG_LEVEL_PRIORITY.hasOwnProperty(level)) {
+    logLevelFilter = LOG_LEVEL_PRIORITY[level];
+    console.log(`[health] Log level filter set to: ${level} (${logLevelFilter})`);
+  }
+}
+
+/**
+ * Check if a log should be processed based on level filtering - Step 4.2 enhancement
+ * @param {string} level - Log level to check
+ * @returns {boolean} True if log should be processed
+ */
+function shouldProcessLog(level) {
+  const levelPriority = LOG_LEVEL_PRIORITY[level] || LOG_LEVEL_PRIORITY.info;
+  return levelPriority >= logLevelFilter;
+}
+
+/**
+ * Enable or disable debug mode - Step 4.2 enhancement
+ * @param {boolean} enabled - Whether debug mode should be enabled
+ */
+function setDebugMode(enabled) {
+  debugModeEnabled = enabled;
+  logLevelFilter = enabled ? LOG_LEVEL_PRIORITY.debug : LOG_LEVEL_PRIORITY.info;
+  console.log(`[health] Debug mode ${enabled ? 'enabled' : 'disabled'}, log level: ${logLevelFilter}`);
 }
 
 /**
@@ -190,6 +235,11 @@ export function recordPerformanceMetric(metricName, value) {
  * @param {string} category - Log category (auth, api, feature, performance, system, ui, error)
  */
 export function recordStructuredLog(level, message, data = {}, feature = null, category = 'system') {
+  // Step 4.2 - Apply log level filtering
+  if (!shouldProcessLog(level)) {
+    return; // Skip this log if it doesn't meet the minimum level
+  }
+
   const timestamp = Date.now();
   const logEntry = {
     timestamp,
@@ -202,43 +252,30 @@ export function recordStructuredLog(level, message, data = {}, feature = null, c
     id: `log_${timestamp}_${Math.random().toString(36).substr(2, 9)}`
   };
 
-  // Add to main debug logs
-  healthData.debugLogs.push(logEntry);
-
-  // Add to feature-specific channel if specified
-  if (feature) {
-    if (!healthData.logChannels[feature]) {
-      healthData.logChannels[feature] = {
-        logs: [],
-        count: 0,
-        levels: { debug: 0, info: 0, warn: 0, error: 0 }
-      };
+  // Step 4.2 - Use batch processing for performance
+  if (logProcessingQueue.length < MAX_LOGS_TOTAL) {
+    logProcessingQueue.push({
+      type: 'structured',
+      data: logEntry
+    });
+    
+    // Process queue if not already processing
+    if (logProcessingQueue.length === 1) {
+      setTimeout(processLogQueue, 0);
     }
-    
-    healthData.logChannels[feature].logs.push(logEntry);
-    healthData.logChannels[feature].count++;
-    healthData.logChannels[feature].levels[level]++;
-    
-    // Limit logs per channel
-    if (healthData.logChannels[feature].logs.length > MAX_LOGS_PER_CHANNEL) {
-      healthData.logChannels[feature].logs.shift();
+  } else {
+    // Queue full, process immediately but log warning
+    processStructuredLogInternal(logEntry);
+    if (debugModeEnabled) {
+      console.warn('[health] Log processing queue full, processing immediately');
     }
   }
 
-  // Add to category
-  if (healthData.logCategories[category]) {
-    healthData.logCategories[category].logs.push(logEntry);
-    healthData.logCategories[category].count++;
-    
-    // Limit logs per category
-    if (healthData.logCategories[category].logs.length > MAX_LOGS_PER_CATEGORY) {
-      healthData.logCategories[category].logs.shift();
-    }
-  }
-
-  // Trigger cleanup if needed
-  if (healthData.debugLogs.length > MAX_DEBUG_LOGS) {
-    cleanupOldData();
+  // Step 4.2 - Periodic cleanup and rotation
+  const now = Date.now();
+  if (now - lastCleanupTime > CLEANUP_INTERVAL_MS) {
+    cleanupOldLogs();
+    rotateLogs();
   }
 }
 
@@ -1077,4 +1114,155 @@ export function handleReportAuthError(message, sender, sendResponse) {
   }
   
   return false;
+}
+
+/**
+ * Rotate logs when approaching limits - Step 4.2 enhancement
+ */
+function rotateLogs() {
+  const totalLogs = healthData.debugLogs.length + 
+                   Object.values(healthData.logs).reduce((sum, logs) => sum + logs.length, 0);
+  
+  if (totalLogs > MAX_LOGS_TOTAL * LOG_ROTATION_THRESHOLD) {
+    console.log(`[health] Starting log rotation - current total: ${totalLogs}`);
+    
+    // Keep most recent logs, remove oldest
+    healthData.debugLogs = healthData.debugLogs.slice(-Math.floor(MAX_DEBUG_LOGS * 0.7));
+    
+    // Rotate channel logs
+    Object.keys(healthData.logs).forEach(channel => {
+      const maxForChannel = Math.floor(MAX_LOGS_PER_CHANNEL * 0.7);
+      healthData.logs[channel] = healthData.logs[channel].slice(-maxForChannel);
+    });
+    
+    // Rotate error reports
+    healthData.errorReports = healthData.errorReports.slice(-Math.floor(MAX_ERROR_REPORTS * 0.7));
+    
+    console.log(`[health] Log rotation completed`);
+  }
+}
+
+/**
+ * Clean up old logs based on age - Step 4.2 enhancement
+ */
+function cleanupOldLogs() {
+  const now = Date.now();
+  const cutoffTime = now - MAX_LOG_AGE_MS;
+  
+  let cleanedCount = 0;
+  
+  // Clean debug logs
+  const originalDebugCount = healthData.debugLogs.length;
+  healthData.debugLogs = healthData.debugLogs.filter(log => log.timestamp > cutoffTime);
+  cleanedCount += originalDebugCount - healthData.debugLogs.length;
+  
+  // Clean channel logs
+  Object.keys(healthData.logs).forEach(channel => {
+    const originalCount = healthData.logs[channel].length;
+    healthData.logs[channel] = healthData.logs[channel].filter(log => log.timestamp > cutoffTime);
+    cleanedCount += originalCount - healthData.logs[channel].length;
+  });
+  
+  // Clean error reports
+  const originalErrorCount = healthData.errorReports.length;
+  healthData.errorReports = healthData.errorReports.filter(report => report.timestamp > cutoffTime);
+  cleanedCount += originalErrorCount - healthData.errorReports.length;
+  
+  // Clean auth errors
+  if (healthData.authStatus && healthData.authStatus.authErrors) {
+    const originalAuthErrorCount = healthData.authStatus.authErrors.length;
+    healthData.authStatus.authErrors = healthData.authStatus.authErrors.filter(error => error.timestamp > cutoffTime);
+    cleanedCount += originalAuthErrorCount - healthData.authStatus.authErrors.length;
+  }
+  
+  if (cleanedCount > 0) {
+    console.log(`[health] Cleaned up ${cleanedCount} old log entries`);
+  }
+  
+  lastCleanupTime = now;
+}
+
+/**
+ * Process queued logs in batches for performance - Step 4.2 enhancement
+ */
+function processLogQueue() {
+  if (logProcessingQueue.length === 0) return;
+  
+  const batchSize = Math.min(PERFORMANCE_LOG_BATCH_SIZE, logProcessingQueue.length);
+  const batch = logProcessingQueue.splice(0, batchSize);
+  
+  batch.forEach(logEntry => {
+    // Process each log entry
+    if (logEntry.type === 'structured') {
+      processStructuredLogInternal(logEntry.data);
+    } else if (logEntry.type === 'debug') {
+      processDebugLogInternal(logEntry.data);
+    }
+  });
+  
+  // Schedule next batch if queue not empty
+  if (logProcessingQueue.length > 0) {
+    setTimeout(processLogQueue, 10); // Small delay to prevent blocking
+  }
+}
+
+/**
+ * Internal function to process structured log entries - Step 4.2 enhancement
+ * @param {Object} logEntry - The log entry to process
+ */
+function processStructuredLogInternal(logEntry) {
+  const { level, feature, category } = logEntry;
+
+  // Add to main debug logs
+  healthData.debugLogs.push(logEntry);
+
+  // Add to feature-specific channel if specified
+  if (feature) {
+    if (!healthData.logChannels[feature]) {
+      healthData.logChannels[feature] = {
+        logs: [],
+        count: 0,
+        levels: { debug: 0, info: 0, warn: 0, error: 0 }
+      };
+    }
+    
+    healthData.logChannels[feature].logs.push(logEntry);
+    healthData.logChannels[feature].count++;
+    healthData.logChannels[feature].levels[level]++;
+    
+    // Limit logs per channel
+    if (healthData.logChannels[feature].logs.length > MAX_LOGS_PER_CHANNEL) {
+      healthData.logChannels[feature].logs.shift();
+    }
+  }
+
+  // Add to category
+  if (healthData.logCategories[category]) {
+    healthData.logCategories[category].logs.push(logEntry);
+    healthData.logCategories[category].count++;
+    
+    // Limit logs per category
+    if (healthData.logCategories[category].logs.length > MAX_LOGS_PER_CATEGORY) {
+      healthData.logCategories[category].logs.shift();
+    }
+  }
+
+  // Trigger cleanup if needed
+  if (healthData.debugLogs.length > MAX_DEBUG_LOGS) {
+    cleanupOldData();
+  }
+}
+
+/**
+ * Internal function to process debug log entries - Step 4.2 enhancement
+ * @param {Object} logEntry - The debug log entry to process
+ */
+function processDebugLogInternal(logEntry) {
+  // For legacy debug logs, just add to main debug logs array
+  healthData.debugLogs.push(logEntry);
+  
+  // Trigger cleanup if needed
+  if (healthData.debugLogs.length > MAX_DEBUG_LOGS) {
+    cleanupOldData();
+  }
 }

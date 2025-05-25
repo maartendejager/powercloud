@@ -1,0 +1,13 @@
+{
+  "name": "powercloud-extension",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PowerCloud Chrome Extension for Spend.Cloud automation",
+  "scripts": {
+    "test": "node test-health-api.js",
+    "test-404": "node test-404-handling.js"
+  },
+  "keywords": ["chrome-extension", "automation", "spend-cloud"],
+  "author": "PowerCloud Team",
+  "license": "ISC"
+}
