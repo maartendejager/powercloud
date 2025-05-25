@@ -214,31 +214,27 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
         isDev
       });
       
-      // Send structured log to health dashboard about authentication failure
+      const errorText = await response.text();
+      
+      // Report authentication error using Step 3.2 enhanced error reporting
       if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
-          action: 'recordStructuredLog',
-          level: 'warn',
-          feature: 'auth',
-          category: 'auth',
-          message: 'API request failed with 401 Unauthorized - token expired',
-          data: {
-            endpoint: endpoint,
-            method: method,
-            clientEnvironment: clientEnvironment,
-            isDev: isDev,
-            timestamp: Date.now(),
-            url: globalThis?.location?.href || 'unknown'
-          }
+          action: 'reportAuthError',
+          endpoint: endpoint,
+          error: `API request failed with 401 Unauthorized - ${errorText}`,
+          clientEnvironment: clientEnvironment,
+          isDev: isDev
         }).catch(() => {});
       }
       
       // Clear potentially expired token from storage
       await clearExpiredToken(clientEnvironment, isDev);
       
-      const errorText = await response.text();
       const authError = new Error(`Authentication failed - token expired. Please refresh the page to capture a new token.`);
       authError.status = 401;
+      authError.isAuthError = true;
+      authError.originalMessage = errorText;
+      throw authError;
       authError.isAuthError = true;
       authError.originalMessage = errorText;
       throw authError;

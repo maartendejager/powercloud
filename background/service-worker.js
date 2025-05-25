@@ -35,7 +35,10 @@ import {
   handleRecordStructuredLog,
   handleRecordFeatureEvent,
   initializeHealthMonitoring,
-  recordDebugLog
+  recordDebugLog,
+  // Step 3.2 authentication handlers
+  handleGetAuthStatus,
+  handleReportAuthError
 } from './message-handlers/index.js';
 
 // Set up message action handlers map for cleaner code
@@ -65,6 +68,9 @@ const messageHandlers = {
   "updatePerformanceThresholds": handleUpdatePerformanceThresholds,
   "recordStructuredLog": handleRecordStructuredLog,
   "recordFeatureEvent": handleRecordFeatureEvent,
+  // Step 3.2 authentication handlers
+  "getAuthStatus": handleGetAuthStatus,
+  "reportAuthError": handleReportAuthError,
   // Tab management
   "openTab": handleOpenTab
 };

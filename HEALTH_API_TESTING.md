@@ -1,7 +1,7 @@
 # 🧪 Health Dashboard API Testing Guide
 
 ## Overview
-This guide provides instructions for testing the enhanced Health Dashboard API implemented in **Step 2.1** of the PowerCloud Extension Logging Cleanup Plan.
+This guide provides instructions for testing the enhanced Health Dashboard API implemented in **Step 2.1** and **Step 3.2** of the PowerCloud Extension Logging Cleanup Plan.
 
 ## Enhanced API Endpoints
 
@@ -87,6 +87,35 @@ chrome.runtime.sendMessage({
 });
 ```
 
+### 8. Authentication Status (Step 3.2)
+```javascript
+// Get comprehensive authentication status
+chrome.runtime.sendMessage({
+  action: 'getAuthStatus'
+}, response => {
+  console.log('Auth Status:', response.authStatus);
+  console.log('Token Summary:', response.tokenSummary);
+});
+```
+
+### 9. Authentication Error Reporting (Step 3.2)
+```javascript
+// Report authentication errors with cascading prevention
+chrome.runtime.sendMessage({
+  action: 'reportAuthError',
+  endpoint: '/api/users/profile',
+  error: 'Token expired',
+  clientEnvironment: 'customer',
+  isDev: false
+}, response => {
+  if (response.suppressed) {
+    console.log('Error suppressed to prevent cascading failures');
+  } else {
+    console.log('Auth error recorded:', response.authError);
+  }
+});
+```
+
 ## Browser Console Testing
 
 Open the extension popup or any extension page and run these tests in the browser console:
@@ -144,6 +173,37 @@ chrome.runtime.sendMessage({
 }, response => console.log('Feature channels:', response));
 ```
 
+### Test 6: Authentication Status (Step 3.2)
+```javascript
+// Test authentication status retrieval
+chrome.runtime.sendMessage({
+  action: 'getAuthStatus'
+}, response => {
+  console.log('Auth Status:', response);
+  if (response.success) {
+    console.log('Token Summary:', response.tokenSummary);
+    console.log('Environments:', Object.keys(response.authStatus.environments || {}));
+  }
+});
+```
+
+### Test 7: Authentication Error Reporting (Step 3.2)
+```javascript
+// Test auth error reporting with cascading prevention
+chrome.runtime.sendMessage({
+  action: 'reportAuthError',
+  endpoint: '/api/test/auth-failure',
+  error: 'Invalid token',
+  clientEnvironment: 'testenv',
+  isDev: true
+}, response => {
+  console.log('Auth Error Report:', response);
+  if (response.suppressed) {
+    console.log('✅ Cascading error prevention working');
+  }
+});
+```
+
 ## Expected Responses
 
 All API calls should return responses in this format:
@@ -194,6 +254,9 @@ The enhanced health monitoring stores data in this structure:
 - [ ] ✅ Feature channels return available channels
 - [ ] ✅ Performance summary provides statistics
 - [ ] ✅ Threshold configuration updates successfully
+- [ ] ✅ **Step 3.2**: Authentication status retrieval works
+- [ ] ✅ **Step 3.2**: Auth error reporting with cascading prevention
+- [ ] ✅ **Step 3.2**: Popup displays authentication status correctly
 - [ ] ✅ All APIs return proper response format
 - [ ] ✅ No console errors during API calls
 - [ ] ✅ Health data structure is maintained correctly
@@ -201,9 +264,11 @@ The enhanced health monitoring stores data in this structure:
 ## Next Steps
 
 After confirming all tests pass:
-1. **Step 2.2**: Migrate critical logging points to use the health dashboard
-2. **Step 2.3**: Enhance popup UI to display the new health features
-3. **Phase 3**: Implement 401 error handling
+1. ✅ **Step 2.2**: Migrate critical logging points to use the health dashboard
+2. ✅ **Step 2.3**: Enhance popup UI to display the new health features  
+3. ✅ **Step 3.2**: Implement graceful authentication recovery flows
+4. **Step 3.3**: Integrate API modules with auth error reporting
+5. **Phase 4**: Complete remaining cleanup tasks
 
 ## Troubleshooting
 

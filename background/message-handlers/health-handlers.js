@@ -30,6 +30,16 @@ let healthData = {
     apiResponse: 5000,  // 5 seconds
     renderTime: 100,    // 100ms
     memoryUsage: 50     // 50MB
+  },
+  // Step 3.2 enhancement - Authentication status tracking
+  authStatus: {
+    hasValidTokens: false,
+    lastTokenCheck: null,
+    expiredTokenCount: 0,
+    authErrors: [],
+    environments: {},  // Per-environment auth status
+    lastAuthFailure: null,
+    cascadingErrorsPrevented: 0
   }
 };
 
@@ -46,6 +56,28 @@ const LOG_LEVELS = {
   WARN: 2,
   ERROR: 3
 };
+
+// Step 3.2 - Authentication error prevention
+let authErrorCooldown = new Map(); // Prevent cascading 401 errors
+const AUTH_ERROR_COOLDOWN_MS = 5000; // 5 seconds between auth errors per endpoint
+
+/**
+ * Check if authentication error should be suppressed to prevent cascading failures
+ * @param {string} endpoint - The API endpoint that failed
+ * @returns {boolean} True if error should be suppressed
+ */
+function shouldSuppressAuthError(endpoint) {
+  const now = Date.now();
+  const lastError = authErrorCooldown.get(endpoint);
+  
+  if (lastError && (now - lastError) < AUTH_ERROR_COOLDOWN_MS) {
+    healthData.authStatus.cascadingErrorsPrevented++;
+    return true;
+  }
+  
+  authErrorCooldown.set(endpoint, now);
+  return false;
+}
 
 /**
  * Initialize health monitoring
@@ -892,4 +924,157 @@ export function handleUpdatePerformanceThresholds(message, sender, sendResponse)
   }
   
   return true;
+}
+
+/**
+ * Handle authentication status request - Step 3.2 enhancement
+ * @param {Object} message - Message object
+ * @param {Object} sender - Sender information  
+ * @param {Function} sendResponse - Response callback
+ */
+export function handleGetAuthStatus(message, sender, sendResponse) {
+  try {
+    // Get current tokens and check their status
+    chrome.storage.local.get(['authTokens'], async (result) => {
+      const tokens = result.authTokens || [];
+      const now = Date.now();
+      
+      // Update auth status based on current tokens
+      let validTokens = 0;
+      let expiredTokens = 0;
+      const environments = {};
+      
+      tokens.forEach(tokenEntry => {
+        const env = tokenEntry.clientEnvironment || 'unknown';
+        const devStatus = tokenEntry.isDevRoute ? 'dev' : 'prod';
+        const envKey = `${env}-${devStatus}`;
+        
+        if (!environments[envKey]) {
+          environments[envKey] = {
+            environment: env,
+            isDev: tokenEntry.isDevRoute,
+            hasValidToken: false,
+            lastTokenUpdate: null,
+            tokenCount: 0
+          };
+        }
+        
+        environments[envKey].tokenCount++;
+        environments[envKey].lastTokenUpdate = tokenEntry.timestamp;
+        
+        // Check if token is expired
+        let isExpired = false;
+        if (tokenEntry.expiryDate) {
+          isExpired = new Date(tokenEntry.expiryDate) <= new Date();
+        } else {
+          // Try to parse JWT expiration
+          try {
+            const payload = JSON.parse(atob(tokenEntry.token.split('.')[1]));
+            if (payload.exp) {
+              isExpired = new Date(payload.exp * 1000) <= new Date();
+            }
+          } catch (e) {
+            // Assume valid if we can't parse
+          }
+        }
+        
+        if (isExpired) {
+          expiredTokens++;
+        } else {
+          validTokens++;
+          environments[envKey].hasValidToken = true;
+        }
+      });
+      
+      // Update health data auth status
+      healthData.authStatus = {
+        ...healthData.authStatus,
+        hasValidTokens: validTokens > 0,
+        lastTokenCheck: now,
+        expiredTokenCount: expiredTokens,
+        environments: environments
+      };
+      
+      sendResponse({
+        success: true,
+        authStatus: healthData.authStatus,
+        tokenSummary: {
+          total: tokens.length,
+          valid: validTokens,
+          expired: expiredTokens,
+          environments: Object.keys(environments).length
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[health] Error getting auth status:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+  
+  return true; // Async response
+}
+
+/**
+ * Handle authentication error reporting - Step 3.2 enhancement
+ * @param {Object} message - Message object with error details
+ * @param {Object} sender - Sender information
+ * @param {Function} sendResponse - Response callback  
+ */
+export function handleReportAuthError(message, sender, sendResponse) {
+  try {
+    const { endpoint, error, clientEnvironment, isDev } = message;
+    
+    // Check if we should suppress this error to prevent cascading failures
+    if (shouldSuppressAuthError(endpoint)) {
+      sendResponse({
+        success: true,
+        suppressed: true,
+        message: 'Authentication error suppressed to prevent cascading failures'
+      });
+      return true;
+    }
+    
+    // Record the authentication error
+    const authError = {
+      timestamp: Date.now(),
+      endpoint: endpoint,
+      error: error,
+      clientEnvironment: clientEnvironment,
+      isDev: isDev,
+      url: sender.url || 'unknown'
+    };
+    
+    healthData.authStatus.authErrors.unshift(authError);
+    healthData.authStatus.lastAuthFailure = Date.now();
+    
+    // Keep only last 20 auth errors
+    if (healthData.authStatus.authErrors.length > 20) {
+      healthData.authStatus.authErrors = healthData.authStatus.authErrors.slice(0, 20);
+    }
+    
+    // Also record as structured log
+    recordStructuredLog({
+      level: 'error',
+      feature: 'auth',
+      category: 'auth',
+      message: 'Authentication failure reported',
+      data: authError
+    });
+    
+    sendResponse({
+      success: true,
+      authError: authError
+    });
+  } catch (error) {
+    console.error('[health] Error reporting auth error:', error);
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+  
+  return false;
 }

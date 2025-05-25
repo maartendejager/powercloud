@@ -285,6 +285,140 @@ h3 {
   margin-bottom: 20px;
 }
 
+/* Authentication Status Styles */
+.auth-status-overview {
+  margin-bottom: 20px;
+}
+
+.auth-details-container {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+}
+
+.auth-metric-label {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.auth-metric-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.auth-environments-list {
+  margin-top: 10px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.auth-environment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 2px 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.auth-environment-name {
+  font-weight: 500;
+}
+
+.auth-environment-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: white;
+}
+
+.auth-environment-status.valid {
+  background-color: #4CAF50;
+}
+
+.auth-environment-status.expired {
+  background-color: #f44336;
+}
+
+.auth-environment-status.unknown {
+  background-color: #9E9E9E;
+}
+
+.auth-empty-state {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  padding: 10px;
+  font-style: italic;
+}
+
+.auth-error {
+  font-size: 12px;
+  color: #f44336;
+  text-align: center;
+  padding: 10px;
+}
+
+.auth-errors-info {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(244, 67, 54, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #f44336;
+}
+
+.auth-errors-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #f44336;
+  margin-bottom: 4px;
+}
+
+.auth-error-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #666;
+  margin: 2px 0;
+}
+
+.auth-error-time {
+  font-family: monospace;
+}
+
+.auth-error-endpoint {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-prevention-info {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #4CAF50;
+}
+
+.auth-prevention-text {
+  font-size: 11px;
+  color: #4CAF50;
+  font-weight: 500;
+}
+
 .health-status-card {
   background: #f5f5f5;
   border-radius: 8px;

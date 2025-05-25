@@ -104,21 +104,26 @@ This plan addresses three key areas for improvement:
     - **User-friendly Error Messages**: Created specific error messages for expired tokens with guidance for users
     - **Comprehensive Coverage**: Applied enhancements to both `/shared/api.js` (content scripts) and `/shared/api-module.js` (background/popup)
 
-### **Step 3.2: Graceful Authentication Recovery**
-- [ ] **Implement recovery flows**:
-  - [ ] Clear expired tokens from storage automatically
-  - [ ] Show user-friendly expiration messages in popup
-  - [ ] Retry API calls with fresh tokens when available
-  - [ ] Prevent cascading 401 errors across features
+### **Step 3.2: Graceful Authentication Recovery** ✅
+- [x] **Implement recovery flows**:
+  - [x] Clear expired tokens from storage automatically
+  - [x] Show user-friendly expiration messages in popup  
+  - [x] Retry API calls with fresh tokens when available
+  - [x] Prevent cascading 401 errors across features
 
-### **Step 3.3: User Experience Improvements**
-- [ ] **Enhance token management UX**:
-  - [ ] Visual indicators for expired tokens in popup
-  - [ ] Automatic cleanup of expired tokens
-  - [ ] Clear messaging when authentication is needed
-  - [ ] Health dashboard auth status section
+### **Step 3.3: User Experience Improvements** ✅
+- [x] **Enhance token management UX**:
+  - [x] Visual indicators for expired tokens in popup
+  - [x] Automatic cleanup of expired tokens
+  - [x] Clear messaging when authentication is needed
+  - [x] Health dashboard auth status section
+- [x] **API Integration**: 
+  - [x] Updated `/shared/api.js` to use `reportAuthError` for 401 responses
+  - [x] Updated `/shared/api-module.js` to use `reportAuthError` for 401 responses
+  - [x] Integrated cascading error prevention into API modules
+  - [x] Enhanced authentication error reporting with context
 
-**Phase 3 Status:** ⏳ Pending
+**Phase 3 Status:** ✅ **COMPLETED**
 
 ---
 

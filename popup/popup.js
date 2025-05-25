@@ -358,7 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Health dashboard functionality
   function loadHealthDashboard() {
     updateSystemStatus();
-    loadFeatureStatus();
+    loadAuthenticationStatus();
+    loadFeatureHealthCards(); // Enhanced feature cards instead of loadFeatureStatus
     loadPerformanceMetrics();
     loadDebugLogs();
     loadErrorReports();
@@ -378,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const health = response.health;
       const featureCount = health.features ? Object.keys(health.features).length : 0;
-      const errorCount = health.errors ? health.errors.length : 0;
+      const errorCount = health.errorReports ? health.errorReports.length : 0;
       
       // Update status based on health data
       if (errorCount > 0) {
@@ -403,6 +404,101 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgPerf = Object.values(health.performance)
           .reduce((sum, metric) => sum + (metric.average || 0), 0) / Object.keys(health.performance).length;
         document.getElementById('avg-performance').textContent = Math.round(avgPerf * 100) / 100;
+      }
+    });
+  }
+
+  function loadAuthenticationStatus() {
+    chrome.runtime.sendMessage({action: "getAuthStatus"}, (response) => {
+      const authStatusDot = document.querySelector('#auth-status .status-dot');
+      const authStatusText = document.querySelector('#auth-status .status-text');
+      const validTokenCount = document.getElementById('valid-token-count');
+      const expiredTokenCount = document.getElementById('expired-token-count');
+      const environmentCount = document.getElementById('environment-count');
+      const environmentsList = document.getElementById('auth-environments');
+
+      if (!response || !response.success) {
+        authStatusDot.className = 'status-dot error';
+        authStatusText.textContent = 'Authentication Check Failed';
+        validTokenCount.textContent = '?';
+        expiredTokenCount.textContent = '?';
+        environmentCount.textContent = '?';
+        environmentsList.innerHTML = '<div class="auth-error">Failed to check authentication status</div>';
+        return;
+      }
+
+      const authStatus = response.authStatus;
+      const tokenSummary = response.tokenSummary;
+
+      // Update status indicator based on authentication health
+      if (tokenSummary.expired > 0 && tokenSummary.valid === 0) {
+        authStatusDot.className = 'status-dot error';
+        authStatusText.textContent = 'All Tokens Expired';
+      } else if (tokenSummary.expired > 0) {
+        authStatusDot.className = 'status-dot warning';
+        authStatusText.textContent = `${tokenSummary.expired} Token(s) Expired`;
+      } else if (tokenSummary.valid > 0) {
+        authStatusDot.className = 'status-dot healthy';
+        authStatusText.textContent = 'Authentication Healthy';
+      } else {
+        authStatusDot.className = 'status-dot unknown';
+        authStatusText.textContent = 'No Tokens Available';
+      }
+
+      // Update metric counters
+      validTokenCount.textContent = tokenSummary.valid || 0;
+      expiredTokenCount.textContent = tokenSummary.expired || 0;
+      environmentCount.textContent = tokenSummary.environments || 0;
+
+      // Display environment-specific status
+      environmentsList.innerHTML = '';
+      if (authStatus.environments && Object.keys(authStatus.environments).length > 0) {
+        Object.entries(authStatus.environments).forEach(([envKey, envData]) => {
+          const envItem = document.createElement('div');
+          envItem.className = 'auth-environment-item';
+          
+          const statusClass = envData.hasValidToken ? 'valid' : 'expired';
+          const statusText = envData.hasValidToken ? 'Valid' : 'Expired';
+          const envDisplayName = `${envData.environment}${envData.isDev ? ' (dev)' : ''}`;
+          
+          envItem.innerHTML = `
+            <span class="auth-environment-name">${envDisplayName}</span>
+            <span class="auth-environment-status ${statusClass}">${statusText}</span>
+          `;
+          
+          environmentsList.appendChild(envItem);
+        });
+      } else {
+        environmentsList.innerHTML = '<div class="auth-empty-state">No environments detected</div>';
+      }
+
+      // Show authentication error information if there are recent auth failures
+      if (authStatus.authErrors && authStatus.authErrors.length > 0) {
+        const recentErrors = authStatus.authErrors.slice(0, 3); // Show last 3 errors
+        const errorInfo = document.createElement('div');
+        errorInfo.className = 'auth-errors-info';
+        errorInfo.innerHTML = `
+          <div class="auth-errors-title">Recent Auth Failures:</div>
+          ${recentErrors.map(error => `
+            <div class="auth-error-item">
+              <span class="auth-error-time">${new Date(error.timestamp).toLocaleTimeString()}</span>
+              <span class="auth-error-endpoint">${error.endpoint || 'Unknown endpoint'}</span>
+            </div>
+          `).join('')}
+        `;
+        environmentsList.appendChild(errorInfo);
+      }
+
+      // Show cascading error prevention info
+      if (authStatus.cascadingErrorsPrevented > 0) {
+        const preventionInfo = document.createElement('div');
+        preventionInfo.className = 'auth-prevention-info';
+        preventionInfo.innerHTML = `
+          <div class="auth-prevention-text">
+            🛡️ Prevented ${authStatus.cascadingErrorsPrevented} cascading error(s)
+          </div>
+        `;
+        environmentsList.appendChild(preventionInfo);
       }
     });
   }
@@ -879,15 +975,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('avg-performance').textContent = Math.round(avgPerf * 100) / 100;
       }
     });
-  }
-
-  // Enhanced health dashboard loading
-  function loadHealthDashboard() {
-    updateSystemStatus();
-    loadFeatureHealthCards(); // Replace loadFeatureStatus with this
-    loadPerformanceMetrics();
-    loadDebugLogs();
-    loadErrorReports();
   }
 
 });

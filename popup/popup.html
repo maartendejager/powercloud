@@ -92,6 +92,32 @@
       </div>
     </div>
 
+    <!-- Authentication Status Section -->
+    <div class="auth-status-overview">
+      <div class="health-status-card">
+        <h4>Authentication Status</h4>
+        <div id="auth-status" class="status-indicator">
+          <span class="status-dot unknown"></span>
+          <span class="status-text">Checking tokens...</span>
+        </div>
+        <div id="auth-details" class="auth-details-container">
+          <div class="auth-metric">
+            <span class="auth-metric-label">Valid Tokens:</span>
+            <span id="valid-token-count" class="auth-metric-value">-</span>
+          </div>
+          <div class="auth-metric">
+            <span class="auth-metric-label">Expired:</span>
+            <span id="expired-token-count" class="auth-metric-value">-</span>
+          </div>
+          <div class="auth-metric">
+            <span class="auth-metric-label">Environments:</span>
+            <span id="environment-count" class="auth-metric-value">-</span>
+          </div>
+        </div>
+        <div id="auth-environments" class="auth-environments-list"></div>
+      </div>
+    </div>
+
     <div class="health-controls">
       <button id="refresh-health-btn" class="action-button">Refresh Health Data</button>
       <button id="clear-debug-btn" class="action-button secondary">Clear Debug Data</button>
