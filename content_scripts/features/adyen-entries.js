@@ -20,6 +20,18 @@
 // Constants for feature elements
 const ADYEN_TRANSFERS_BASE_URL = 'https://balanceplatform-live.adyen.com/balanceplatform/transfers/';
 
+// Initialize logger for this feature
+const entriesLogger = (() => {
+  if (window.PowerCloudLoggerFactory) {
+    return window.PowerCloudLoggerFactory.createLogger('AdyenEntries');
+  }
+  return {
+    info: (message, data) => console.log(`[INFO][AdyenEntries] ${message}`, data || ''),
+    warn: (message, data) => console.warn(`[WARN][AdyenEntries] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][AdyenEntries] ${message}`, data || '')
+  };
+})();
+
 /**
  * AdyenEntriesFeature class extending BaseFeature
  * Provides transfer viewing functionality for book entries
@@ -159,7 +171,7 @@ class AdyenEntriesFeature extends BaseFeature {
             // Old format
             entryData = response.entry;
             adyenTransferId = response.entry.adyenTransferId;
-            console.log('[PowerCloud] Using old format entry data:', { adyenTransferId });
+            entriesLogger.info('Using old format entry data', { adyenTransferId });
           } else if (response.data) {
             // New format - extract from data structure
             if (response.data.data && response.data.data.attributes) {
@@ -172,7 +184,7 @@ class AdyenEntriesFeature extends BaseFeature {
               entryData = response.data;
               adyenTransferId = response.data.adyenTransferId;
             }
-            console.log('[PowerCloud] Using new format entry data:', { 
+            entriesLogger.info('Using new format entry data', { 
               adyenTransferId,
               dataStructure: response.data.data ? 'nested' : 'flat'
             });
@@ -181,7 +193,7 @@ class AdyenEntriesFeature extends BaseFeature {
           this.entry = entryData;
           this.adyenTransferId = adyenTransferId;
           
-          console.log('[PowerCloud] Entry details processing result:', {
+          entriesLogger.info('Entry details processing result', {
             hasEntry: !!this.entry,
             hasAdyenTransferId: !!this.adyenTransferId,
             transferId: this.adyenTransferId
@@ -362,7 +374,7 @@ class AdyenEntriesFeature extends BaseFeature {
     let attempt = 0;
     const maxAttempts = this.config.retryAttempts;
     
-    console.log('[PowerCloud] Entries info click handler called', {
+    entriesLogger.info('Entries info click handler called', {
       hasAdyenTransferId: !!this.adyenTransferId,
       adyenTransferId: this.adyenTransferId,
       entry: this.entry
@@ -371,7 +383,7 @@ class AdyenEntriesFeature extends BaseFeature {
     while (attempt < maxAttempts) {
       try {
         if (!this.adyenTransferId) {
-          console.log('[PowerCloud] No transfer ID available for entry');
+          entriesLogger.warn('No transfer ID available for entry');
           this.showEntriesInfoResult('No Adyen Transfer ID found for this entry');
           return;
         }
@@ -379,7 +391,7 @@ class AdyenEntriesFeature extends BaseFeature {
         const adyenUrl = `${ADYEN_TRANSFERS_BASE_URL}${this.adyenTransferId}`;
         
         this.log(`Opening Adyen transfer (attempt ${attempt + 1}/${maxAttempts})`, { transferId: this.adyenTransferId });
-        console.log('[PowerCloud] Opening Adyen transfer:', {
+        entriesLogger.info('Opening Adyen transfer', {
           transferId: this.adyenTransferId,
           url: adyenUrl,
           attempt: attempt + 1
@@ -505,30 +517,30 @@ const adyenEntriesFeature = new AdyenEntriesFeature();
 // Create namespace for PowerCloud features if it doesn't exist
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
-console.log('[PowerCloud] Registering adyen-entries feature');
+entriesLogger.info('Registering adyen-entries feature');
 
-// Register entries feature with backward compatibility
+//    Register entries feature with backward compatibility
 window.PowerCloudFeatures.entries = {
   init: async (match) => {
-    console.log('[PowerCloud] adyen-entries feature init called with match:', match);
+    entriesLogger.info('Feature init called', { match });
     try {
       await adyenEntriesFeature.onInit(match);
       await adyenEntriesFeature.onActivate();
     } catch (error) {
-      console.error('[PowerCloud] adyen-entries feature initialization error:', error);
+      entriesLogger.error('Feature initialization error', { error: error.message, stack: error.stack });
       adyenEntriesFeature.onError(error, 'initialization');
     }
   },
   cleanup: async () => {
-    console.log('[PowerCloud] adyen-entries feature cleanup called');
+    entriesLogger.info('Feature cleanup called');
     try {
       await adyenEntriesFeature.onDeactivate();
       await adyenEntriesFeature.onCleanup();
     } catch (error) {
-      console.error('[PowerCloud] adyen-entries feature cleanup error:', error);
+      entriesLogger.error('Feature cleanup error', { error: error.message, stack: error.stack });
       adyenEntriesFeature.onError(error, 'cleanup');
     }
   }
 };
 
-console.log('[PowerCloud] adyen-entries feature registered successfully');
+entriesLogger.info('Feature registered successfully');

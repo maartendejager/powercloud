@@ -7,6 +7,32 @@
 
 import { getBookDetails as apiGetBookDetails, getBalanceAccountDetails as apiGetBalanceAccountDetails } from '../../shared/api-module.js';
 
+// Initialize logger for Book Processor (service worker safe)
+const logger = (() => {
+  try {
+    // Try to use the global logger factory if available
+    if (typeof globalThis !== 'undefined' && globalThis.PowerCloudLoggerFactory) {
+      return globalThis.PowerCloudLoggerFactory.createLogger('BookProcessor');
+    } else if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+      return window.PowerCloudLoggerFactory.createLogger('BookProcessor');
+    }
+  } catch (e) {
+    // Fallback for service worker or when logger is not available
+  }
+  
+  // Service worker safe fallback logger
+  return {
+    debug: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    info: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    warn: (message, data) => console.warn(`[WARN][BookProcessor] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][BookProcessor] ${message}`, data || '')
+  };
+})();
+
 /**
  * Process book details request and extract relevant information
  * @param {string} customer - The customer subdomain
@@ -20,13 +46,14 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
     // Get book details using our API module
     const data = await apiGetBookDetails(customer, bookId, isDev);
     
-    console.log(`[book-processor] Raw API response structure (${requestId || ''}):`, {
+    logger.debug('Raw API response structure', {
       hasData: !!data?.data,
       hasAttributes: !!data?.data?.attributes,
       hasRelationships: !!data?.data?.relationships,
       relationshipKeys: data?.data?.relationships ? Object.keys(data.data.relationships) : [],
       alternativeHasRelationships: !!data?.relationships,
-      alternativeRelationshipKeys: data?.relationships ? Object.keys(data.relationships) : []
+      alternativeRelationshipKeys: data?.relationships ? Object.keys(data.relationships) : [],
+      requestId
     });
     
     // Extract book data from the response
@@ -43,30 +70,48 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
     // Path: data->relationships->balanceAccount->data->id
     if (!balanceAccountId && data?.data?.relationships?.balanceAccount?.data?.id) {
       balanceAccountId = data.data.relationships.balanceAccount.data.id;
-      console.log(`[book-processor] Found balance account ID via balanceAccount relationship: ${balanceAccountId} (${requestId || ''})`);
+      logger.info('Found balance account ID via balanceAccount relationship', { 
+        balanceAccountId, 
+        requestId 
+      });
     }
     // Also check alternative path
     else if (!balanceAccountId && data?.relationships?.balanceAccount?.data?.id) {
       balanceAccountId = data.relationships.balanceAccount.data.id;
-      console.log(`[book-processor] Found balance account ID via alternative balanceAccount relationship: ${balanceAccountId} (${requestId || ''})`);
+      logger.info('Found balance account ID via alternative balanceAccount relationship', { 
+        balanceAccountId, 
+        requestId 
+      });
     }
     
     // ALSO check adyenBalanceAccount relationship for the internal balance account ID
     // This seems to be where the internal balance account ID is stored in some cases
     if (!balanceAccountId && data?.data?.relationships?.adyenBalanceAccount?.data?.id) {
       const foundId = data.data.relationships.adyenBalanceAccount.data.id;
-      console.log(`[book-processor] Found ID via adyenBalanceAccount relationship: ${foundId} (${requestId || ''})`);
+      logger.info('Found ID via adyenBalanceAccount relationship', { 
+        foundId, 
+        requestId 
+      });
       // This should be the internal balance account ID (like "1"), not the actual Adyen ID
       balanceAccountId = foundId;
-      console.log(`[book-processor] Using as internal balance account ID: ${balanceAccountId} (${requestId || ''})`);
+      logger.info('Using as internal balance account ID', { 
+        balanceAccountId, 
+        requestId 
+      });
     }
     // Also check alternative path for adyenBalanceAccount
     else if (!balanceAccountId && data?.relationships?.adyenBalanceAccount?.data?.id) {
       const foundId = data.relationships.adyenBalanceAccount.data.id;
-      console.log(`[book-processor] Found ID via alternative adyenBalanceAccount relationship: ${foundId} (${requestId || ''})`);
+      logger.info('Found ID via alternative adyenBalanceAccount relationship', { 
+        foundId, 
+        requestId 
+      });
       // This should be the internal balance account ID (like "1"), not the actual Adyen ID
       balanceAccountId = foundId;
-      console.log(`[book-processor] Using as internal balance account ID: ${balanceAccountId} (${requestId || ''})`);
+      logger.info('Using as internal balance account ID', { 
+        balanceAccountId, 
+        requestId 
+      });
     }
     
     // Extract administration ID from relationships if available
@@ -79,18 +124,22 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
       administrationId = data.relationships.administration.data.id;
     }
     
-    console.log(`[book-processor] After extraction (${requestId || ''}):`, {
+    logger.debug('After extraction', {
       balanceAccountId: balanceAccountId,
       adyenBalanceAccountId: adyenBalanceAccountId,
       administrationId: administrationId,
       balanceAccountReference: balanceAccountReference,
-      bookType: bookType
+      bookType: bookType,
+      requestId
     });
     
     // If we have a balance account ID but no Adyen balance account ID, 
     // fetch balance account details to get the Adyen balance account ID
     if (balanceAccountId && !adyenBalanceAccountId) {
-      console.log(`[book-processor] Fetching balance account details for ID: ${balanceAccountId} (${requestId || ''})`);
+      logger.info('Fetching balance account details', { 
+        balanceAccountId, 
+        requestId 
+      });
       
       try {
         const balanceAccountData = await apiGetBalanceAccountDetails(customer, balanceAccountId, isDev);
@@ -98,15 +147,27 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
         // Extract the Adyen balance account ID from balance account attributes
         if (balanceAccountData?.data?.attributes?.adyenBalanceAccountId) {
           adyenBalanceAccountId = balanceAccountData.data.attributes.adyenBalanceAccountId;
-          console.log(`[book-processor] Found Adyen balance account ID: ${adyenBalanceAccountId} (${requestId || ''})`);
+          logger.info('Found Adyen balance account ID', { 
+            adyenBalanceAccountId, 
+            requestId 
+          });
         } else if (balanceAccountData?.attributes?.adyenBalanceAccountId) {
           adyenBalanceAccountId = balanceAccountData.attributes.adyenBalanceAccountId;
-          console.log(`[book-processor] Found Adyen balance account ID: ${adyenBalanceAccountId} (${requestId || ''})`);
+          logger.info('Found Adyen balance account ID', { 
+            adyenBalanceAccountId, 
+            requestId 
+          });
         } else {
-          console.log(`[book-processor] No Adyen balance account ID found in balance account details (${requestId || ''})`);
+          logger.warn('No Adyen balance account ID found in balance account details', { 
+            requestId 
+          });
         }
       } catch (error) {
-        console.warn(`[book-processor] Failed to fetch balance account details for ID ${balanceAccountId} (${requestId || ''}):`, error.message);
+        logger.warn('Failed to fetch balance account details', { 
+          balanceAccountId, 
+          error: error.message, 
+          requestId 
+        });
         // Continue without adyenBalanceAccountId - the feature will handle this gracefully
       }
     }
@@ -123,7 +184,11 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
     });
     
   } catch (error) {
-    console.error(`Error fetching book details (${requestId || ''}):`, error);
+    logger.error('Error fetching book details', { 
+      error: error.message, 
+      stack: error.stack, 
+      requestId 
+    });
     sendResponse({
       success: false,
       error: error.message,

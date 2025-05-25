@@ -19,10 +19,10 @@
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('shared/ui-components.js');
     script.onload = () => {
-      console.log('[PowerCloud] UI components loaded for adyen-book feature');
+      bookLogger.info('UI components loaded for adyen-book feature');
     };
     script.onerror = (error) => {
-      console.error('[PowerCloud] Failed to load UI components for adyen-book feature:', error);
+      bookLogger.error('Failed to load UI components for adyen-book feature', { error });
     };
     document.head.appendChild(script);
 
@@ -36,6 +36,18 @@
     responsiveScript.src = chrome.runtime.getURL('shared/responsive-design.js');
     document.head.appendChild(responsiveScript);
   }
+})();
+
+// Initialize logger for this feature
+const bookLogger = (() => {
+  if (window.PowerCloudLoggerFactory) {
+    return window.PowerCloudLoggerFactory.createLogger('AdyenBook');
+  }
+  return {
+    info: (message, data) => console.log(`[INFO][AdyenBook] ${message}`, data || ''),
+    warn: (message, data) => console.warn(`[WARN][AdyenBook] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][AdyenBook] ${message}`, data || '')
+  };
 })();
 
 /**
@@ -190,7 +202,7 @@ class AdyenBookFeature extends BaseFeature {
           this.administrationId = response.administrationId;
           this.balanceAccountReference = response.balanceAccountReference;
           
-          console.log('[PowerCloud] Book API response structure:', {
+          bookLogger.info('Book API response structure', {
             hasBalanceAccountId: !!response.balanceAccountId,
             hasAdyenBalanceAccountId: !!response.adyenBalanceAccountId,
             internalBalanceAccountId: this.balanceAccountId,
@@ -201,8 +213,8 @@ class AdyenBookFeature extends BaseFeature {
 
           // Don't create button if no Adyen balance account ID
           if (!this.adyenBalanceAccountId) {
-            console.warn('[PowerCloud] Cannot create Adyen button: No Adyen balance account ID available');
-            console.log('[PowerCloud] Internal balance account ID available:', this.balanceAccountId);
+            bookLogger.warn('Cannot create Adyen button: No Adyen balance account ID available');
+            bookLogger.info('Internal balance account ID available', { balanceAccountId: this.balanceAccountId });
             this.log('Skipping button creation - no Adyen balance account ID found');
             return;
           }
@@ -227,6 +239,29 @@ class AdyenBookFeature extends BaseFeature {
         
       } catch (error) {
         lastError = error;
+        
+        // Check if this is a 404 error - don't retry for these
+        const is404Error = error.message && error.message.includes('404');
+        const isNotFoundError = is404Error || (error.message && 
+          (error.message.includes('not found') || error.message.includes('Not Found')));
+        
+        if (isNotFoundError) {
+          this.log('Book not found (404) - this is normal, not retrying', {
+            bookId: this.bookId,
+            customer: this.customer,
+            error: error.message
+          });
+          
+          // For 404 errors, don't show error message to user, just use fallback
+          if (this.config.fallbackToDefaultBehavior) {
+            this.log('Book not found - using fallback behavior without error display');
+            this.bookType = 'monetary_account_book';
+            this.balanceAccountId = null;
+            this.addBookInfoButton();
+          }
+          return; // Exit early, don't retry 404 errors
+        }
+        
         this.trackApiError('fetchBookDetails', error, attempt);
         
         if (attempt < this.config.retryAttempts) {
@@ -524,7 +559,7 @@ class AdyenBookFeature extends BaseFeature {
    */
   async handleBookInfoClick() {
     try {
-      console.log('[PowerCloud] Book info click handler called', {
+      bookLogger.info('Book info click handler called', {
         hasInternalBalanceAccountId: !!this.balanceAccountId,
         hasAdyenBalanceAccountId: !!this.adyenBalanceAccountId,
         internalBalanceAccountId: this.balanceAccountId,
@@ -533,14 +568,14 @@ class AdyenBookFeature extends BaseFeature {
       });
       
       if (!this.adyenBalanceAccountId) {
-        console.log('[PowerCloud] No Adyen balance account ID available for book');
+        bookLogger.warn('No Adyen balance account ID available for book');
         this.showBookInfoResult('No Adyen Balance Account ID found for this book', 'warning');
         return;
       }
 
       const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${this.adyenBalanceAccountId}`;
       
-      console.log('[PowerCloud] Opening Adyen balance account:', {
+      bookLogger.info('Opening Adyen balance account', {
         adyenBalanceAccountId: this.adyenBalanceAccountId,
         url: adyenUrl
       });
@@ -553,7 +588,7 @@ class AdyenBookFeature extends BaseFeature {
       
       this.showBookInfoResult('Balance Account opened in Adyen', 'success');
     } catch (error) {
-      console.error('[PowerCloud] Book info click error:', error);
+      bookLogger.error('Book info click error', { error: error.message, stack: error.stack });
       this.handleError('Failed to handle book info click', error);
       this.showBookInfoResult('Error: Unable to open balance account', 'error');
     }
@@ -681,30 +716,30 @@ const adyenBookFeature = new AdyenBookFeature();
 // Create namespace for PowerCloud features if it doesn't exist
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
-console.log('[PowerCloud] Registering adyen-book feature');
+bookLogger.info('Registering adyen-book feature');
 
 // Register book feature with backward compatibility
 window.PowerCloudFeatures.book = {
   init: async (match) => {
-    console.log('[PowerCloud] adyen-book feature init called with match:', match);
+    bookLogger.info('Feature init called', { match });
     try {
       await adyenBookFeature.onInit(match);
       await adyenBookFeature.onActivate();
     } catch (error) {
-      console.error('[PowerCloud] adyen-book feature initialization error:', error);
+      bookLogger.error('Feature initialization error', { error: error.message, stack: error.stack });
       adyenBookFeature.onError(error, 'initialization');
     }
   },
   cleanup: async () => {
-    console.log('[PowerCloud] adyen-book feature cleanup called');
+    bookLogger.info('Feature cleanup called');
     try {
       await adyenBookFeature.onDeactivate();
       await adyenBookFeature.onCleanup();
     } catch (error) {
-      console.error('[PowerCloud] adyen-book feature cleanup error:', error);
+      bookLogger.error('Feature cleanup error', { error: error.message, stack: error.stack });
       adyenBookFeature.onError(error, 'cleanup');
     }
   }
 };
 
-console.log('[PowerCloud] adyen-book feature registered successfully');
+bookLogger.info('Feature registered successfully');

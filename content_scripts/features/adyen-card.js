@@ -9,14 +9,26 @@
  * This script is loaded via the manifest.json content_scripts configuration.
  */
 
-console.log('[PowerCloud] Loading adyen-card.js...');
-console.log('[PowerCloud] BaseFeature available:', typeof BaseFeature !== 'undefined');
+// Initialize logger for this feature
+const cardLogger = (() => {
+  if (window.PowerCloudLoggerFactory) {
+    return window.PowerCloudLoggerFactory.createLogger('AdyenCard');
+  }
+  return {
+    info: (message, data) => console.log(`[INFO][AdyenCard] ${message}`, data || ''),
+    warn: (message, data) => console.warn(`[WARN][AdyenCard] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][AdyenCard] ${message}`, data || '')
+  };
+})();
+
+cardLogger.info('Loading adyen-card.js...');
+cardLogger.info('BaseFeature available', { isAvailable: typeof BaseFeature !== 'undefined' });
 
 // Check if BaseFeature is available
 if (typeof BaseFeature === 'undefined') {
-  console.error('[PowerCloud] BaseFeature class not available! Cannot initialize AdyenCardFeature');
+  cardLogger.error('BaseFeature class not available! Cannot initialize AdyenCardFeature');
 } else {
-  console.log('[PowerCloud] BaseFeature is available, proceeding with AdyenCardFeature creation');
+  cardLogger.info('BaseFeature is available, proceeding with AdyenCardFeature creation');
 }
 
 /**
@@ -389,7 +401,7 @@ class AdyenCardFeature extends BaseFeature {
    */
   async handleCardInfoClick() {
     try {
-      console.log('[PowerCloud] Card button clicked, fetching card details...');
+      cardLogger.info('Card button clicked, fetching card details...');
       
       const response = await this.sendMessage({
         action: "fetchCardDetails",
@@ -397,7 +409,7 @@ class AdyenCardFeature extends BaseFeature {
         cardId: this.cardId
       });
 
-      console.log('[PowerCloud] Card details response:', response);
+      cardLogger.info('Card details response', { success: response?.success, hasCard: !!response?.card });
 
       // Check for the correct response structure
       // Response can have either:
@@ -546,7 +558,7 @@ const adyenCardFeature = new AdyenCardFeature();
 // Create namespace for PowerCloud features if it doesn't exist
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
-console.log('[PowerCloud] Registering adyen-card feature');
+cardLogger.info('Registering adyen-card feature');
 
 // Register card feature with backward compatibility
 window.PowerCloudFeatures.card = {

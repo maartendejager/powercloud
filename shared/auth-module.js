@@ -8,6 +8,32 @@
 // Import URL pattern utilities
 import { isApiRoute } from './url-patterns-module.js';
 
+// Initialize logger for Auth module (service worker safe)
+const logger = (() => {
+  try {
+    // Try to use the global logger factory if available
+    if (typeof globalThis !== 'undefined' && globalThis.PowerCloudLoggerFactory) {
+      return globalThis.PowerCloudLoggerFactory.createLogger('Auth-Module');
+    } else if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+      return window.PowerCloudLoggerFactory.createLogger('Auth-Module');
+    }
+  } catch (e) {
+    // Fallback for service worker or when logger is not available
+  }
+  
+  // Service worker safe fallback logger
+  return {
+    debug: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    info: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    warn: (message, data) => console.warn(`[WARN][Auth-Module] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][Auth-Module] ${message}`, data || '')
+  };
+})();
+
 /**
  * Token management functions
  * These functions provide secure token storage and management for the extension
@@ -22,7 +48,7 @@ async function getAllTokens() {
     const result = await chrome.storage.local.get(['authTokens']);
     return result.authTokens || [];
   } catch (error) {
-    console.error('Failed to get all tokens:', error);
+    logger.error('Failed to get all tokens:', error);
     return [];
   }
 }
@@ -85,7 +111,7 @@ async function getToken(clientEnvironment, isDev) {
       throw new Error("No valid authentication tokens found");
     }
   } catch (error) {
-    console.error('Failed to get token:', error);
+    logger.error('Failed to get token:', error);
     throw error;
   }
 }
@@ -101,7 +127,7 @@ async function getToken(clientEnvironment, isDev) {
  * @returns {Promise<boolean>} Success status
  */
 async function setToken(token, metadata = {}) {
-  console.log(`[auth-module] ${new Date().toISOString()} - Setting token with metadata:`, metadata);
+  logger.debug(`Setting token with metadata:`, metadata);
   
   // Don't process empty tokens
   if (!token) {
@@ -126,7 +152,7 @@ async function setToken(token, metadata = {}) {
       }
     } catch (e) {
       // If we can't parse the token, assume it's valid
-      console.error("Error parsing token:", e);
+      logger.error("Error parsing token:", e);
     }
     
     // Create token entry
@@ -153,12 +179,12 @@ async function setToken(token, metadata = {}) {
       
       // Store in chrome.storage
       await chrome.storage.local.set({ authTokens: tokens });
-      console.log(`[auth-module] ${new Date().toISOString()} - Token saved successfully`);
+      logger.debug(`Token saved successfully`);
     }
     
     return true;
   } catch (error) {
-    console.error('Failed to set token:', error);
+    logger.error('Failed to set token:', error);
     return false;
   }
 }
@@ -173,7 +199,7 @@ async function saveTokens(tokens) {
     await chrome.storage.local.set({ authTokens: tokens });
     return true;
   } catch (error) {
-    console.error('Failed to save tokens:', error);
+    logger.error('Failed to save tokens:', error);
     return false;
   }
 }
@@ -187,7 +213,7 @@ async function clearTokens() {
     await chrome.storage.local.set({ authTokens: [] });
     return true;
   } catch (error) {
-    console.error('Failed to clear tokens:', error);
+    logger.error('Failed to clear tokens:', error);
     return false;
   }
 }
@@ -211,7 +237,7 @@ async function removeToken(tokenToRemove) {
     
     return false;
   } catch (error) {
-    console.error('Failed to remove token:', error);
+    logger.error('Failed to remove token:', error);
     return false;
   }
 }
@@ -255,7 +281,7 @@ function getTokenPayload(token) {
     const parts = token.split('.');
     return JSON.parse(atob(parts[1]));
   } catch (error) {
-    console.error('Failed to decode token payload:', error);
+    logger.error('Failed to decode token payload:', error);
     return null;
   }
 }
@@ -266,15 +292,15 @@ function getTokenPayload(token) {
  * @returns {Promise<Array|null>} Updated tokens array or null
  */
 async function handleAuthHeaderFromWebRequest(details) {
-  console.log(`[auth-module] ${new Date().toISOString()} - Processing web request for token capture: ${details.url}`);
+  logger.debug(`Processing web request for token capture: ${details.url}`);
   
   try {
     if (!isApiRoute(details.url)) {
-      console.log(`[auth-module] Skipping non-API route: ${details.url}`);
+      logger.debug(`Skipping non-API route: ${details.url}`);
       return null; // Skip non-API routes
     }
 
-    console.log(`[auth-module] Processing API route: ${details.url}`);
+    logger.debug(`Processing API route: ${details.url}`);
 
     // Look for Authorization header
     const authHeader = details.requestHeaders?.find(header =>
@@ -284,19 +310,19 @@ async function handleAuthHeaderFromWebRequest(details) {
 
     if (authHeader?.value) {
       let token = authHeader.value;
-      console.log(`[auth-module] Found auth header: ${authHeader.name} = ${token.substring(0, 20)}...`);
+      logger.debug(`Found auth header: ${authHeader.name} = ${token.substring(0, 20)}...`);
       
       // If it's a Bearer token, extract just the JWT
       if (token.startsWith('Bearer ')) {
         token = token.slice(7);
-        console.log(`[auth-module] Extracted Bearer token: ${token.substring(0, 20)}...`);
+        logger.debug(`Extracted Bearer token: ${token.substring(0, 20)}...`);
       }
 
       // Determine client environment and dev route status
       const clientEnvironment = extractClientEnvironment(details.url);
       const isDevRouteFlag = isDevelopmentRoute(details.url);
 
-      console.log(`[auth-module] Token metadata - Environment: ${clientEnvironment}, isDev: ${isDevRouteFlag}`);
+      logger.debug(`Token metadata - Environment: ${clientEnvironment}, isDev: ${isDevRouteFlag}`);
 
       // Store the token using the existing setToken function
       await setToken(token, { 
@@ -307,14 +333,14 @@ async function handleAuthHeaderFromWebRequest(details) {
       });
       // After setting the token, get the updated list of all tokens
       const allTokens = await getAllTokens();
-      console.log(`[auth-module] ${new Date().toISOString()} - Token captured and stored, total tokens: ${allTokens.length}`);
+      logger.debug(`Token captured and stored, total tokens: ${allTokens.length}`);
       return allTokens;
     } else {
-      console.log(`[auth-module] No auth header found in request to ${details.url}`);
+      logger.debug(`No auth header found in request to ${details.url}`);
     }
     return null; // No relevant header found
   } catch (error) {
-    console.error('[auth-module] Failed to handle auth header:', error);
+    logger.error('Failed to handle auth header:', error);
     return null;
   }
 }

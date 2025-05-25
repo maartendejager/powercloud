@@ -17,25 +17,32 @@
 // All feature scripts should be loaded via manifest.json before this code runs
 window.PowerCloudFeatures = window.PowerCloudFeatures || {};
 
-console.log('[PowerCloud] Main script loaded');
-console.log('[PowerCloud] PowerCloudFeatures namespace initialized');
-console.log('[PowerCloud] Available features:', Object.keys(window.PowerCloudFeatures));
-console.log('[PowerCloud] BaseFeature available:', typeof window.BaseFeature !== 'undefined');
-console.log('[PowerCloud] Current URL:', window.location.href);
+// Initialize logging early
+let mainLogger;
+if (window.loggerFactory) {
+  mainLogger = window.loggerFactory.createLogger('Main');
+  mainLogger.info('Main script loaded');
+  mainLogger.info('PowerCloudFeatures namespace initialized');
+  mainLogger.info('Available features', { features: Object.keys(window.PowerCloudFeatures) });
+  mainLogger.info('BaseFeature available', { available: typeof window.BaseFeature !== 'undefined' });
+  mainLogger.info('Current URL', { url: window.location.href });
+}
 
 // Initialize enhanced debugging system
 if (window.enhancedDebug && window.loggerFactory) {
-  const mainLogger = window.loggerFactory.createLogger('Main');
-  window.enhancedDebug.initialize(mainLogger, {
+  const debugLogger = window.loggerFactory.createLogger('Main');
+  window.enhancedDebug.initialize(debugLogger, {
     enabled: true,
     mode: window.DebugMode?.BASIC || 1,
     enablePerformanceTracking: true,
     enableUsageTracking: true
   });
   
-  mainLogger.info('Enhanced debugging system initialized');
+  debugLogger.info('Enhanced debugging system initialized');
 } else {
-  console.log('[main] Enhanced debugging system not available, using basic logging');
+  if (mainLogger) {
+    mainLogger.warn('Enhanced debugging system not available, using basic logging');
+  }
 }
 
 // Initialize the enhanced feature manager with error boundaries
@@ -153,12 +160,16 @@ const features = [
  * @param {object} match - The URL match result containing capture groups
  */
 async function initCardFeature(match) {
-  console.log('[PowerCloud] initCardFeature called with match:', match);
-  console.log('[PowerCloud] PowerCloudFeatures state:', {
-    exists: !!window.PowerCloudFeatures,
-    keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
-    card: !!window.PowerCloudFeatures?.card
-  });
+  const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
+  
+  if (logger) {
+    logger.info('initCardFeature called', { match });
+    logger.debug('PowerCloudFeatures state', {
+      exists: !!window.PowerCloudFeatures,
+      keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+      card: !!window.PowerCloudFeatures?.card
+    });
+  }
   
   // Wait for adyen-card feature to be available (with timeout)
   let attempts = 0;
@@ -167,16 +178,25 @@ async function initCardFeature(match) {
   
   while (attempts < maxAttempts) {
     if (window.PowerCloudFeatures?.card?.init) {
-      console.log('[PowerCloud] Calling adyen-card feature init (attempt', attempts + 1, ')');
+      if (logger) {
+        logger.info('Calling adyen-card feature init', { attempt: attempts + 1 });
+      }
       return await window.PowerCloudFeatures.card.init(match);
     }
     
     attempts++;
-    console.log('[PowerCloud] Waiting for adyen-card feature to register (attempt', attempts, '/', maxAttempts, ')');
+    if (logger) {
+      logger.debug('Waiting for adyen-card feature to register', { 
+        attempt: attempts, 
+        maxAttempts 
+      });
+    }
     await new Promise(resolve => setTimeout(resolve, delay));
   }
   
-  console.error('[PowerCloud] adyen-card feature failed to register after', maxAttempts, 'attempts');
+  if (logger) {
+    logger.error('adyen-card feature failed to register', { maxAttempts });
+  }
 }
 
 /**
@@ -184,12 +204,16 @@ async function initCardFeature(match) {
  * @param {object} match - The URL match result containing capture groups  
  */
 async function loadBookFeature(match) {
-  console.log('[PowerCloud] loadBookFeature called with match:', match);
-  console.log('[PowerCloud] PowerCloudFeatures state:', {
-    exists: !!window.PowerCloudFeatures,
-    keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
-    book: !!window.PowerCloudFeatures?.book
-  });
+  const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
+  
+  if (logger) {
+    logger.info('loadBookFeature called', { match });
+    logger.debug('PowerCloudFeatures state', {
+      exists: !!window.PowerCloudFeatures,
+      keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+      book: !!window.PowerCloudFeatures?.book
+    });
+  }
   
   // Wait for adyen-book feature to be available (with timeout)
   let attempts = 0;
@@ -198,16 +222,25 @@ async function loadBookFeature(match) {
   
   while (attempts < maxAttempts) {
     if (window.PowerCloudFeatures?.book?.init) {
-      console.log('[PowerCloud] Calling adyen-book feature init (attempt', attempts + 1, ')');
+      if (logger) {
+        logger.info('Calling adyen-book feature init', { attempt: attempts + 1 });
+      }
       return await window.PowerCloudFeatures.book.init(match);
     }
     
     attempts++;
-    console.log('[PowerCloud] Waiting for adyen-book feature to register (attempt', attempts, '/', maxAttempts, ')');
+    if (logger) {
+      logger.debug('Waiting for adyen-book feature to register', { 
+        attempt: attempts, 
+        maxAttempts 
+      });
+    }
     await new Promise(resolve => setTimeout(resolve, delay));
   }
   
-  console.error('[PowerCloud] adyen-book feature failed to register after', maxAttempts, 'attempts');
+  if (logger) {
+    logger.error('adyen-book feature failed to register', { maxAttempts });
+  }
 }
 
 /**
@@ -215,12 +248,16 @@ async function loadBookFeature(match) {
  * @param {object} match - The URL match result containing capture groups  
  */
 async function loadEntriesFeature(match) {
-  console.log('[PowerCloud] loadEntriesFeature called with match:', match);
-  console.log('[PowerCloud] PowerCloudFeatures state:', {
-    exists: !!window.PowerCloudFeatures,
-    keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
-    entries: !!window.PowerCloudFeatures?.entries
-  });
+  const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
+  
+  if (logger) {
+    logger.info('loadEntriesFeature called', { match });
+    logger.debug('PowerCloudFeatures state', {
+      exists: !!window.PowerCloudFeatures,
+      keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+      entries: !!window.PowerCloudFeatures?.entries
+    });
+  }
   
   // Wait for adyen-entries feature to be available (with timeout)
   let attempts = 0;
@@ -229,16 +266,25 @@ async function loadEntriesFeature(match) {
   
   while (attempts < maxAttempts) {
     if (window.PowerCloudFeatures?.entries?.init) {
-      console.log('[PowerCloud] Calling adyen-entries feature init (attempt', attempts + 1, ')');
+      if (logger) {
+        logger.info('Calling adyen-entries feature init', { attempt: attempts + 1 });
+      }
       return await window.PowerCloudFeatures.entries.init(match);
     }
     
     attempts++;
-    console.log('[PowerCloud] Waiting for adyen-entries feature to register (attempt', attempts, '/', maxAttempts, ')');
+    if (logger) {
+      logger.debug('Waiting for adyen-entries feature to register', { 
+        attempt: attempts, 
+        maxAttempts 
+      });
+    }
     await new Promise(resolve => setTimeout(resolve, delay));
   }
   
-  console.error('[PowerCloud] adyen-entries feature failed to register after', maxAttempts, 'attempts');
+  if (logger) {
+    logger.error('adyen-entries feature failed to register', { maxAttempts });
+  }
 }
 
 // Card feature functions are now imported from adyen-card.js
@@ -280,21 +326,29 @@ function removeCardInfoButton() {
 
 // Initialize the extension using enhanced SafeFeatureManager with error boundaries
 async function initializeExtension() {
+  const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
+  
   try {
-    console.log('[PowerCloud] Starting extension initialization...');
+    if (logger) {
+      logger.info('Starting extension initialization');
+    }
     
     // Check if PowerCloudFeatures namespace is populated
-    console.log('[PowerCloud] PowerCloudFeatures at initialization:', {
-      exists: !!window.PowerCloudFeatures,
-      keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
-      card: !!window.PowerCloudFeatures?.card,
-      book: !!window.PowerCloudFeatures?.book,
-      entries: !!window.PowerCloudFeatures?.entries
-    });
+    if (logger) {
+      logger.debug('PowerCloudFeatures at initialization', {
+        exists: !!window.PowerCloudFeatures,
+        keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+        card: !!window.PowerCloudFeatures?.card,
+        book: !!window.PowerCloudFeatures?.book,
+        entries: !!window.PowerCloudFeatures?.entries
+      });
+    }
     
     // Register features with the SafeFeatureManager for better error handling
     for (const feature of features) {
-      console.log('[PowerCloud] Registering feature with SafeFeatureManager:', feature.name);
+      if (logger) {
+        logger.info('Registering feature with SafeFeatureManager', { featureName: feature.name });
+      }
       await safeFeatureManager.registerFeature(feature.name, {
         init: () => {
           // Create a feature manager instance for this specific feature
@@ -307,30 +361,44 @@ async function initializeExtension() {
       });
     }
     
-    console.log('[PowerCloud] All features registered with enhanced error handling');
+    if (logger) {
+      logger.info('All features registered with enhanced error handling');
+    }
     
     // Also initialize with the traditional feature manager for backward compatibility
-    console.log('[PowerCloud] Initializing traditional FeatureManager with', features.length, 'features');
+    if (logger) {
+      logger.info('Initializing traditional FeatureManager', { featureCount: features.length });
+    }
     const featureManager = new window.FeatureManager(features).init();
     
   } catch (error) {
-    console.error('[PowerCloud] Extension initialization failed:', error);
+    if (logger) {
+      logger.error('Extension initialization failed', { 
+        error: error.message, 
+        stack: error.stack 
+      });
+    }
   }
 }
 
 // Initialize the extension
-console.log('[PowerCloud] About to initialize extension...');
-console.log('[PowerCloud] Current URL:', window.location.href);
+const initLogger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
 
-// Test URL patterns against current URL for debugging
-console.log('[PowerCloud] Testing URL patterns against current URL:');
-features.forEach(feature => {
-  const match = window.location.href.match(feature.urlPattern);
-  console.log(`[PowerCloud] Feature "${feature.name}":`, {
-    pattern: feature.urlPattern.toString(),
-    matches: !!match,
-    match: match
+if (initLogger) {
+  initLogger.info('About to initialize extension');
+  initLogger.info('Current URL', { url: window.location.href });
+  
+  // Test URL patterns against current URL for debugging
+  initLogger.debug('Testing URL patterns against current URL');
+  features.forEach(feature => {
+    const match = window.location.href.match(feature.urlPattern);
+    initLogger.debug('Feature pattern test', {
+      featureName: feature.name,
+      pattern: feature.urlPattern.toString(),
+      matches: !!match,
+      match: match
+    });
   });
-});
+}
 
 initializeExtension();

@@ -6,6 +6,32 @@
 
 import { getCardDetails as apiGetCardDetails } from '../../shared/api-module.js';
 
+// Initialize logger for Card Processor (service worker safe)
+const logger = (() => {
+  try {
+    // Try to use the global logger factory if available
+    if (typeof globalThis !== 'undefined' && globalThis.PowerCloudLoggerFactory) {
+      return globalThis.PowerCloudLoggerFactory.createLogger('CardProcessor');
+    } else if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+      return window.PowerCloudLoggerFactory.createLogger('CardProcessor');
+    }
+  } catch (e) {
+    // Fallback for service worker or when logger is not available
+  }
+  
+  // Service worker safe fallback logger
+  return {
+    debug: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    info: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    warn: (message, data) => console.warn(`[WARN][CardProcessor] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][CardProcessor] ${message}`, data || '')
+  };
+})();
+
 /**
  * Process card details request and extract relevant information
  * @param {string} customer - The customer subdomain
@@ -52,7 +78,11 @@ export function processCardDetailsRequest(customer, cardId, isDev, requestId, se
       });
     })
     .catch(error => {
-      console.error(`Error fetching card details (${requestId || ''}):`, error);
+      logger.error('Error fetching card details', { 
+        requestId: requestId || 'unknown',
+        error: error.message,
+        cardId
+      });
       sendResponse({
         success: false,
         error: error.message,

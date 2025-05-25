@@ -5,6 +5,22 @@
  * handling storage, retrieval, validation, and manipulation of JWT tokens.
  */
 
+// Initialize logger for Auth module
+const authLogger = (() => {
+  if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+    return window.PowerCloudLoggerFactory.createLogger('Auth');
+  } else if (typeof window !== 'undefined' && window.LoggerFactory) {
+    return window.LoggerFactory.createFallbackLogger('Auth');
+  }
+  // Fallback logger
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: console.warn,
+    error: console.error
+  };
+})();
+
 // Note: This module depends on url-patterns.js being loaded first
 
 /**
@@ -104,7 +120,7 @@ async function setToken(token, metadata = {}) {
   
   // Only accept tokens from API routes
   if (metadata.url && !window.isApiRoute(metadata.url)) {
-    console.log('Skipping token from non-API URL:', metadata.url);
+    authLogger.debug('Skipping token from non-API URL:', metadata.url);
     return;
   }
   
@@ -126,7 +142,7 @@ async function setToken(token, metadata = {}) {
     }
   } catch (e) {
     // If we can't parse the token, assume it's valid
-    console.error("Error parsing token:", e);
+    authLogger.error("Error parsing token:", e);
   }
   
   // Create token entry
@@ -236,7 +252,7 @@ function getTokenPayload(token) {
     const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(atob(base64));
   } catch (e) {
-    console.error("Error decoding token payload:", e);
+    authLogger.error("Error decoding token payload:", e);
     return null;
   }
 }
@@ -328,4 +344,4 @@ if (typeof window !== 'undefined') {
   window.isDevelopmentRoute = isDevelopmentRoute;
 }
 
-console.log('🔐 AUTH MODULE LOADED AT:', new Date().toISOString());
+authLogger.info('Auth module loaded');

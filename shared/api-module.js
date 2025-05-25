@@ -8,6 +8,32 @@
 // Static imports for service worker compatibility
 import { getToken, extractClientEnvironment, isDevelopmentRoute } from './auth-module.js';
 
+// Initialize logger for API module (fallback for service worker context)
+const logger = (() => {
+  try {
+    // Try to use the global logger factory if available
+    if (typeof globalThis !== 'undefined' && globalThis.PowerCloudLoggerFactory) {
+      return globalThis.PowerCloudLoggerFactory.createLogger('API-Module');
+    } else if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+      return window.PowerCloudLoggerFactory.createLogger('API-Module');
+    }
+  } catch (e) {
+    // Fallback for service worker or when logger is not available
+  }
+  
+  // Service worker safe fallback logger
+  return {
+    debug: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    info: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    warn: (message, data) => console.warn(`[WARN][API-Module] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][API-Module] ${message}`, data || '')
+  };
+})();
+
 /**
  * Makes an authenticated request to an API endpoint
  * @param {string} endpoint - The API endpoint URL (complete URL)
@@ -50,7 +76,7 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
       options.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
     
-    console.log(`Making ${method} request to: ${endpoint}`);
+    logger.debug(`Making ${method} request to: ${endpoint}`);
     const response = await fetch(endpoint, options);
     
     // Check if response is ok
@@ -62,7 +88,7 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`API request failed for ${endpoint}:`, error);
+    logger.error(`API request failed for ${endpoint}:`, error);
     throw error;
   }
 }
@@ -129,8 +155,8 @@ function buildApiUrl(customer, path, isDev = false) {
  */
 async function getCardDetails(customer, cardId, isDev = false) {
   if (!customer || !cardId) {
-    console.error('Invalid parameters for getCardDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getCardDetails';
+    logger.error(errorMsg, { customer, cardId });
     throw new Error(`Invalid parameters: customer=${customer}, cardId=${cardId}`);
   }
   
@@ -140,7 +166,7 @@ async function getCardDetails(customer, cardId, isDev = false) {
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Card API request failed: ${error.message}`);
+    logger.error(`Card API request failed: ${error.message}`);
     throw error;
   }
 }
@@ -154,8 +180,8 @@ async function getCardDetails(customer, cardId, isDev = false) {
  */
 async function getBookDetails(customer, bookId, isDev = false) {
   if (!customer || !bookId) {
-    console.error('Invalid parameters for getBookDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getBookDetails';
+    logger.error(errorMsg, { customer, bookId });
     throw new Error(`Invalid parameters: customer=${customer}, bookId=${bookId}`);
   }
   
@@ -165,7 +191,7 @@ async function getBookDetails(customer, bookId, isDev = false) {
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Book API request failed: ${error.message}`);
+    logger.error(`Book API request failed: ${error.message}`);
     throw error;
   }
 }
@@ -179,8 +205,8 @@ async function getBookDetails(customer, bookId, isDev = false) {
  */
 async function getAdministrationDetails(customer, administrationId, isDev = false) {
   if (!customer || !administrationId) {
-    console.error('Invalid parameters for getAdministrationDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getAdministrationDetails';
+    logger.error(errorMsg, { customer, administrationId });
     throw new Error(`Invalid parameters: customer=${customer}, administrationId=${administrationId}`);
   }
   
@@ -190,7 +216,7 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Administration API request failed: ${error.message}`);
+    logger.error(`Administration API request failed: ${error.message}`);
     throw error;
   }
 }
@@ -204,8 +230,8 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
  */
 async function getBalanceAccountDetails(customer, balanceAccountId, isDev = false) {
   if (!customer || !balanceAccountId) {
-    console.error('Invalid parameters for getBalanceAccountDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getBalanceAccountDetails';
+    logger.error(errorMsg, { customer, balanceAccountId });
     throw new Error(`Invalid parameters: customer=${customer}, balanceAccountId=${balanceAccountId}`);
   }
   
@@ -215,7 +241,7 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Balance account API request failed: ${error.message}`);
+    logger.error(`Balance account API request failed: ${error.message}`);
     throw error;
   }
 }
@@ -229,8 +255,8 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
  */
 async function getEntryDetails(customer, entryId, isDev = false) {
   if (!customer || !entryId) {
-    console.error('Invalid parameters for getEntryDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getEntryDetails';
+    logger.error(errorMsg, { customer, entryId });
     throw new Error(`Invalid parameters: customer=${customer}, entryId=${entryId}`);
   }
   
@@ -240,12 +266,12 @@ async function getEntryDetails(customer, entryId, isDev = false) {
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Entry API request failed: ${error.message}`);
+    logger.error(`Entry API request failed: ${error.message}`);
     throw error;
   }
 }
 
-console.log('🚀 API MODULE (ES6) LOADED AT:', new Date().toISOString());
+logger.info('API module (ES6) loaded');
 
 export {
   makeAuthenticatedRequest,

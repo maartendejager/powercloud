@@ -636,6 +636,40 @@ class PowerCloudUI {
     }
 
     /**
+     * Create a container element with children
+     * @param {Object} options - Container options
+     * @param {string} options.id - ID for the container
+     * @param {string} options.className - CSS class name(s)
+     * @param {Array} options.children - Child elements to append
+     * @returns {HTMLElement} The container element
+     */
+    static createContainer(options = {}) {
+        const container = document.createElement('div');
+        
+        if (options.id) {
+            container.id = options.id;
+        }
+        
+        if (options.className) {
+            container.className = options.className;
+        }
+        
+        if (options.children && Array.isArray(options.children)) {
+            options.children.forEach(child => {
+                if (child && typeof child.create === 'function') {
+                    // It's a PowerCloudUI component
+                    container.appendChild(child.create());
+                } else if (child instanceof HTMLElement) {
+                    // It's already a DOM element
+                    container.appendChild(child);
+                }
+            });
+        }
+        
+        return container;
+    }
+
+    /**
      * Initialize UI system with base styles
      * @param {Document|ShadowRoot} target - Where to inject base styles
      */

@@ -6,6 +6,32 @@
 
 import { getBalanceAccountDetails as apiGetBalanceAccountDetails } from '../../shared/api-module.js';
 
+// Initialize logger for Balance Account Processor (service worker safe)
+const logger = (() => {
+  try {
+    // Try to use the global logger factory if available
+    if (typeof globalThis !== 'undefined' && globalThis.PowerCloudLoggerFactory) {
+      return globalThis.PowerCloudLoggerFactory.createLogger('BalanceAccountProcessor');
+    } else if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+      return window.PowerCloudLoggerFactory.createLogger('BalanceAccountProcessor');
+    }
+  } catch (e) {
+    // Fallback for service worker or when logger is not available
+  }
+  
+  // Service worker safe fallback logger
+  return {
+    debug: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    info: (message, data) => {
+      // In service worker, only log errors and warnings to console
+    },
+    warn: (message, data) => console.warn(`[WARN][BalanceAccountProcessor] ${message}`, data || ''),
+    error: (message, data) => console.error(`[ERROR][BalanceAccountProcessor] ${message}`, data || '')
+  };
+})();
+
 /**
  * Process balance account details request and extract relevant information
  * @param {string} customer - The customer subdomain
@@ -36,7 +62,11 @@ export function processBalanceAccountDetailsRequest(customer, balanceAccountId, 
       });
     })
     .catch(error => {
-      console.error(`Error fetching balance account details (${requestId || ''}):`, error);
+      logger.error('Error fetching balance account details', { 
+        requestId: requestId || 'unknown',
+        error: error.message,
+        balanceAccountId
+      });
       sendResponse({
         success: false,
         error: error.message

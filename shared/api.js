@@ -5,6 +5,22 @@
  * requests to spend.cloud APIs.
  */
 
+// Initialize logger for API module
+const apiLogger = (() => {
+  if (typeof window !== 'undefined' && window.PowerCloudLoggerFactory) {
+    return window.PowerCloudLoggerFactory.createLogger('API');
+  } else if (typeof window !== 'undefined' && window.LoggerFactory) {
+    return window.LoggerFactory.createFallbackLogger('API');
+  }
+  // Fallback logger
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: console.warn,
+    error: console.error
+  };
+})();
+
 // Note: This module depends on auth.js being loaded first
 // Auth functions are available via window.getToken, window.extractClientEnvironment, window.isDevelopmentRoute
 
@@ -67,7 +83,7 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
       return await response.text();
     }
   } catch (error) {
-    console.error('API request error:', error);
+    apiLogger.error('API request error:', error);
     throw error;
   }
 }
@@ -158,8 +174,8 @@ async function getBookDetails(customer, bookId, isDev = false) {
  */
 async function getAdministrationDetails(customer, administrationId, isDev = false) {
   if (!customer || !administrationId) {
-    console.error('Invalid parameters for getAdministrationDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getAdministrationDetails';
+    apiLogger.error(errorMsg, { customer, administrationId });
     throw new Error(`Invalid parameters: customer=${customer}, administrationId=${administrationId}`);
   }
   
@@ -171,10 +187,10 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
   try {
     const token = await window.getToken(customer, isDev);
     if (!token) {
-      console.warn('No token available for administration API request!');
+      apiLogger.warn('No token available for administration API request!');
     }
   } catch (error) {
-    console.error('Error checking token:', error);
+    apiLogger.error('Error checking token:', error);
   }
   
   try {
@@ -183,14 +199,14 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
     // Check if the response has the expected structure
     return response;
   } catch (primaryError) {
-    console.error(`Primary administration API request failed: ${primaryError.message}`);
+    apiLogger.error(`Primary administration API request failed: ${primaryError.message}`);
     
     // Try fallback endpoint in case the primary fails
     try {
       const alternateUrl = buildApiUrl(customer, `/api/v1/administrations/${administrationId}`, isDev);
       return await get(alternateUrl);
     } catch (fallbackError) {
-      console.error(`Alternative administration API request also failed: ${fallbackError.message}`);
+      apiLogger.error(`Alternative administration API request also failed: ${fallbackError.message}`);
       throw primaryError; // Throw the original error
     }
   }
@@ -205,8 +221,8 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
  */
 async function getBalanceAccountDetails(customer, balanceAccountId, isDev = false) {
   if (!customer || !balanceAccountId) {
-    console.error('Invalid parameters for getBalanceAccountDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getBalanceAccountDetails';
+    apiLogger.error(errorMsg, { customer, balanceAccountId });
     throw new Error(`Invalid parameters: customer=${customer}, balanceAccountId=${balanceAccountId}`);
   }
   
@@ -216,7 +232,7 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Balance account API request failed: ${error.message}`);
+    apiLogger.error(`Balance account API request failed: ${error.message}`);
     throw error;
   }
 }
@@ -230,8 +246,8 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
  */
 async function getEntryDetails(customer, entryId, isDev = false) {
   if (!customer || !entryId) {
-    console.error('Invalid parameters for getEntryDetails');
-    console.trace('Trace for invalid parameters');
+    const errorMsg = 'Invalid parameters for getEntryDetails';
+    apiLogger.error(errorMsg, { customer, entryId });
     throw new Error(`Invalid parameters: customer=${customer}, entryId=${entryId}`);
   }
   
@@ -241,7 +257,7 @@ async function getEntryDetails(customer, entryId, isDev = false) {
     const response = await get(url);
     return response;
   } catch (error) {
-    console.error(`Entry API request failed: ${error.message}`);
+    apiLogger.error(`Entry API request failed: ${error.message}`);
     throw error;
   }
 }
@@ -261,4 +277,4 @@ if (typeof window !== 'undefined') {
   window.getEntryDetails = getEntryDetails;
 }
 
-console.log('🚀 API MODULE LOADED AT:', new Date().toISOString());
+apiLogger.info('API module loaded');
