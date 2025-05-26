@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PowerCloud Button Styling Fix Test</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        #log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>PowerCloud Button Styling Fix Test</h1>
+    <p>This test verifies that buttons in the PowerCloudButtonContainer's shadow DOM are properly styled.</p>
+
+    <div class="test-section">
+        <h2>Test: Button Styling in Shadow DOM</h2>
+        <p>Creating a PowerCloudButtonManager and adding styled buttons to verify the fix.</p>
+        <div id="styling-status" class="status info">🔄 Running test...</div>
+        <button onclick="runStylingTest()" style="margin: 10px 0; padding: 8px 16px;">Run Styling Test</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Information</h2>
+        <div id="log"></div>
+    </div>
+
+    <!-- Load PowerCloud UI Components -->
+    <script src="shared/ui-components.js"></script>
+
+    <script>
+        let log = document.getElementById('log');
+        
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+        
+        function addLog(message) {
+            log.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function runStylingTest() {
+            addLog('🧪 Starting button styling test...');
+            
+            try {
+                // Initialize PowerCloud UI
+                if (window.PowerCloudUI) {
+                    window.PowerCloudUI.initialize();
+                    addLog('✅ PowerCloudUI initialized');
+                } else {
+                    throw new Error('PowerCloudUI not available');
+                }
+                
+                // Get button manager
+                const manager = window.PowerCloudUI.getButtonManager();
+                addLog('✅ Retrieved button manager');
+                
+                // Add test buttons with different variants
+                const testButtons = [
+                    {
+                        id: 'test-primary',
+                        text: 'Primary Button',
+                        variant: 'primary',
+                        size: 'medium',
+                        onClick: () => addLog('🖱️ Primary button clicked!')
+                    },
+                    {
+                        id: 'test-success',
+                        text: 'Success Button',
+                        variant: 'success',
+                        size: 'medium',
+                        onClick: () => addLog('🖱️ Success button clicked!')
+                    }
+                ];
+                
+                testButtons.forEach((buttonConfig, index) => {
+                    const button = manager.addButton('styling-test', buttonConfig);
+                    if (button) {
+                        addLog(`✅ Added ${buttonConfig.variant} button`);
+                    } else {
+                        throw new Error(`Failed to add ${buttonConfig.variant} button`);
+                    }
+                });
+                
+                // Check if buttons are visible and styled
+                setTimeout(() => {
+                    const container = document.querySelector('#powercloud-button-container');
+                    if (container) {
+                        addLog('✅ Button container found in DOM');
+                        
+                        // Check if container has shadow DOM
+                        if (container.shadowRoot) {
+                            addLog('✅ Container has shadow DOM');
+                            
+                            // Check if shadow DOM contains styles
+                            const shadowStyles = container.shadowRoot.querySelectorAll('style');
+                            addLog(`✅ Found ${shadowStyles.length} style elements in shadow DOM`);
+                            
+                            // Check if buttons exist in shadow DOM
+                            const buttons = container.shadowRoot.querySelectorAll('.powercloud-button');
+                            addLog(`✅ Found ${buttons.length} buttons in shadow DOM`);
+                            
+                            if (buttons.length > 0) {
+                                // Check button classes
+                                buttons.forEach((btn, i) => {
+                                    const classes = btn.className;
+                                    addLog(`📋 Button ${i+1} classes: ${classes}`);
+                                });
+                                
+                                // Check computed styles
+                                const firstButton = buttons[0];
+                                const computedStyle = window.getComputedStyle(firstButton);
+                                const backgroundColor = computedStyle.backgroundColor;
+                                const color = computedStyle.color;
+                                const padding = computedStyle.padding;
+                                
+                                addLog(`🎨 Button computed styles:`);
+                                addLog(`   Background: ${backgroundColor}`);
+                                addLog(`   Color: ${color}`);
+                                addLog(`   Padding: ${padding}`);
+                                
+                                if (backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent') {
+                                    addLog('✅ Button has background color - styling working!');
+                                    updateStatus('styling-status', '✅ SUCCESS: Buttons are properly styled!', 'success');
+                                } else {
+                                    addLog('❌ Button has no background - styling may not be working');
+                                    updateStatus('styling-status', '❌ FAIL: Buttons not properly styled', 'error');
+                                }
+                            } else {
+                                addLog('❌ No buttons found in shadow DOM');
+                                updateStatus('styling-status', '❌ FAIL: No buttons found', 'error');
+                            }
+                        } else {
+                            addLog('❌ Container does not have shadow DOM');
+                            updateStatus('styling-status', '❌ FAIL: No shadow DOM', 'error');
+                        }
+                    } else {
+                        addLog('❌ Button container not found in DOM');
+                        updateStatus('styling-status', '❌ FAIL: Container not found', 'error');
+                    }
+                }, 100);
+                
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`);
+                updateStatus('styling-status', `❌ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run test on page load
+        window.addEventListener('load', () => {
+            setTimeout(runStylingTest, 500);
+        });
+    </script>
+</body>
+</html>

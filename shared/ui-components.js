@@ -1007,6 +1007,15 @@ class PowerCloudButtonContainer extends PowerCloudUIComponent {
             }
         `;
     }
+
+    /**
+     * Override getComponentStyles to include button styles in shadow DOM
+     */
+    getComponentStyles() {
+        return PowerCloudUIStyles.getBaseStyles() + 
+               PowerCloudUIStyles.getButtonStyles() + 
+               this.getCustomStyles();
+    }
 }
 
 /**
