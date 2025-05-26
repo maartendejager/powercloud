@@ -45,9 +45,21 @@ export function processEntryDetailsRequest(customer, entryId, isDev, requestId, 
   // Get entry details using our API module
   apiGetEntryDetails(customer, entryId, isDev)
     .then(data => {
-      // Send back the full response for extraction in the content script
+      // Extract adyenTransferId from the response data similar to how the content script does it
+      let adyenTransferId = null;
+      
+      if (data?.data?.attributes?.adyenTransferId) {
+        adyenTransferId = data.data.attributes.adyenTransferId;
+      } else if (data?.attributes?.adyenTransferId) {
+        adyenTransferId = data.attributes.adyenTransferId;
+      } else if (data?.adyenTransferId) {
+        adyenTransferId = data.adyenTransferId;
+      }
+      
+      // Send back the response with extracted adyenTransferId
       sendResponse({
         success: true,
+        adyenTransferId: adyenTransferId,
         data: data,
         requestId
       });

@@ -153,6 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial fetch of tokens
   fetchAndDisplayTokens();
   
+  // Load page actions since it's the default active tab
+  loadPageActions();
+  
   // Add event listener for the "Delete All Tokens" button
   document.getElementById('delete-all-btn').addEventListener('click', () => {
     chrome.runtime.sendMessage({
@@ -256,6 +259,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load health data when health tab is activated
     if (tabId === 'health') {
       loadHealthDashboard();
+    }
+    
+    // Load page actions when actions tab is activated
+    if (tabId === 'actions') {
+      loadPageActions();
     }
   }
   
@@ -1269,6 +1277,13 @@ document.addEventListener('DOMContentLoaded', () => {
       button.textContent = originalText;
       button.disabled = false;
       
+      // Debug logging to see what we're receiving
+      console.log('[popup] Entries response received:', response);
+      if (response && response.success) {
+        console.log('[popup] Response has adyenTransferId:', response.adyenTransferId);
+        console.log('[popup] Response data:', response.data);
+      }
+      
       showActionResult(resultDiv, response, 'entries');
     });
   });
@@ -1318,8 +1333,8 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
         
       case 'entries':
-        if (response.transferId) {
-          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/transfers/${response.transferId}`;
+        if (response.adyenTransferId) {
+          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/transfers/${response.adyenTransferId}`;
           chrome.tabs.create({ url: adyenUrl });
           resultDiv.textContent = 'Opening transfer in Adyen dashboard...';
           resultDiv.className = 'action-result success';
