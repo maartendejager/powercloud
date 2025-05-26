@@ -74,6 +74,9 @@ class AdyenCardFeature extends BaseFeature {
       throw new Error('Invalid match data for card feature');
     }
 
+    // Store the match object for other features that might need it
+    this.match = match;
+    
     // In our new pattern, customer is always in match[1] and cardId is always in match[2]
     this.customer = match[1];
     this.cardId = match[2];
@@ -135,6 +138,16 @@ class AdyenCardFeature extends BaseFeature {
    */
   async onCleanup() {
     this.removeCardInfoButton();
+    
+    // Clean up the view card book feature if it was initialized
+    if (window.PowerCloudFeatures?.viewCardBook?.cleanup) {
+      try {
+        await window.PowerCloudFeatures.viewCardBook.cleanup();
+      } catch (error) {
+        this.log('Error cleaning up view card book feature', { error: error.message });
+      }
+    }
+    
     await super.onCleanup();
   }
 
@@ -170,6 +183,35 @@ class AdyenCardFeature extends BaseFeature {
           this.isAdyenCard = response.vendor === 'adyen';
           this.vendor = response.vendor;
           this.addCardInfoButton();
+          
+          // Initialize the view card book feature if available
+          console.log('[DEBUG][AdyenCard] Checking for ViewCardBook feature availability:', {
+            powerCloudFeaturesAvailable: !!window.PowerCloudFeatures,
+            viewCardBookAvailable: !!window.PowerCloudFeatures?.viewCardBook,
+            initMethodAvailable: !!window.PowerCloudFeatures?.viewCardBook?.init,
+            responseStructure: {
+              hasData: !!response.data,
+              hasRelationships: !!(response.data?.relationships || response.relationships),
+              keys: Object.keys(response || {})
+            }
+          });
+          
+          if (window.PowerCloudFeatures?.viewCardBook?.init) {
+            this.log('Initializing view card book feature');
+            try {
+              const viewCardBookPromise = window.PowerCloudFeatures.viewCardBook.init(this.match, response);
+              viewCardBookPromise.then(() => {
+                console.log('[DEBUG][AdyenCard] ViewCardBook feature initialized successfully');
+              }).catch(error => {
+                console.error('[DEBUG][AdyenCard] ViewCardBook feature initialization promise failed:', error);
+              });
+            } catch (viewCardBookError) {
+              this.log('Error initializing view card book feature', { error: viewCardBookError.message });
+              console.error('[DEBUG][AdyenCard] Error initializing ViewCardBook feature:', viewCardBookError);
+            }
+          } else {
+            console.warn('[DEBUG][AdyenCard] ViewCardBook feature not available, skipping initialization');
+          }
           
           // Clear any previous errors on success
           this.clearApiError('fetchCardDetails');

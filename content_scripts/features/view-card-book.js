@@ -23,12 +23,15 @@ const cardBookLogger = (() => {
 
 cardBookLogger.info('Loading view-card-book.js...');
 cardBookLogger.info('BaseFeature available', { isAvailable: typeof BaseFeature !== 'undefined' });
+console.log('[DEBUG][ViewCardBook] Script loaded and executing');
 
 // Check if BaseFeature is available
 if (typeof BaseFeature === 'undefined') {
   cardBookLogger.error('BaseFeature class not available! Cannot initialize ViewCardBookFeature');
+  console.error('[DEBUG][ViewCardBook] BaseFeature is undefined');
 } else {
-  cardBookLogger.info('BaseFeature is available, proceeding with ViewCardBookFeature creation');
+  cardBookLogger.info('BaseFeature is available, proceeding with ViewCardBookFeature');
+  console.log('[DEBUG][ViewCardBook] BaseFeature is available');
 }
 
 /**
@@ -68,31 +71,120 @@ class ViewCardBookFeature extends BaseFeature {
    * @param {object} cardData - The card data response from the API
    */
   async onInit(match, cardData) {
-    await super.onInit(match);
-    
-    if (!match || match.length < 3) {
-      throw new Error('Invalid match data for view card book feature');
-    }
-
-    // In our pattern, customer is always in match[1] and cardId is always in match[2]
-    this.customer = match[1];
-    this.cardId = match[2];
-    
-    // If card data is available, extract book ID
-    if (cardData) {
-      this.extractBookId(cardData);
-    }
-    
-    // Set current period (MM-YYYY format)
-    this.setCurrentPeriod();
-    
-    this.log('Initializing view card book feature', { 
-      customer: this.customer, 
-      cardId: this.cardId,
-      bookId: this.bookId,
-      currentPeriod: this.currentPeriod,
-      config: this.config 
+    console.log('[DEBUG][ViewCardBook] onInit called with:', { 
+      match, 
+      hasCardData: !!cardData,
+      matchType: typeof match,
+      cardDataType: typeof cardData,
+      url: window.location.href
     });
+    
+    try {
+      await super.onInit(match);
+      
+      // Validate match data
+      if (!match || (Array.isArray(match) && match.length < 3)) {
+        console.error('[DEBUG][ViewCardBook] Invalid match data:', match);
+        throw new Error('Invalid match data for view card book feature');
+      }
+
+      // Handle different match formats (array or object with groups)
+      if (Array.isArray(match)) {
+        // Array format from regex exec
+        this.customer = match[1];
+        this.cardId = match[2];
+      } else if (match.groups) {
+        // Object with named groups
+        this.customer = match.groups.customer || match.groups[1];
+        this.cardId = match.groups.cardId || match.groups[2];
+      } else {
+        // Try to extract from properties
+        this.customer = match[1] || match.customer;
+        this.cardId = match[2] || match.cardId;
+      }
+      
+      console.log('[DEBUG][ViewCardBook] Customer and cardId extracted:', { 
+        customer: this.customer, 
+        cardId: this.cardId,
+        extractionSuccessful: !!(this.customer && this.cardId)
+      });
+      
+      // Verify we have the required data
+      if (!this.customer || !this.cardId) {
+        console.error('[DEBUG][ViewCardBook] Failed to extract customer or cardId from match:', match);
+        throw new Error('Failed to extract customer or cardId from match data');
+      }
+      
+      // If card data is available, extract book ID
+      if (cardData) {
+        console.log('[DEBUG][ViewCardBook] Card data available, extracting book ID');
+        // Debug log the first part of the card data
+        const cardDataStr = JSON.stringify(cardData).substring(0, 500);
+        console.log(`[DEBUG][ViewCardBook] Card data preview: ${cardDataStr}...`);
+        this.extractBookId(cardData);
+      } else {
+        console.warn('[DEBUG][ViewCardBook] No card data provided to extract book ID');
+        // If no card data provided, try to fetch it (implementation for future)
+        this.log('Attempting to recover by looking for data in window');
+        // Look for data in window.__INITIAL_STATE__ or other common patterns
+        this.tryRecoverCardData();
+      }
+      
+      // Set current period (MM-YYYY format)
+      this.setCurrentPeriod();
+      
+      this.log('Initializing view card book feature', { 
+        customer: this.customer, 
+        cardId: this.cardId,
+        bookId: this.bookId,
+        currentPeriod: this.currentPeriod,
+        config: this.config 
+      });
+      
+      console.log('[DEBUG][ViewCardBook] Initialization complete:', {
+        customer: this.customer,
+        cardId: this.cardId,
+        bookId: this.bookId,
+        currentPeriod: this.currentPeriod,
+        hasBookId: !!this.bookId
+      });
+    } catch (error) {
+      console.error('[DEBUG][ViewCardBook] Error during initialization:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Try to recover card data from other sources if not provided
+   * This is a fallback method
+   */
+  tryRecoverCardData() {
+    try {
+      console.log('[DEBUG][ViewCardBook] Attempting to recover card data from window object');
+      // Check common patterns for data
+      if (window.__INITIAL_STATE__ && window.__INITIAL_STATE__.cards) {
+        console.log('[DEBUG][ViewCardBook] Found __INITIAL_STATE__ with cards data');
+        const cardData = window.__INITIAL_STATE__.cards.find(c => c.id === this.cardId);
+        if (cardData) {
+          console.log('[DEBUG][ViewCardBook] Found card data in window.__INITIAL_STATE__');
+          this.extractBookId(cardData);
+          return;
+        }
+      }
+      
+      // Try looking for any book_id or books relationship in the page source
+      const pageSource = document.documentElement.innerHTML;
+      const bookIdMatch = pageSource.match(/"book_id"\s*:\s*"?(\d+)"?/);
+      if (bookIdMatch && bookIdMatch[1]) {
+        this.bookId = bookIdMatch[1];
+        console.log('[DEBUG][ViewCardBook] Found book ID in page source:', this.bookId);
+        return;
+      }
+      
+      console.log('[DEBUG][ViewCardBook] Could not recover card data from alternative sources');
+    } catch (error) {
+      console.error('[DEBUG][ViewCardBook] Error trying to recover card data:', error);
+    }
   }
 
   /**
@@ -101,24 +193,74 @@ class ViewCardBookFeature extends BaseFeature {
    */
   extractBookId(cardData) {
     try {
-      // Try to extract book ID from relationships
-      if (cardData?.data?.relationships?.books?.data?.[0]?.id) {
-        this.bookId = cardData.data.relationships.books.data[0].id;
-        this.log('Book ID extracted from card data (data.relationships path)', { bookId: this.bookId });
-        return;
+      console.log('[DEBUG][ViewCardBook] Attempting to extract book ID from card data');
+      
+      // Deep debug logging of the card data structure
+      let pathsToCheck = [];
+      let dataStructure = {};
+      
+      // Check if response is wrapped in a container
+      if (cardData?.success === true && cardData?.data) {
+        console.log('[DEBUG][ViewCardBook] Found success wrapper structure');
+        dataStructure.hasSuccessWrapper = true;
+        cardData = cardData.data; // Unwrap the actual data
       }
       
-      // Alternative path for book ID
-      if (cardData?.relationships?.books?.data?.[0]?.id) {
-        this.bookId = cardData.relationships.books.data[0].id;
-        this.log('Book ID extracted from card data (relationships path)', { bookId: this.bookId });
-        return;
+      // Build data structure map for debugging
+      dataStructure = {
+        topLevelKeys: Object.keys(cardData || {}),
+        hasData: !!cardData?.data,
+        hasAttributes: !!cardData?.attributes || !!cardData?.data?.attributes,
+        hasRelationships: !!cardData?.relationships || !!cardData?.data?.relationships,
+        dataKeys: cardData?.data ? Object.keys(cardData.data) : []
+      };
+      
+      // Build paths to check for book ID
+      pathsToCheck = [
+        { path: 'data.relationships.books.data[0].id', value: cardData?.data?.relationships?.books?.data?.[0]?.id },
+        { path: 'relationships.books.data[0].id', value: cardData?.relationships?.books?.data?.[0]?.id },
+        { path: 'data.attributes.books[0].id', value: cardData?.data?.attributes?.books?.[0]?.id },
+        { path: 'attributes.books[0].id', value: cardData?.attributes?.books?.[0]?.id },
+        { path: 'data.books[0].id', value: cardData?.data?.books?.[0]?.id },
+        { path: 'books[0].id', value: cardData?.books?.[0]?.id },
+        { path: 'data.book_id', value: cardData?.data?.book_id },
+        { path: 'book_id', value: cardData?.book_id }
+      ];
+      
+      console.log('[DEBUG][ViewCardBook] Card data structure:', dataStructure);
+      console.log('[DEBUG][ViewCardBook] Paths to check for book ID:', pathsToCheck);
+      
+      // Try each path in order
+      for (const { path, value } of pathsToCheck) {
+        if (value) {
+          this.bookId = value;
+          this.log(`Book ID extracted from card data (${path})`, { bookId: this.bookId });
+          console.log(`[DEBUG][ViewCardBook] Book ID found: ${this.bookId} from path: ${path}`);
+          return;
+        }
+      }
+      
+      // Special case: if cardData is the full API response, try to check inside it
+      if (cardData?.vendor && !this.bookId) {
+        console.log('[DEBUG][ViewCardBook] Found vendor in cardData, checking for books in nested locations');
+        
+        // Check additional structures
+        const bookDataInIncluded = cardData.included?.find(item => item.type === 'books');
+        if (bookDataInIncluded) {
+          this.bookId = bookDataInIncluded.id;
+          this.log('Book ID extracted from included data', { bookId: this.bookId });
+          console.log('[DEBUG][ViewCardBook] Book ID found in included data:', this.bookId);
+          return;
+        }
       }
 
-      // If no book ID is found
+      // If no book ID is found, dump the structure for debugging
       this.log('No book ID found in card data');
+      console.warn('[DEBUG][ViewCardBook] No book ID could be found in the card data structure');
+      console.log('[DEBUG][ViewCardBook] Full card data for debugging:', JSON.stringify(cardData, null, 2).substring(0, 500) + '...');
     } catch (error) {
       this.handleError('Failed to extract book ID from card data', error);
+      console.error('[DEBUG][ViewCardBook] Error extracting book ID:', error);
     }
   }
 
@@ -138,25 +280,39 @@ class ViewCardBookFeature extends BaseFeature {
       const now = new Date();
       this.currentPeriod = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
     }
-  }
-
-  /**
+  }  /**
    * Activate the feature - create book button if book ID is present
    */
   async onActivate() {
     await super.onActivate();
-    
+
     try {
+      console.log('[DEBUG][ViewCardBook] Activating feature with bookId:', this.bookId);
+      
       // Check if book ID is available
       if (!this.bookId) {
         this.log('No book ID available, skipping button creation');
+        console.warn('[DEBUG][ViewCardBook] Cannot create button due to missing book ID');
         return;
       }
 
       // Add button to view card book
       this.addCardBookButton();
+      
+      // Double-check that button was created successfully
+      setTimeout(() => {
+        const host = document.getElementById(this.config.hostElementId);
+        if (!host || !this.bookButtonCreated) {
+          console.warn('[DEBUG][ViewCardBook] Button creation check failed, retrying once');
+          this.bookButtonCreated = false; // Reset flag
+          this.addCardBookButton(); // Try again
+        } else {
+          console.log('[DEBUG][ViewCardBook] Button creation verification successful');
+        }
+      }, 500);
     } catch (error) {
       this.handleError('Failed to activate view card book feature', error);
+      console.error('[DEBUG][ViewCardBook] Activation error:', error);
     }
   }
 
@@ -172,6 +328,8 @@ class ViewCardBookFeature extends BaseFeature {
    * Adds a button to view the card's associated book
    */
   addCardBookButton() {
+    console.log('[DEBUG][ViewCardBook] addCardBookButton called. Button already exists?', this.bookButtonCreated);
+    
     if (this.bookButtonCreated) {
       this.log('Book button already exists, skipping creation');
       return;
@@ -184,30 +342,49 @@ class ViewCardBookFeature extends BaseFeature {
           bookId: this.bookId,
           currentPeriod: this.currentPeriod
         });
+        console.warn('[DEBUG][ViewCardBook] Cannot create button due to missing data:', {
+          hasBookId: !!this.bookId, 
+          bookId: this.bookId, 
+          hasPeriod: !!this.currentPeriod, 
+          period: this.currentPeriod
+        });
         return;
       }
       
-      // Create shadow DOM container if not exists
-      let shadowHost = document.getElementById(this.config.hostElementId);
-      if (!shadowHost) {
-        shadowHost = document.createElement('div');
-        shadowHost.id = this.config.hostElementId;
-        document.body.appendChild(shadowHost);
-        
-        // Set styling for the host element
-        shadowHost.style.position = 'fixed';
-        shadowHost.style.right = '85px'; // Position to the left of card info button
-        shadowHost.style.bottom = '20px';
-        shadowHost.style.zIndex = '9999';
-      }
+      console.log('[DEBUG][ViewCardBook] Creating button with:', {
+        bookId: this.bookId,
+        currentPeriod: this.currentPeriod,
+        hostElementId: this.config.hostElementId
+      });
+      
+      // Remove any existing host element to avoid duplication
+      this.removeCardBookButton();
+      
+      // Create shadow DOM container
+      console.log('[DEBUG][ViewCardBook] Creating new shadow host with ID:', this.config.hostElementId);
+      const shadowHost = document.createElement('div');
+      shadowHost.id = this.config.hostElementId;
+      document.body.appendChild(shadowHost);
+      
+      // Set styling for the host element
+      shadowHost.style.position = 'fixed';
+      shadowHost.style.right = '85px'; // Position to the left of card info button
+      shadowHost.style.bottom = '20px';
+      shadowHost.style.zIndex = '9999';
+      shadowHost.style.display = 'block'; // Ensure visibility
+      
+      console.log('[DEBUG][ViewCardBook] Shadow host created and added to document body');
       
       // Create shadow DOM
       const shadow = shadowHost.attachShadow({ mode: 'open' });
+      console.log('[DEBUG][ViewCardBook] Shadow DOM attached to host');
       
       // Create button element
       this.bookButton = document.createElement('button');
       this.bookButton.textContent = 'View Card Book';
+      this.bookButton.id = 'powercloud-view-card-book-button'; // Add ID for easier debugging
       this.bookButton.addEventListener('click', () => this.handleCardBookClick());
+      console.log('[DEBUG][ViewCardBook] Button element created with click handler');
       
       // Style the button
       const style = document.createElement('style');
@@ -223,6 +400,9 @@ class ViewCardBookFeature extends BaseFeature {
           font-weight: bold;
           box-shadow: 0 2px 5px rgba(0,0,0,0.2);
           transition: background-color 0.3s;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
         }
         button:hover {
           background-color: #45a049;
@@ -236,11 +416,161 @@ class ViewCardBookFeature extends BaseFeature {
       // Append elements to shadow DOM
       shadow.appendChild(style);
       shadow.appendChild(this.bookButton);
+      console.log('[DEBUG][ViewCardBook] Style and button appended to shadow DOM');
       
       this.bookButtonCreated = true;
       this.log('Card book button added successfully');
+      console.log('[DEBUG][ViewCardBook] Button creation completed successfully');
+      
+      // Check if button is visible in the DOM
+      setTimeout(() => {
+        const isVisible = this.debugCheckButtonVisibility();
+        console.log('[DEBUG][ViewCardBook] Button visibility check result:', isVisible);
+        
+        // If button isn't visible, try emergency method after 1 second
+        if (!isVisible) {
+          setTimeout(() => {
+            console.log('[DEBUG][ViewCardBook] Regular button not visible, trying emergency method');
+            this.emergencyShowButton();
+          }, 1000);
+        }
+      }, 100);
     } catch (error) {
       this.handleError('Failed to add card book button', error);
+      console.error('[DEBUG][ViewCardBook] Error during button creation:', error);
+    }
+  }
+
+  /**
+   * Debug helper - check if button is in DOM and properly positioned
+   */
+  debugCheckButtonVisibility() {
+    console.log('[DEBUG][ViewCardBook] Checking button visibility');
+    
+    try {
+      // Check if shadow host exists
+      const shadowHost = document.getElementById(this.config.hostElementId);
+      if (!shadowHost) {
+        console.warn('[DEBUG][ViewCardBook] Host element not found in DOM');
+        return false;
+      }
+      
+      // Check if it's properly styled
+      const hostStyles = getComputedStyle(shadowHost);
+      console.log('[DEBUG][ViewCardBook] Host element styles:', {
+        position: hostStyles.position,
+        right: hostStyles.right,
+        bottom: hostStyles.bottom,
+        zIndex: hostStyles.zIndex,
+        display: hostStyles.display
+      });
+      
+      // Check if it has a shadow root and button
+      const shadow = shadowHost.shadowRoot;
+      if (!shadow) {
+        console.warn('[DEBUG][ViewCardBook] Shadow root not found');
+        return false;
+      }
+      
+      const button = shadow.querySelector('button');
+      if (!button) {
+        console.warn('[DEBUG][ViewCardBook] Button not found in shadow DOM');
+        return false;
+      }
+      
+      console.log('[DEBUG][ViewCardBook] Button found in DOM, should be visible');
+      return true;
+    } catch (error) {
+      console.error('[DEBUG][ViewCardBook] Error checking button visibility:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Alternative test method to ensure button visibility by trying multiple approaches
+   * This is a fallback for troubleshooting purposes
+   */
+  emergencyShowButton() {
+    try {
+      console.log('[DEBUG][ViewCardBook] Attempting emergency button display methods');
+      
+      // Try method 1: Direct DOM insertion with no shadow DOM
+      const directBtn = document.createElement('button');
+      directBtn.textContent = 'View Card Book (Direct)';
+      directBtn.style.position = 'fixed';
+      directBtn.style.right = '20px';
+      directBtn.style.bottom = '60px';
+      directBtn.style.zIndex = '10000';
+      directBtn.style.backgroundColor = '#4CAF50';
+      directBtn.style.color = 'white';
+      directBtn.style.padding = '10px 15px';
+      directBtn.style.border = 'none';
+      directBtn.style.borderRadius = '4px';
+      directBtn.style.cursor = 'pointer';
+      directBtn.style.fontWeight = 'bold';
+      directBtn.id = 'powercloud-emergency-book-btn';
+      
+      // Add click handler
+      directBtn.addEventListener('click', () => {
+        try {
+          if (this.bookId && this.currentPeriod) {
+            const isDev = window.location.href.includes('.dev.spend.cloud');
+            const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.spend.cloud`;
+            const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${this.bookId}/${this.currentPeriod}`;
+            window.open(bookUrl, '_blank');
+          } else {
+            alert('No book ID available for this card');
+          }
+        } catch (clickError) {
+          console.error('[DEBUG][ViewCardBook] Error in emergency button click:', clickError);
+        }
+      });
+      
+      document.body.appendChild(directBtn);
+      console.log('[DEBUG][ViewCardBook] Added emergency direct button to DOM');
+      
+      // Try method 2: Append to a common container
+      try {
+        // Look for common containers in the page
+        const containers = [
+          document.querySelector('.card-details'),
+          document.querySelector('.card-header'),
+          document.querySelector('header'),
+          document.querySelector('main')
+        ].filter(Boolean);
+        
+        if (containers.length > 0) {
+          const container = containers[0];
+          const inlineBtn = document.createElement('button');
+          inlineBtn.textContent = 'View Book';
+          inlineBtn.className = 'btn btn-secondary';
+          inlineBtn.style.margin = '10px';
+          inlineBtn.addEventListener('click', () => {
+            try {
+              if (this.bookId && this.currentPeriod) {
+                const isDev = window.location.href.includes('.dev.spend.cloud');
+                const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.spend.cloud`;
+                const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${this.bookId}/${this.currentPeriod}`;
+                window.open(bookUrl, '_blank');
+              } else {
+                alert('No book ID available for this card');
+              }
+            } catch (clickError) {
+              console.error('[DEBUG][ViewCardBook] Error in inline button click:', clickError);
+            }
+          });
+          
+          container.appendChild(inlineBtn);
+          console.log('[DEBUG][ViewCardBook] Added emergency inline button to container:', container);
+        }
+      } catch (inlineError) {
+        console.error('[DEBUG][ViewCardBook] Error with inline button:', inlineError);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('[DEBUG][ViewCardBook] Emergency button display failed:', error);
+      return false;
     }
   }
 
@@ -338,34 +668,73 @@ class ViewCardBookFeature extends BaseFeature {
 }
 
 // Register the feature with the PowerCloudFeatures namespace
-if (window.PowerCloudFeatures) {
+// Ensure feature registration happens after page is fully loaded to avoid timing issues
+const registerViewCardBookFeature = function() {
+  // Ensure PowerCloudFeatures namespace exists
+  window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+  
+  // Define our feature
   window.PowerCloudFeatures.viewCardBook = {
     init: function(match, cardData) {
       cardBookLogger.info('ViewCardBook feature init called', { 
         match, 
-        hasCardData: !!cardData
+        hasCardData: !!cardData,
+        cardDataStructure: cardData ? Object.keys(cardData) : []
       });
+      console.log('[DEBUG][ViewCardBook] Init called with card data structure:', 
+        cardData ? JSON.stringify(cardData, null, 2) : 'No card data');
       
-      // Create and initialize the feature
-      const feature = new ViewCardBookFeature();
-      return feature.init(match, cardData).then(() => {
-        feature.activate();
-        // Store the instance for cleanup
-        window.PowerCloudFeatures.viewCardBook._instance = feature;
-        return feature;
-      });
+      try {
+        // Create and initialize the feature
+        const feature = new ViewCardBookFeature();
+        return feature.onInit(match, cardData).then(() => {
+          console.log('[DEBUG][ViewCardBook] Init completed, activating feature');
+          feature.onActivate();
+          // Store the instance for cleanup
+          window.PowerCloudFeatures.viewCardBook._instance = feature;
+          return feature;
+        }).catch(error => {
+          console.error('[DEBUG][ViewCardBook] Error during init/activate:', error);
+          throw error;
+        });
+      } catch (error) {
+        console.error('[DEBUG][ViewCardBook] Error creating feature instance:', error);
+        throw error;
+      }
     },
     cleanup: function() {
       cardBookLogger.info('ViewCardBook feature cleanup called');
       // If we have an instance, call its cleanup method
       if (window.PowerCloudFeatures.viewCardBook._instance) {
-        return window.PowerCloudFeatures.viewCardBook._instance.cleanup();
+        return window.PowerCloudFeatures.viewCardBook._instance.onCleanup();
       }
       return Promise.resolve();
     }
   };
   
   cardBookLogger.info('ViewCardBook feature registered with PowerCloudFeatures');
+  console.log('[DEBUG][ViewCardBook] Feature successfully registered with PowerCloudFeatures');
+};
+
+// Immediate registration attempt
+if (typeof BaseFeature !== 'undefined') {
+  registerViewCardBookFeature();
 } else {
-  cardBookLogger.error('PowerCloudFeatures namespace not available, cannot register ViewCardBook feature');
+  cardBookLogger.warn('BaseFeature not available yet, will try again when page loads');
+  console.warn('[DEBUG][ViewCardBook] BaseFeature not available yet, will try again when page loads');
+  
+  // Try again when the document is fully loaded
+  if (document.readyState === 'complete') {
+    registerViewCardBookFeature();
+  } else {
+    window.addEventListener('load', function() {
+      console.log('[DEBUG][ViewCardBook] Window loaded, attempting to register feature');
+      if (typeof BaseFeature !== 'undefined') {
+        registerViewCardBookFeature();
+      } else {
+        console.error('[DEBUG][ViewCardBook] BaseFeature still not available after page load');
+        cardBookLogger.error('BaseFeature class not available after page load! Cannot initialize ViewCardBookFeature');
+      }
+    });
+  }
 }

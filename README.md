@@ -94,6 +94,15 @@ There are two ways to get a card's Adyen Payment Instrument ID:
 4. Click "View Card at Adyen" button
 5. The card details will open directly in Adyen's dashboard in a new tab
 
+### View Card Book
+For cards that have an associated book, the extension provides a feature to view the card book:
+
+1. Navigate to a card page (https://[customer].spend.cloud/cards/[card-id]/* or other supported card pages)
+2. A green "View Card Book" button will appear in the bottom-right corner next to the "View in Adyen" button
+3. The extension will automatically check if the card has a relationship to a book
+4. If a book ID is found, the button will be enabled
+5. Click the button to view the card's associated book for the current month/year directly in a new tab
+
 ### Monetary Account Books
 For monetary account books, the extension provides a feature to view the balance account at Adyen:
 
