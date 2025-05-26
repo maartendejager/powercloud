@@ -146,10 +146,26 @@
 }
 
 /* Visibility control classes */
+/* Visibility classes */
 .powercloud-visible {
-    display: block;
+    display: block !important;
 }
 
 .powercloud-hidden {
-    display: none;
+    display: none !important;
+}
+
+/* Target buttons inside the container when container is hidden/visible */
+.powercloud-button-container.powercloud-visible {
+    display: block !important;
+}
+
+.powercloud-button-container.powercloud-hidden {
+    display: none !important;
+}
+
+/* Make sure shadow DOM buttons respect visibility */
+.powercloud-button-container.powercloud-hidden .powercloud-buttons-wrapper,
+.powercloud-hidden .powercloud-button-container {
+    display: none !important;
 }

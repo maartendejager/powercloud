@@ -12,10 +12,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const showButtons = e.target.checked;
     chrome.storage.local.set({ showButtons: showButtons });
     
+    // Update status indicator in popup
+    const statusText = document.createElement('span');
+    statusText.textContent = showButtons ? 'Showing buttons...' : 'Hiding buttons...';
+    statusText.className = 'toggle-status';
+    statusText.style.marginLeft = '10px';
+    statusText.style.fontSize = '12px';
+    statusText.style.fontStyle = 'italic';
+    statusText.style.opacity = '0.8';
+    
+    // Add status text after toggle
+    const toggleLabel = document.querySelector('.toggle-label');
+    if (toggleLabel.nextElementSibling?.classList.contains('toggle-status')) {
+      toggleLabel.nextElementSibling.remove();
+    }
+    toggleLabel.parentNode.appendChild(statusText);
+    
+    // Fade out the status text after 2 seconds
+    setTimeout(() => {
+      statusText.style.transition = 'opacity 1s ease-out';
+      statusText.style.opacity = '0';
+    }, 2000);
+    
     // Notify all tabs to update button visibility
     chrome.tabs.query({ url: ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"] }, (tabs) => {
+      let updatedTabs = 0;
+      
+      if (tabs.length === 0) {
+        console.log('No applicable tabs to update visibility');
+        return;
+      }
+      
       tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, { action: 'updateButtonVisibility', showButtons });
+        try {
+          // Improved error handling for message sending
+          chrome.tabs.sendMessage(tab.id, { action: 'updateButtonVisibility', showButtons }, (response) => {
+            // Check for error in the response
+            const lastError = chrome.runtime.lastError;
+            if (lastError) {
+              console.log(`Button visibility update skipped for tab ${tab.id}: ${lastError.message}`);
+            } else {
+              console.log(`Button visibility updated for tab ${tab.id}`);
+              updatedTabs++;
+            }
+          });
+        } catch (err) {
+          console.log(`Error updating button visibility for tab ${tab.id}: ${err.message}`);
+        }
       });
     });
   });

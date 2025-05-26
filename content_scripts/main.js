@@ -81,7 +81,26 @@ const features = [
     init: function() {
       // Use the init function from ui-visibility-manager.js using the PowerCloudFeatures namespace
       if (window.PowerCloudFeatures?.uiVisibilityManager?.init) {
-        return window.PowerCloudFeatures.uiVisibilityManager.init();
+        try {
+          if (mainLogger) {
+            mainLogger.info('Initializing UI visibility manager');
+          } else {
+            console.log('Initializing UI visibility manager');
+          }
+          return window.PowerCloudFeatures.uiVisibilityManager.init();
+        } catch (err) {
+          if (mainLogger) {
+            mainLogger.error('Error initializing UI visibility manager', { error: err.message });
+          } else {
+            console.error('Error initializing UI visibility manager:', err);
+          }
+        }
+      } else {
+        if (mainLogger) {
+          mainLogger.warn('UI visibility manager init function not found');
+        } else {
+          console.warn('UI visibility manager init function not found');
+        }
       }
     },
     cleanup: null  // No cleanup needed
@@ -342,6 +361,87 @@ function removeCardInfoButton() {
   }
 }
 
+/**
+ * Global container cleanup function
+ * Makes sure button container is removed when not on a supported page
+ */
+function cleanupButtonContainer() {
+  if (window.PowerCloudButtonManager?.instance) {
+    if (mainLogger) {
+      mainLogger.info('Removing PowerCloudButtonManager container');
+    } else {
+      console.log('Removing PowerCloudButtonManager container');
+    }
+    window.PowerCloudButtonManager.instance.cleanup();
+  } else if (document.getElementById('powercloud-button-container')) {
+    // Direct DOM removal as fallback if manager isn't available
+    const container = document.getElementById('powercloud-button-container');
+    container.remove();
+    if (mainLogger) {
+      mainLogger.info('Directly removed powercloud-button-container');
+    } else {
+      console.log('Directly removed powercloud-button-container');
+    }
+  }
+}
+
+/**
+ * Run cleanup code when feature manager is not loaded 
+ * or no features match the current URL
+ */
+function runFeatureCheck() {
+  try {
+    // Check if any feature URL pattern matches the current URL
+    const currentUrl = window.location.href;
+    
+    // Check if any feature in our feature array matches the URL
+    const matchesAnyFeature = features.some(feature => {
+      return feature.urlPattern.test(currentUrl);
+    });
+    
+    if (!matchesAnyFeature) {
+      if (mainLogger) {
+        mainLogger.info('No matching features found for current URL, cleaning up any UI elements');
+      } else {
+        console.log('No matching features found for current URL, cleaning up any UI elements');
+      }
+      
+      // Clean up any UI elements if we're not on a supported page
+      cleanupButtonContainer();
+    }
+  } catch (error) {
+    if (mainLogger) {
+      mainLogger.error('Error in runFeatureCheck', { error: error.message });
+    } else {
+      console.error('Error in runFeatureCheck:', error);
+    }
+  }
+}
+
+// Enhance the feature manager with a function to run after navigation
+function enhanceFeatureManager() {
+  if (window.featureManager) {
+    // Store the original init method
+    const originalInit = window.featureManager.init;
+    
+    // Override the init method to also run our feature check
+    window.featureManager.init = function() {
+      const result = originalInit.apply(this, arguments);
+      
+      // After regular initialization, run our check to clean up if needed
+      runFeatureCheck();
+      
+      return result;
+    };
+    
+    if (mainLogger) {
+      mainLogger.info('Enhanced feature manager with navigation cleanup');
+    } else {
+      console.log('Enhanced feature manager with navigation cleanup');
+    }
+  }
+}
+
 // Initialize the extension using enhanced SafeFeatureManager with error boundaries
 async function initializeExtension() {
   const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
@@ -420,50 +520,126 @@ async function initializeExtension() {
     }
     const featureManager = new window.FeatureManager(features).init();
     
+    // Store the feature manager instance for our enhancements
+    window.featureManager = featureManager;
+    
+    // Enhance the feature manager to clean up UI on navigation
+    enhanceFeatureManager();
+    
+    // Also run our feature check immediately to clean up any existing UI elements
+    // if we're not on a supported page
+    runFeatureCheck();
+    
+    // Set up a mutation observer to detect SPA navigation
+    setupSpaNavigationObserver();
+    
+    return featureManager;
   } catch (error) {
-    // Record initialization failure in health dashboard
+    if (logger) {
+      logger.error('Error initializing extension', { error });
+    } else {
+      console.error('Error initializing extension:', error);
+    }
+    
+    // Even if main initialization fails, still try to clean up any existing UI
+    // to avoid orphaned buttons
+    try {
+      runFeatureCheck();
+    } catch (cleanupErr) {
+      console.error('Error during cleanup after failed initialization:', cleanupErr);
+    }
+    
+    // Record errors in health dashboard
     if (chrome?.runtime?.sendMessage) {
       chrome.runtime.sendMessage({
         action: 'recordFeatureEvent',
         featureName: 'extension',
         event: 'error',
         level: 'error',
-        logMessage: 'Extension initialization failed',
+        logMessage: 'Failed to initialize extension',
         data: { 
           error: error.message,
-          stack: error.stack,
-          url: window.location.href
+          stack: error.stack
         }
       }).catch(() => {});
     }
     
-    if (logger) {
-      logger.error('Extension initialization failed', { 
-        error: error.message, 
-        stack: error.stack 
-      });
-    }
+    return null;
   }
 }
 
-// Initialize the extension
-const initLogger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
-
-if (initLogger) {
-  initLogger.info('About to initialize extension');
-  initLogger.info('Current URL', { url: window.location.href });
+/**
+ * Set up a mutation observer to detect SPA (Single Page Application) navigation
+ * This helps clean up UI elements when the page URL changes without a full page reload
+ */
+function setupSpaNavigationObserver() {
+  // Store the current URL to detect changes
+  let lastUrl = window.location.href;
   
-  // Test URL patterns against current URL for debugging
-  initLogger.debug('Testing URL patterns against current URL');
-  features.forEach(feature => {
-    const match = window.location.href.match(feature.urlPattern);
-    initLogger.debug('Feature pattern test', {
-      featureName: feature.name,
-      pattern: feature.urlPattern.toString(),
-      matches: !!match,
-      match: match
-    });
+  // Create a mutation observer to watch for DOM changes that might indicate navigation
+  const observer = new MutationObserver(() => {
+    // If URL changed, we have navigation
+    if (lastUrl !== window.location.href) {
+      if (mainLogger) {
+        mainLogger.info('SPA navigation detected', { 
+          from: lastUrl, 
+          to: window.location.href 
+        });
+      } else {
+        console.log(`SPA navigation detected: ${lastUrl} → ${window.location.href}`);
+      }
+      
+      // Update stored URL
+      lastUrl = window.location.href;
+      
+      // Run our feature check to clean up UI if needed
+      runFeatureCheck();
+    }
   });
+  
+  // Start observing the whole document with a configuration to detect navigation
+  observer.observe(document, { 
+    childList: true,
+    subtree: true
+  });
+  
+  if (mainLogger) {
+    mainLogger.info('Set up SPA navigation observer');
+  } else {
+    console.log('Set up SPA navigation observer');
+  }
+  
+  // Also listen for the history API
+  const originalPushState = window.history.pushState;
+  const originalReplaceState = window.history.replaceState;
+  
+  window.history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    
+    // Run feature check after pushState
+    setTimeout(runFeatureCheck, 50);
+  };
+  
+  window.history.replaceState = function() {
+    originalReplaceState.apply(this, arguments);
+    
+    // Run feature check after replaceState
+    setTimeout(runFeatureCheck, 50);
+  };
 }
 
-initializeExtension();
+// Initialize the extension when DOM is fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeExtension);
+} else {
+  initializeExtension();
+}
+
+// Perform initial cleanup to remove button container if not on a supported page
+cleanupButtonContainer();
+
+// Run feature check to clean up any UI elements if no features match the current URL
+runFeatureCheck();
+
+// Enhance the feature manager to include navigation cleanup
+enhanceFeatureManager();

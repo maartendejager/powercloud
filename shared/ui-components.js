@@ -1012,8 +1012,28 @@ class PowerCloudButtonContainer extends PowerCloudUIComponent {
      * Override getComponentStyles to include button styles in shadow DOM
      */
     getComponentStyles() {
+        const visibilityStyles = `
+        /* Visibility control styles */
+        .powercloud-visible {
+            display: block !important;
+        }
+        
+        .powercloud-hidden {
+            display: none !important;
+        }
+        
+        .powercloud-button-container.powercloud-visible {
+            display: block !important;
+        }
+        
+        .powercloud-button-container.powercloud-hidden {
+            display: none !important;
+        }
+        `;
+        
         return PowerCloudUIStyles.getBaseStyles() + 
                PowerCloudUIStyles.getButtonStyles() + 
+               visibilityStyles +
                this.getCustomStyles();
     }
 }
@@ -1058,9 +1078,45 @@ class PowerCloudButtonManager {
             
             this.initialized = true;
             
+            // Check for visibility settings 
+            this.applyVisibilitySettings();
+            
             console.log('[PowerCloudButtonManager] Initialized successfully');
         } catch (error) {
             console.error('[PowerCloudButtonManager] Failed to initialize:', error);
+        }
+    }
+    
+    /**
+     * Apply visibility settings from PowerCloudFeatures.uiVisibilityManager
+     */
+    applyVisibilitySettings() {
+        if (!this.initialized || !this.container || !this.container.element) {
+            return;
+        }
+        
+        try {
+            // Check if visibility manager is available
+            if (window.PowerCloudFeatures && window.PowerCloudFeatures.uiVisibilityManager) {
+                const showButtons = window.PowerCloudFeatures.uiVisibilityManager.showButtons;
+                
+                // Apply visibility class to the button container
+                this.container.element.className = showButtons ? 
+                    'powercloud-button-container powercloud-visible' : 
+                    'powercloud-button-container powercloud-hidden';
+                
+                console.log(`[PowerCloudButtonManager] Applied visibility setting: ${showButtons ? 'visible' : 'hidden'}`);
+            } else {
+                // Default to visible if no setting available
+                chrome.storage.local.get('showButtons', (result) => {
+                    const showButtons = result.showButtons === undefined ? true : result.showButtons;
+                    this.container.element.className = showButtons ? 
+                        'powercloud-button-container powercloud-visible' : 
+                        'powercloud-button-container powercloud-hidden';
+                });
+            }
+        } catch (error) {
+            console.error('[PowerCloudButtonManager] Error applying visibility settings:', error);
         }
     }
 
@@ -1172,6 +1228,29 @@ class PowerCloudButtonManager {
             features: Array.from(this.features),
             buttons: Array.from(this.buttons.keys())
         };
+    }
+    
+    /**
+     * Update the visibility of all buttons
+     * @param {boolean} isVisible - Whether buttons should be visible
+     * @returns {boolean} Whether the update was successful
+     */
+    updateVisibility(isVisible) {
+        if (!this.initialized || !this.container || !this.container.element) {
+            return false;
+        }
+        
+        try {
+            this.container.element.className = isVisible ? 
+                'powercloud-button-container powercloud-visible' : 
+                'powercloud-button-container powercloud-hidden';
+                
+            console.log(`[PowerCloudButtonManager] Visibility updated: ${isVisible ? 'visible' : 'hidden'}`);
+            return true;
+        } catch (error) {
+            console.error('[PowerCloudButtonManager] Error updating visibility:', error);
+            return false;
+        }
     }
 }
 
