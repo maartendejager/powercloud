@@ -974,6 +974,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return null; // No matching page type
   }
 
+  // Function to check if card has associated book and show/hide card book button
+  function checkCardBookAvailability(customer, cardId) {
+    const cardBookBtn = document.getElementById('popup-card-book-btn');
+    
+    // Hide button by default
+    cardBookBtn.style.display = 'none';
+    
+    // Fetch card details to check for book
+    chrome.runtime.sendMessage({
+      action: "fetchCardDetails",
+      customer: customer,
+      cardId: cardId
+    }, (response) => {
+      if (response && response.success) {
+        const bookId = extractBookIdFromCardData(response);
+        if (bookId) {
+          // Show the card book button if book is available
+          cardBookBtn.style.display = 'inline-block';
+          console.log('[popup] Card book button shown - book ID found:', bookId);
+        } else {
+          console.log('[popup] Card book button hidden - no book ID found');
+        }
+      } else {
+        console.log('[popup] Card book button hidden - failed to fetch card details');
+      }
+    });
+  }
+
   function updatePageActionsUI(pageInfo) {
     const pageTypeElement = document.getElementById('page-type');
     const cardActions = document.getElementById('card-actions');
@@ -1001,6 +1029,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cardActions.style.display = 'block';
         document.getElementById('card-customer').textContent = pageInfo.customer;
         document.getElementById('card-id-display').textContent = pageInfo.id;
+        
+        // Check if card has associated book to show/hide card book button
+        checkCardBookAvailability(pageInfo.customer, pageInfo.id);
         break;
       case 'book':
         bookActions.style.display = 'block';
@@ -1057,6 +1088,35 @@ document.addEventListener('DOMContentLoaded', () => {
       button.disabled = false;
       
       showActionResult(resultDiv, response, 'card');
+    });
+  });
+
+  document.getElementById('popup-card-book-btn').addEventListener('click', () => {
+    const customer = document.getElementById('card-customer').textContent;
+    const cardId = document.getElementById('card-id-display').textContent;
+    
+    if (customer === '-' || cardId === '-') return;
+
+    // Show loading state
+    const button = document.getElementById('popup-card-book-btn');
+    const resultDiv = document.getElementById('card-book-action-result');
+    const originalText = button.textContent;
+    
+    button.textContent = 'Loading...';
+    button.disabled = true;
+    resultDiv.style.display = 'none';
+
+    // Send message to fetch card details and extract book information
+    chrome.runtime.sendMessage({
+      action: "fetchCardDetails",
+      customer: customer,
+      cardId: cardId
+    }, (response) => {
+      // Reset button
+      button.textContent = originalText;
+      button.disabled = false;
+      
+      showActionResult(resultDiv, response, 'cardbook');
     });
   });
 
@@ -1125,6 +1185,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Helper function to extract book ID from card data response
+  function extractBookIdFromCardData(cardData) {
+    try {
+      console.log('[popup] Extracting book ID from card data');
+      
+      // Handle wrapped response structure
+      let data = cardData;
+      if (cardData?.success === true && cardData?.data) {
+        data = cardData.data;
+      }
+      
+      // Define paths to check for book ID (based on view-card-book.js logic)
+      const pathsToCheck = [
+        { path: 'data.relationships.books.data[0].id', value: data?.data?.relationships?.books?.data?.[0]?.id },
+        { path: 'relationships.books.data[0].id', value: data?.relationships?.books?.data?.[0]?.id },
+        { path: 'data.attributes.books[0].id', value: data?.data?.attributes?.books?.[0]?.id },
+        { path: 'attributes.books[0].id', value: data?.attributes?.books?.[0]?.id },
+        { path: 'data.books[0].id', value: data?.data?.books?.[0]?.id },
+        { path: 'books[0].id', value: data?.books?.[0]?.id },
+        { path: 'data.book_id', value: data?.data?.book_id },
+        { path: 'book_id', value: data?.book_id }
+      ];
+      
+      // Try each path in order
+      for (const { path, value } of pathsToCheck) {
+        if (value) {
+          console.log('[popup] Book ID found via path:', path, 'value:', value);
+          return value;
+        }
+      }
+      
+      // Check for book data in included section
+      if (data?.included) {
+        const bookDataInIncluded = data.included.find(item => item.type === 'books');
+        if (bookDataInIncluded?.id) {
+          console.log('[popup] Book ID found in included data:', bookDataInIncluded.id);
+          return bookDataInIncluded.id;
+        }
+      }
+      
+      console.log('[popup] No book ID found in card data');
+      return null;
+    } catch (error) {
+      console.error('[popup] Error extracting book ID:', error);
+      return null;
+    }
+  }
+
   function showActionResult(resultDiv, response, actionType) {
     resultDiv.style.display = 'block';
     
@@ -1177,6 +1285,40 @@ document.addEventListener('DOMContentLoaded', () => {
           resultDiv.className = 'action-result success';
         } else {
           resultDiv.textContent = 'No transfer ID found for this entry';
+          resultDiv.className = 'action-result error';
+        }
+        break;
+        
+      case 'cardbook':
+        // Extract book ID from card data response
+        const bookId = extractBookIdFromCardData(response);
+        if (bookId) {
+          // Generate current period in MM-YYYY format
+          const now = new Date();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const year = now.getFullYear();
+          const currentPeriod = `${month}-${year}`;
+          
+          // Get customer from the card customer display
+          const customer = document.getElementById('card-customer').textContent;
+          
+          // Determine if this is dev environment
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const currentUrl = tabs[0]?.url || '';
+            const isDev = currentUrl.includes('.dev.spend.cloud');
+            
+            // Construct book URL
+            const baseUrl = `https://${customer}${isDev ? '.dev' : ''}.spend.cloud`;
+            const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${bookId}/${currentPeriod}`;
+            
+            // Open book URL
+            chrome.tabs.create({ url: bookUrl });
+          });
+          
+          resultDiv.textContent = 'Opening card book in new tab...';
+          resultDiv.className = 'action-result success';
+        } else {
+          resultDiv.textContent = 'No book found for this card';
           resultDiv.className = 'action-result error';
         }
         break;
