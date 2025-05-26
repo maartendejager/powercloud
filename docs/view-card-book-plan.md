@@ -2,11 +2,11 @@
 
 This document outlines the steps to implement the "View Card Book" feature. This feature will be active on pages where card information is displayed and will allow users to navigate to the linked card book\'s current active period.
 
-## [ ] 1. Create a New Feature File
+## [x] 1. Create a New Feature File
 
-*   [ ] Create a new JavaScript file named `view-card-book.js` in the `content_scripts/features/` directory.
-*   [ ] This file will contain the logic for the "View Card Book" feature.
-*   [ ] It should follow the structure of other feature files, potentially extending `BaseFeature` if applicable.
+*   [x] Create a new JavaScript file named `view-card-book.js` in the `content_scripts/features/` directory.
+*   [x] This file will contain the logic for the "View Card Book" feature.
+*   [x] It should follow the structure of other feature files, potentially extending `BaseFeature` if applicable.
 
 ## [ ] 2. Implement Feature Logic in `view-card-book.js`
 
