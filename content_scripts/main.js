@@ -366,21 +366,61 @@ function removeCardInfoButton() {
  * Makes sure button container is removed when not on a supported page
  */
 function cleanupButtonContainer() {
-  if (window.PowerCloudButtonManager?.instance) {
-    if (mainLogger) {
-      mainLogger.info('Removing PowerCloudButtonManager container');
-    } else {
-      console.log('Removing PowerCloudButtonManager container');
+  try {
+    // Method 1: Use PowerCloudButtonManager cleanup
+    if (window.PowerCloudButtonManager?.instance) {
+      if (mainLogger) {
+        mainLogger.info('Removing PowerCloudButtonManager container');
+      } else {
+        console.log('Removing PowerCloudButtonManager container');
+      }
+      window.PowerCloudButtonManager.instance.cleanup();
+      
+      // Force instance reset to null to prevent singleton persistence issues
+      if (window.PowerCloudButtonManagerInstance) {
+        window.PowerCloudButtonManagerInstance = null;
+      }
     }
-    window.PowerCloudButtonManager.instance.cleanup();
-  } else if (document.getElementById('powercloud-button-container')) {
-    // Direct DOM removal as fallback if manager isn't available
-    const container = document.getElementById('powercloud-button-container');
-    container.remove();
+    
+    // Method 2: Direct DOM removal (try both even if the first method succeeds)
+    const containers = [
+      document.getElementById('powercloud-button-container'),
+      document.getElementById('powercloud-shadow-host'),
+      document.querySelector('.powercloud-button-container')
+    ].filter(Boolean); // Remove nulls
+    
+    if (containers.length > 0) {
+      containers.forEach(container => {
+        try {
+          container.remove();
+        } catch (err) {
+          // Ignore errors with individual container removal
+        }
+      });
+      
+      if (mainLogger) {
+        mainLogger.info(`Directly removed ${containers.length} button container elements`);
+      } else {
+        console.log(`Directly removed ${containers.length} button container elements`);
+      }
+    }
+    
+    // Method 3: Clean up global PowerCloud references
+    if (window.PowerCloudUI?.getButtonManager) {
+      try {
+        const manager = window.PowerCloudUI.getButtonManager();
+        if (manager && manager.cleanup) {
+          manager.cleanup();
+        }
+      } catch (err) {
+        // Ignore errors with manager cleanup
+      }
+    }
+  } catch (error) {
     if (mainLogger) {
-      mainLogger.info('Directly removed powercloud-button-container');
+      mainLogger.error('Error in cleanupButtonContainer', { error: error.message });
     } else {
-      console.log('Directly removed powercloud-button-container');
+      console.error('Error in cleanupButtonContainer:', error);
     }
   }
 }
@@ -394,16 +434,22 @@ function runFeatureCheck() {
     // Check if any feature URL pattern matches the current URL
     const currentUrl = window.location.href;
     
-    // Check if any feature in our feature array matches the URL
-    const matchesAnyFeature = features.some(feature => {
+    // Check if any feature (excluding uiVisibilityManager) in our feature array matches the URL
+    // We exclude uiVisibilityManager because it matches ALL spend.cloud domains
+    // but it doesn't add any buttons itself
+    const matchesAnyButtonFeature = features.some(feature => {
+      // Skip uiVisibilityManager when checking for features that add buttons
+      if (feature.name === 'uiVisibilityManager') {
+        return false;
+      }
       return feature.urlPattern.test(currentUrl);
     });
     
-    if (!matchesAnyFeature) {
+    if (!matchesAnyButtonFeature) {
       if (mainLogger) {
-        mainLogger.info('No matching features found for current URL, cleaning up any UI elements');
+        mainLogger.info('No matching button features found for current URL, cleaning up any UI elements');
       } else {
-        console.log('No matching features found for current URL, cleaning up any UI elements');
+        console.log('No matching button features found for current URL, cleaning up any UI elements');
       }
       
       // Clean up any UI elements if we're not on a supported page
@@ -575,22 +621,35 @@ async function initializeExtension() {
 function setupSpaNavigationObserver() {
   // Store the current URL to detect changes
   let lastUrl = window.location.href;
+  let lastPathname = window.location.pathname;
+  let lastSearch = window.location.search;
   
   // Create a mutation observer to watch for DOM changes that might indicate navigation
   const observer = new MutationObserver(() => {
-    // If URL changed, we have navigation
-    if (lastUrl !== window.location.href) {
+    // Check for URL changes - both full URL and pathname/search changes
+    const currentUrl = window.location.href;
+    const currentPathname = window.location.pathname;
+    const currentSearch = window.location.search;
+    const urlChanged = lastUrl !== currentUrl;
+    const pathnameChanged = lastPathname !== currentPathname;
+    const searchChanged = lastSearch !== currentSearch;
+    
+    if (urlChanged || pathnameChanged || searchChanged) {
       if (mainLogger) {
         mainLogger.info('SPA navigation detected', { 
           from: lastUrl, 
-          to: window.location.href 
+          to: currentUrl,
+          pathnameChanged,
+          searchChanged
         });
       } else {
-        console.log(`SPA navigation detected: ${lastUrl} → ${window.location.href}`);
+        console.log(`SPA navigation detected: ${lastUrl} → ${currentUrl}`);
       }
       
-      // Update stored URL
-      lastUrl = window.location.href;
+      // Update stored URL components
+      lastUrl = currentUrl;
+      lastPathname = currentPathname;
+      lastSearch = currentSearch;
       
       // Run our feature check to clean up UI if needed
       runFeatureCheck();
