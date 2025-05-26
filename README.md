@@ -17,6 +17,15 @@ Start with the [Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md) for 
 ### For Testing
 See the [Testing Documentation](./docs/testing/) for comprehensive testing procedures and guides.
 
+## Token Terminology
+
+To maintain clarity in the codebase and UI, we use the following terminology:
+
+- **Tenant Name**: The client organization name, stored as `clientEnvironment` in the code (e.g., "customer1", "acme-corp")
+- **Environment Type**: Whether the environment is development or production, stored as `isDevRoute` (true/false)
+
+For detailed clarification, see [Token Terminology Clarification](./docs/ui-improvements/token-terminology-clarification.md).
+
 ## Project Structure
 
 ```

@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalTokens = apiTokens.length;
       let validTokens = 0;
       let expiredTokens = 0;
-      const environments = new Set();
+      const tenants = new Set(); // Set of unique tenant names (clientEnvironment)
       
       apiTokens.forEach(token => {
         const isExpired = checkTokenExpiry(token);
@@ -59,11 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           validTokens++;
         }
-        environments.add(token.clientEnvironment || 'Unknown');
+        tenants.add(token.clientEnvironment || 'Unknown');
       });
       
-      // Update metrics cards
-      updateTokenMetrics(totalTokens, validTokens, expiredTokens, environments.size);
+      // Update metrics cards (tenants count is shown as "Tenants" in the UI)
+      updateTokenMetrics(totalTokens, validTokens, expiredTokens, tenants.size);
       
       // Update overview status
       if (expiredTokens > 0) {
@@ -132,12 +132,39 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
   
+  // Helper function to extract tenant name from token payload
+  function getTenantName(token) {
+    if (!token || !token.token) {
+      return token.clientEnvironment || 'Unknown';
+    }
+    
+    // Try to extract client/tenant name from the JWT payload
+    try {
+      const parts = token.token.split('.');
+      if (parts.length !== 3) {
+        return token.clientEnvironment || 'Unknown';
+      }
+      
+      const payload = JSON.parse(atob(parts[1]));
+      // Check for client field in the payload
+      if (payload.client) {
+        return payload.client;
+      }
+      
+      // Fall back to stored clientEnvironment value
+      return token.clientEnvironment || 'Unknown';
+    } catch (e) {
+      // If there's an error parsing, fall back to the stored value
+      return token.clientEnvironment || 'Unknown';
+    }
+  }
+  
   // Helper function to update token metrics
-  function updateTokenMetrics(total, valid, expired, envCount) {
+  function updateTokenMetrics(total, valid, expired, tenantCount) {
     document.getElementById('tokens-total').textContent = total;
     document.getElementById('tokens-valid').textContent = valid;
     document.getElementById('tokens-expired').textContent = expired;
-    document.getElementById('tokens-environments').textContent = envCount;
+    document.getElementById('tokens-environments').textContent = tenantCount; // ID remains for backward compatibility, but represents tenant count
   }
   
   // Helper function to update tokens overview
@@ -169,29 +196,48 @@ document.addEventListener('DOMContentLoaded', () => {
       expiryInfo = `<div class="token-expiry">Expires: ${formattedExpiry}</div>`;
     }
     
+    // Extract tenant name from JWT payload if possible
+    const tenantName = getTenantName(token);
+    
+    // Make the tenant name prominent and show environment type (dev/prod) as a badge
     tokenCard.innerHTML = `
-      <div class="token-card-header">
-        <div class="token-status ${isExpired ? 'expired' : 'valid'}">
-          <span class="status-icon">${isExpired ? '⚠️' : '✓'}</span>
-          <span class="status-text">${isExpired ? 'Expired' : 'Valid'}</span>
+      <!-- Prominent tenant name with environment type badge -->
+      <div class="token-header">
+        <div class="token-header-line">
+          <div class="tenant-label">Tenant</div>
+          <div class="client-environment">${tenantName}</div>
         </div>
-        <div class="environment-badge ${envClass}">
-          ${token.clientEnvironment || 'Unknown'}
-          ${token.isDevRoute ? '<span class="dev-indicator">DEV</span>' : ''}
+        <div class="environment-type-line">
+          <div class="environment-badge ${envClass}">
+            ${token.isDevRoute ? 'Development' : 'Production'}
+          </div>
         </div>
       </div>
       
+      <!-- Token status -->
+      <div class="token-status ${isExpired ? 'expired' : 'valid'}">
+        <span class="status-icon">${isExpired ? '⚠️' : '✓'}</span>
+        <span class="status-text">${isExpired ? 'Expired' : 'Valid'}</span>
+      </div>
+      
+      <!-- Token content with improved text handling -->
       <div class="token-content">
         <div class="token-value">${token.token}</div>
       </div>
       
+      <!-- Token metadata -->
       <div class="token-meta">
         <div class="token-captured">Captured: ${formattedTimestamp}</div>
         ${expiryInfo}
         <div class="token-url">URL: ${token.url}</div>
         ${token.source ? `<div class="token-source">Source: ${token.source}</div>` : ''}
+        <div class="token-tenant-info">
+          <div class="token-tenant">Tenant: <strong>${tenantName}</strong></div>
+          <div class="token-env-type">Environment Type: <strong>${token.isDevRoute ? 'Development' : 'Production'}</strong></div>
+        </div>
       </div>
       
+      <!-- Fixed-height action buttons -->
       <div class="token-actions">
         <button class="action-btn copy-btn" data-token="${token.token}" title="${isExpired ? 'Warning: This token is expired' : 'Copy token to clipboard'}">
           <span class="btn-icon">📋</span>
@@ -289,8 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tokens: apiTokens.map(token => ({
           token: token.token,
           url: token.url,
-          environment: token.clientEnvironment || 'Unknown',
-          isDevRoute: token.isDevRoute,
+          tenantName: token.clientEnvironment || 'Unknown', // Renamed from environment to tenantName for clarity
+          environmentType: token.isDevRoute ? 'development' : 'production', // Added explicit environment type
+          isDevRoute: token.isDevRoute, // Kept for backward compatibility
           timestamp: token.timestamp,
           expiryDate: token.expiryDate,
           source: token.source,
@@ -433,9 +480,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update metric counters
       validTokenCount.textContent = tokenSummary.valid || 0;
       expiredTokenCount.textContent = tokenSummary.expired || 0;
-      environmentCount.textContent = tokenSummary.environments || 0;
+      environmentCount.textContent = tokenSummary.environments || 0; // Represents tenant count
 
-      // Display environment-specific status
+      // Display tenant-specific status
       environmentsList.innerHTML = '';
       if (authStatus.environments && Object.keys(authStatus.environments).length > 0) {
         Object.entries(authStatus.environments).forEach(([envKey, envData]) => {
@@ -444,7 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
           
           const statusClass = envData.hasValidToken ? 'valid' : 'expired';
           const statusText = envData.hasValidToken ? 'Valid' : 'Expired';
-          const envDisplayName = `${envData.environment}${envData.isDev ? ' (dev)' : ''}`;
+          // Format as "tenant-name (development)" or just "tenant-name" for production
+          const envDisplayName = `${envData.environment}${envData.isDev ? ' (development)' : ''}`;
           
           envItem.innerHTML = `
             <span class="auth-environment-name">${envDisplayName}</span>
@@ -454,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
           environmentsList.appendChild(envItem);
         });
       } else {
-        environmentsList.innerHTML = '<div class="auth-empty-state">No environments detected</div>';
+        environmentsList.innerHTML = '<div class="auth-empty-state">No tenants detected</div>';
       }
 
       // Show authentication error information if there are recent auth failures

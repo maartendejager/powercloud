@@ -21,11 +21,11 @@ This document outlines the UI enhancements made to the Auth Tokens section of th
 - Added subtle border and background for better readability
 - Added inset box shadow for depth effect
 
-### 3. Client Environment Name Visibility
-**Issue:** The client environment (tenant) name wasn't prominently displayed, while the dev/prod status wasn't clearly distinguishable.
-**Solution:** Enhanced the client environment display:
-- Made the client environment name (e.g., tenant name) large and prominent at the top of each token card
-- Created a separate badge for development/production status
+### 3. Tenant Name Visibility
+**Issue:** The tenant name (formerly called client environment) wasn't prominently displayed, while the environment type (dev/prod) wasn't clearly distinguishable.
+**Solution:** Enhanced the tenant and environment type display:
+- Made the tenant name large and prominent at the top of each token card
+- Created a separate badge for development/production environment type
 - Used proper semantic coloring (orange for development, green for production)
 - Improved typography and visual hierarchy of information
 

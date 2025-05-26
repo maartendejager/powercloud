@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <title>PowerCloud</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="token-styles.css">
   <script type="module" src="popup.js"></script>
+  <!-- Token tenant extraction validator (for debugging) -->
+  <script src="../testing/token-tenant-extraction-validator.js"></script>
 </head>
 <body>
   <h2>PowerCloud Developer Tool</h2>
@@ -48,7 +51,7 @@
       </div>
       <div class="metric-card">
         <div class="metric-value" id="tokens-environments">-</div>
-        <div class="metric-label">Environments</div>
+        <div class="metric-label">Tenants</div>
       </div>
     </div>
 
@@ -185,11 +188,13 @@
             <span id="expired-token-count" class="auth-metric-value">-</span>
           </div>
           <div class="auth-metric">
-            <span class="auth-metric-label">Environments:</span>
+            <span class="auth-metric-label">Tenants:</span>
             <span id="environment-count" class="auth-metric-value">-</span>
           </div>
         </div>
-        <div id="auth-environments" class="auth-environments-list"></div>
+        <div id="auth-environments" class="auth-environments-list">
+          <!-- This contains a list of tenants with their environment types -->
+        </div>
       </div>
     </div>
 

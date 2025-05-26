@@ -84,17 +84,39 @@
   box-shadow: 0 3px 8px rgba(0,0,0,0.15);
 }
 
-/* 3. Client Environment & Environment badge styling */
+/* 3. Tenant name & Environment type badge styling */
 .token-header {
   margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.token-header-line {
+  margin-bottom: 4px;
+}
+
+.tenant-label {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  opacity: 0.8;
 }
 
 .client-environment {
   font-size: 16px;
   font-weight: 700;
   color: #333;
-  margin-bottom: 5px;
   letter-spacing: 0.3px;
+  /* Class name remains for backward compatibility, but represents tenant name */
+}
+
+.environment-type-line {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 5px;
 }
 
 .environment-badge {
@@ -106,6 +128,7 @@
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .environment-badge.production {
@@ -174,6 +197,15 @@
 .token-url {
   font-family: monospace;
   word-break: break-all;
+}
+
+.token-tenant-info {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 /* 4. Token action buttons with consistent size */

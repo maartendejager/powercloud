@@ -3,6 +3,9 @@
  * 
  * This module provides centralized authentication token management functionality,
  * handling storage, retrieval, validation, and manipulation of JWT tokens.
+ * 
+ * For terminology clarification between tenant names and environment types,
+ * see /docs/ui-improvements/token-terminology-clarification.md
  */
 
 // Initialize logger for Auth module
@@ -42,10 +45,10 @@ async function getAllTokens() {
 }
 
 /**
- * Gets the most recent valid authentication token for a specific environment and development status.
+ * Gets the most recent valid authentication token for a specific tenant and environment type.
  * If clientEnvironment or isDev parameters are not provided, returns the most recent valid token.
- * @param {string} [clientEnvironment] - The client environment (tenant) name.
- * @param {boolean} [isDev] - Whether a token for a development environment is required.
+ * @param {string} [clientEnvironment] - The tenant name (e.g., "customer1", "acme-corp").
+ * @param {boolean} [isDev] - Whether a token for a development environment (true) or production (false) is required.
  * @returns {Promise<string>} The most recent valid and applicable auth token.
  * @throws {Error} If no suitable valid token is found.
  */
@@ -129,16 +132,16 @@ async function getToken(clientEnvironment, isDev) {
     return false;
   });
   
-  // If we have expired tokens for this environment, suggest refreshing
+  // If we have expired tokens for this tenant and environment type, suggest refreshing
   if (matchingExpiredTokens.length > 0) {
-    const envText = clientEnvironment ? ` for environment '${clientEnvironment}'` : '';
-    const devText = isDev !== undefined ? ` (${isDev ? 'development' : 'production'})` : '';
-    throw new Error(`Authentication token expired${envText}${devText}. Please refresh the page to capture a new token.`);
+    const tenantText = clientEnvironment ? ` for tenant '${clientEnvironment}'` : '';
+    const envTypeText = isDev !== undefined ? ` (${isDev ? 'development' : 'production'} environment)` : '';
+    throw new Error(`Authentication token expired${tenantText}${envTypeText}. Please refresh the page to capture a new token.`);
   }
   
-  // No tokens at all for this environment
+  // No tokens at all for this tenant and environment type
   if (clientEnvironment || isDev !== undefined) {
-    throw new Error(`No valid authentication token found for environment '${clientEnvironment || "any"}' and isDev=${isDev !== undefined ? isDev : "any"}`);
+    throw new Error(`No valid authentication token found for tenant '${clientEnvironment || "any"}' and environment type ${isDev !== undefined ? (isDev ? 'development' : 'production') : "any"}`);
   } else {
     throw new Error("No valid authentication tokens found");
   }
@@ -150,8 +153,8 @@ async function getToken(clientEnvironment, isDev) {
  * @param {Object} metadata - Additional data about the token
  * @param {string} metadata.url - URL where the token was captured
  * @param {string} [metadata.source] - Source of the token (header, localStorage, etc.)
- * @param {string} [metadata.clientEnvironment] - Client environment name
- * @param {boolean} [metadata.isDevRoute] - Whether the token was captured from a dev route
+ * @param {string} [metadata.clientEnvironment] - Tenant name (e.g., "customer1", "acme-corp")
+ * @param {boolean} [metadata.isDevRoute] - Whether the token is for a development environment (true) or production (false)
  * @returns {Promise<void>}
  */
 async function setToken(token, metadata = {}) {
@@ -173,13 +176,22 @@ async function setToken(token, metadata = {}) {
   let isValid = true;
   let expiryDate = null;
   
+  // Extract tenant name and other info from JWT payload when available
+  let clientFromJwt = null;
+  
   try {
     const payloadBase64 = token.split('.')[1];
     if (payloadBase64) {
       const payload = JSON.parse(atob(payloadBase64));
+      // Check expiry
       if (payload.exp) {
         expiryDate = new Date(payload.exp * 1000);
         isValid = expiryDate > new Date();
+      }
+      
+      // Extract client name from payload if available
+      if (payload.client) {
+        clientFromJwt = payload.client;
       }
     }
   } catch (e) {
@@ -187,14 +199,14 @@ async function setToken(token, metadata = {}) {
     authLogger.error("Error parsing token:", e);
   }
   
-  // Create token entry
+  // Create token entry - prioritize client name from JWT over URL extraction
   const tokenEntry = {
     token,
     timestamp: new Date().toISOString(),
     url: metadata.url || window.location?.href || "unknown",
     source: metadata.source || "direct",
-    clientEnvironment: metadata.clientEnvironment || "unknown",
-    isDevRoute: metadata.isDevRoute || false,
+    clientEnvironment: clientFromJwt || metadata.clientEnvironment || "unknown", // The tenant name, prioritize JWT payload
+    isDevRoute: metadata.isDevRoute || false, // Whether it's a development environment (true) or production (false)
     isValid: isValid,
     expiryDate: expiryDate ? expiryDate.toISOString() : null
   };
@@ -325,7 +337,7 @@ async function handleAuthHeaderFromWebRequest(details) {
       token = token.slice(7);
     }
 
-    // Determine client environment and dev route status
+    // Extract tenant name and determine environment type (dev/prod)
     const clientEnvironment = extractClientEnvironment(details.url);
     const isDevRouteFlag = isDevelopmentRoute(details.url);
 
@@ -333,8 +345,8 @@ async function handleAuthHeaderFromWebRequest(details) {
     await setToken(token, { 
       url: details.url, 
       source: 'webRequest',
-      clientEnvironment: clientEnvironment,
-      isDevRoute: isDevRouteFlag
+      clientEnvironment: clientEnvironment, // The tenant name
+      isDevRoute: isDevRouteFlag // Whether it's a development environment
     });
     // After setting the token, get the updated list of all tokens
     const allTokens = await getAllTokens();
@@ -344,14 +356,14 @@ async function handleAuthHeaderFromWebRequest(details) {
 }
 
 /**
- * Extracts client environment (tenant) name from a URL
+ * Extracts tenant name (client environment) from a URL
  * @param {string} url - URL to extract from
- * @returns {string} Client environment (tenant) name, or 'unknown' if not found
+ * @returns {string} Tenant name, or 'unknown' if not found
  */
 function extractClientEnvironment(url) {
   try {
-    // Extract the client environment (tenant) name from the URL
-    // Pattern: https://[client-environment].spend.cloud/... or https://[client-environment].dev.spend.cloud/...
+    // Extract the tenant name from the URL
+    // Pattern: https://[tenant-name].spend.cloud/... or https://[tenant-name].dev.spend.cloud/...
     const match = url.match(/https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud/);
     return match ? match[1] : 'unknown';
   } catch (e) {
@@ -360,12 +372,12 @@ function extractClientEnvironment(url) {
 }
 
 /**
- * Checks if a URL is for a development environment
+ * Determines whether a URL points to a development environment (as opposed to production)
  * @param {string} url - URL to check
- * @returns {boolean} True if the URL is for a development environment
+ * @returns {boolean} True if the URL is for a development environment, false if production
  */
 function isDevelopmentRoute(url) {
-  // Check if URL contains development indicators
+  // Check if URL contains development environment indicators
   return url.includes('localhost') || 
          url.includes('.dev.') || 
          url.includes('dev-');

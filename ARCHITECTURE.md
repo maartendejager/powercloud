@@ -8,6 +8,22 @@ The PowerCloud extension enhances the user experience on `spend.cloud` websites 
 
 ## Key Components
 
+### 0. Token Terminology
+
+Throughout the codebase, we maintain a clear distinction between two important concepts:
+
+- **Tenant Name**: The client organization or account, represented by the subdomain in URLs (e.g., "customer1", "acme-corp")
+  - Stored as `clientEnvironment` in the code (for historical reasons)
+  - Displayed prominently in the UI as the main identifier for each token
+  - Extracted from URLs with pattern: `https://[tenant-name].spend.cloud/...`
+
+- **Environment Type**: Whether the environment is development or production
+  - Stored as `isDevRoute` boolean flag (true = development, false = production)
+  - Displayed as a colored badge in the UI (orange for development, green for production)
+  - Determined by checking for keywords like `.dev.`, `localhost`, etc. in URLs
+
+This distinction is important for accurately tracking and displaying token metrics. For more details, see [Token Terminology Clarification](./docs/ui-improvements/token-terminology-clarification.md).
+
 ### 1. Manifest (`manifest.json`)
 
 *   **Purpose**: Defines the extension's properties, permissions, and entry points.
