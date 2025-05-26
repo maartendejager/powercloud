@@ -1,7 +1,16 @@
 # PowerCloud Extension Development Notes
 
 ## Overview
-This document contains consolidated development notes, debugging procedures, and historical context for the PowerCloud Chrome extension.
+This document contains consolidated development notes, debugging procedures, and current development context for the PowerCloud Chrome extension.
+
+For comprehensive developer documentation, see the [docs/](./docs/) directory.
+
+## 📖 Quick Navigation
+
+- **[Developer Onboarding](./docs/DEVELOPER_ONBOARDING.md)** - Complete setup guide for new developers
+- **[Testing Documentation](./docs/testing/)** - Comprehensive testing procedures
+- **[Architecture Guide](./ARCHITECTURE.md)** - Technical implementation details
+- **[Historical Documentation](./docs/history/)** - Completed phases and implementations
 
 ---
 

@@ -209,6 +209,16 @@ The extension includes a comprehensive validation framework that ensures:
 
 This document should be updated as the extension evolves.
 
+## 📖 Related Documentation
+
+For comprehensive development information, see:
+
+- **[Developer Documentation](./docs/)** - Complete developer guide collection
+- **[Developer Onboarding](./docs/DEVELOPER_ONBOARDING.md)** - Setup guide for new developers
+- **[Code Style Guide](./docs/CODE_STYLE_GUIDE.md)** - Coding standards and conventions
+- **[Testing Documentation](./docs/testing/)** - Comprehensive testing procedures
+- **[Development Notes](./DEVELOPMENT_NOTES.md)** - Current development context
+
 ## Adding New Feature Scripts
 
 When adding new feature scripts to the extension, follow these guidelines to ensure proper integration:

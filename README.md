@@ -4,29 +4,44 @@ A Chrome extension that provides extra functionality for developers working with
 
 The extension works on both production (`https://[customer].spend.cloud/*`) and development environments (`https://[customer].dev.spend.cloud/*`).
 
-For technical details on how the extension is structured and how to add new features, please see [ARCHITECTURE.md](./ARCHITECTURE.md).
+## 📖 Documentation
+
+- **[Architecture Guide](./ARCHITECTURE.md)** - Technical architecture and design patterns
+- **[Development Notes](./DEVELOPMENT_NOTES.md)** - Current development context and troubleshooting
+- **[Improvement Plan](./IMPROVEMENT_PLAN.md)** - Development roadmap and planned features
+- **[Developer Documentation](./docs/)** - Comprehensive guides for developers
+
+### For New Developers
+Start with the [Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md) for a complete setup and development guide.
+
+### For Testing
+See the [Testing Documentation](./docs/testing/) for comprehensive testing procedures and guides.
 
 ## Project Structure
 
 ```
 PowerCloud/
 ├── manifest.json                    # Extension configuration
-├── README.md                       # Project overview
-├── ARCHITECTURE.md                 # Technical documentation  
+├── README.md                       # Project overview (this file)
+├── ARCHITECTURE.md                 # Technical architecture documentation
 ├── IMPROVEMENT_PLAN.md             # Development roadmap
-├── DEVELOPMENT_NOTES.md            # Development notes & troubleshooting
+├── DEVELOPMENT_NOTES.md            # Development context & troubleshooting
 │
 ├── popup/                          # Extension popup interface
 ├── background/                     # Service worker & API processing
 ├── content_scripts/                # Page interaction & features
 ├── shared/                         # Shared utilities & modules
 ├── images/                         # Extension icons & assets
-│
 ├── testing/                        # Testing framework & test files
-└── docs/                           # Additional documentation
+│
+└── docs/                           # Developer documentation
+    ├── README.md                   # Documentation index
+    ├── DEVELOPER_ONBOARDING.md     # New developer guide
+    ├── CODE_STYLE_GUIDE.md        # Coding standards
+    ├── testing/                    # Testing guides
+    ├── configuration/              # Configuration guides
+    └── history/                    # Historical documentation
 ```
-
-For development notes, debugging procedures, and troubleshooting, see [DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md).
 
 ## Features
 
