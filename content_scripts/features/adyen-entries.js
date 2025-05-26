@@ -9,9 +9,9 @@
  *
  * The module:
  * 1. Detects book entry pages
- * 2. Checks if the entry has an associated adyenTransferId
+ * 2. Checks if the entry has an associated remoteTransferId
  * 3. Displays a button to view the corresponding transfer in Adyen
- * 4. Button states: disabled (no adyenTransferId) or enabled (with adyenTransferId)
+ * 4. Button states: disabled (no remoteTransferId) or enabled (with remoteTransferId)
  *
  * Loading Method: Manifest-only
  * This script is loaded via the manifest.json content_scripts configuration.
@@ -47,7 +47,7 @@ class AdyenEntriesFeature extends BaseFeature {
     this.customer = null;
     this.entryId = null;
     this.entry = null;
-    this.adyenTransferId = null;
+    this.remoteTransferId = null;
     
     // Error handling and configuration
     this.config = {
@@ -117,7 +117,7 @@ class AdyenEntriesFeature extends BaseFeature {
         return;
       }
 
-      // Fetch entry details to determine if adyenTransferId exists before adding button
+      // Fetch entry details to determine if remoteTransferId exists before adding button
       await this.fetchEntryDetailsAndAddButton();
       
     } catch (error) {
@@ -144,7 +144,7 @@ class AdyenEntriesFeature extends BaseFeature {
   }
 
   /**
-   * Fetch entry details and add button based on adyenTransferId availability
+   * Fetch entry details and add button based on remoteTransferId availability
    */
   async fetchEntryDetailsAndAddButton() {
     let attempt = 0;
@@ -162,41 +162,41 @@ class AdyenEntriesFeature extends BaseFeature {
 
         if (response && response.success) {
           // Handle both old and new response formats
-          // Old format: response.entry.adyenTransferId
-          // New format: response.data.data.attributes.adyenTransferId or response.data.attributes.adyenTransferId
+          // Old format: response.entry.remoteTransferId
+          // New format: response.data.data.attributes.remoteTransferId or response.data.attributes.remoteTransferId
           let entryData = null;
-          let adyenTransferId = null;
+          let remoteTransferId = null;
           
           if (response.entry) {
             // Old format
             entryData = response.entry;
-            adyenTransferId = response.entry.adyenTransferId;
-            entriesLogger.info('Using old format entry data', { adyenTransferId });
+            remoteTransferId = response.entry.remoteTransferId;
+            entriesLogger.info('Using old format entry data', { remoteTransferId });
           } else if (response.data) {
             // New format - extract from data structure
             if (response.data.data && response.data.data.attributes) {
               entryData = response.data.data.attributes;
-              adyenTransferId = response.data.data.attributes.adyenTransferId;
+              remoteTransferId = response.data.data.attributes.remoteTransferId;
             } else if (response.data.attributes) {
               entryData = response.data.attributes;
-              adyenTransferId = response.data.attributes.adyenTransferId;
+              remoteTransferId = response.data.attributes.remoteTransferId;
             } else {
               entryData = response.data;
-              adyenTransferId = response.data.adyenTransferId;
+              remoteTransferId = response.data.remoteTransferId;
             }
             entriesLogger.info('Using new format entry data', { 
-              adyenTransferId,
+              remoteTransferId,
               dataStructure: response.data.data ? 'nested' : 'flat'
             });
           }
           
           this.entry = entryData;
-          this.adyenTransferId = adyenTransferId;
+          this.remoteTransferId = remoteTransferId;
           
           entriesLogger.info('Entry details processing result', {
             hasEntry: !!this.entry,
-            hasAdyenTransferId: !!this.adyenTransferId,
-            transferId: this.adyenTransferId
+            hasremoteTransferId: !!this.remoteTransferId,
+            transferId: this.remoteTransferId
           });
           
           this.addEntriesInfoButton();
@@ -343,8 +343,8 @@ class AdyenEntriesFeature extends BaseFeature {
     button.id = 'powercloud-entries-info-btn';
     button.className = 'powercloud-button';
 
-    // Set button text and state based on adyenTransferId availability
-    if (this.adyenTransferId) {
+    // Set button text and state based on remoteTransferId availability
+    if (this.remoteTransferId) {
       button.textContent = 'View Transfer in Adyen';
       button.addEventListener('click', () => this.handleEntriesInfoClick());
     } else {
@@ -362,8 +362,8 @@ class AdyenEntriesFeature extends BaseFeature {
     document.body.appendChild(shadowHost);
     
     this.log('Entries info button added', { 
-      hasTransferId: !!this.adyenTransferId,
-      transferId: this.adyenTransferId 
+      hasTransferId: !!this.remoteTransferId,
+      transferId: this.remoteTransferId 
     });
   }
 
@@ -375,24 +375,24 @@ class AdyenEntriesFeature extends BaseFeature {
     const maxAttempts = this.config.retryAttempts;
     
     entriesLogger.info('Entries info click handler called', {
-      hasAdyenTransferId: !!this.adyenTransferId,
-      adyenTransferId: this.adyenTransferId,
+      hasremoteTransferId: !!this.remoteTransferId,
+      remoteTransferId: this.remoteTransferId,
       entry: this.entry
     });
     
     while (attempt < maxAttempts) {
       try {
-        if (!this.adyenTransferId) {
+        if (!this.remoteTransferId) {
           entriesLogger.warn('No transfer ID available for entry');
           this.showEntriesInfoResult('No Adyen Transfer ID found for this entry');
           return;
         }
 
-        const adyenUrl = `${ADYEN_TRANSFERS_BASE_URL}${this.adyenTransferId}`;
+        const adyenUrl = `${ADYEN_TRANSFERS_BASE_URL}${this.remoteTransferId}`;
         
-        this.log(`Opening Adyen transfer (attempt ${attempt + 1}/${maxAttempts})`, { transferId: this.adyenTransferId });
+        this.log(`Opening Adyen transfer (attempt ${attempt + 1}/${maxAttempts})`, { transferId: this.remoteTransferId });
         entriesLogger.info('Opening Adyen transfer', {
-          transferId: this.adyenTransferId,
+          transferId: this.remoteTransferId,
           url: adyenUrl,
           attempt: attempt + 1
         });

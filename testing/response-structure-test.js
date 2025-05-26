@@ -128,11 +128,11 @@
                         console.log('✅ Book API successful');
                         console.log('🔍 Response structure analysis:');
                         console.log('  - Has balanceAccountId:', !!response.balanceAccountId);
-                        console.log('  - Has adyenBalanceAccountId:', !!response.adyenBalanceAccountId);
+                        console.log('  - Has remoteBalanceAccountId:', !!response.remoteBalanceAccountId);
                         console.log('  - Book type:', response.bookType);
                         
                         // Test the actual logic our fixed code uses
-                        const balanceAccountId = response.balanceAccountId || response.adyenBalanceAccountId;
+                        const balanceAccountId = response.balanceAccountId || response.remoteBalanceAccountId;
                         console.log('📝 Final balance account ID:', balanceAccountId);
                         
                         if (balanceAccountId) {
@@ -157,30 +157,30 @@
                     if (response && response.success) {
                         console.log('✅ Entries API successful');
                         console.log('🔍 Response structure analysis:');
-                        console.log('  - Has entry.adyenTransferId:', !!(response.entry && response.entry.adyenTransferId));
-                        console.log('  - Has data.data.attributes.adyenTransferId:', !!(response.data && response.data.data && response.data.data.attributes && response.data.data.attributes.adyenTransferId));
-                        console.log('  - Has data.attributes.adyenTransferId:', !!(response.data && response.data.attributes && response.data.attributes.adyenTransferId));
-                        console.log('  - Has data.adyenTransferId:', !!(response.data && response.data.adyenTransferId));
+                        console.log('  - Has entry.remoteTransferId:', !!(response.entry && response.entry.remoteTransferId));
+                        console.log('  - Has data.data.attributes.remoteTransferId:', !!(response.data && response.data.data && response.data.data.attributes && response.data.data.attributes.remoteTransferId));
+                        console.log('  - Has data.attributes.remoteTransferId:', !!(response.data && response.data.attributes && response.data.attributes.remoteTransferId));
+                        console.log('  - Has data.remoteTransferId:', !!(response.data && response.data.remoteTransferId));
                         
                         // Test the actual logic our fixed code uses
-                        let adyenTransferId = null;
+                        let remoteTransferId = null;
                         if (response.entry) {
-                            adyenTransferId = response.entry.adyenTransferId;
-                            console.log('📝 Would use old format:', adyenTransferId);
+                            remoteTransferId = response.entry.remoteTransferId;
+                            console.log('📝 Would use old format:', remoteTransferId);
                         } else if (response.data) {
                             if (response.data.data && response.data.data.attributes) {
-                                adyenTransferId = response.data.data.attributes.adyenTransferId;
-                                console.log('📝 Would use new format (nested):', adyenTransferId);
+                                remoteTransferId = response.data.data.attributes.remoteTransferId;
+                                console.log('📝 Would use new format (nested):', remoteTransferId);
                             } else if (response.data.attributes) {
-                                adyenTransferId = response.data.attributes.adyenTransferId;
-                                console.log('📝 Would use new format (flat):', adyenTransferId);
+                                remoteTransferId = response.data.attributes.remoteTransferId;
+                                console.log('📝 Would use new format (flat):', remoteTransferId);
                             } else {
-                                adyenTransferId = response.data.adyenTransferId;
-                                console.log('📝 Would use new format (direct):', adyenTransferId);
+                                remoteTransferId = response.data.remoteTransferId;
+                                console.log('📝 Would use new format (direct):', remoteTransferId);
                             }
                         }
                         
-                        if (adyenTransferId) {
+                        if (remoteTransferId) {
                             console.log('✅ Entries feature should work - has transfer ID');
                         } else {
                             console.log('❌ Entries feature will fail - no transfer ID found');

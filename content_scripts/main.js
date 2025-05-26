@@ -49,6 +49,24 @@ if (window.enhancedDebug && window.loggerFactory) {
 const safeFeatureManager = new window.PowerCloudSafeFeatureManager();
 window.PowerCloudFeatureManager = safeFeatureManager;
 
+// Initialize PowerCloud UI system for consistent button management
+if (window.PowerCloudUI) {
+  try {
+    window.PowerCloudUI.initialize();
+    if (mainLogger) {
+      mainLogger.info('PowerCloud UI system initialized successfully');
+    }
+  } catch (error) {
+    if (mainLogger) {
+      mainLogger.error('Failed to initialize PowerCloud UI system:', error);
+    }
+  }
+} else {
+  if (mainLogger) {
+    mainLogger.warn('PowerCloud UI system not available');
+  }
+}
+
 /**
  * Feature registry for different page types
  * Each entry represents a feature with:

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerCloud UI Browser Loading Test</title>
+</head>
+<body>
+    <h1>PowerCloud UI Browser Loading Test</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        // Simulate browser environment for ui-components
+        window.chrome = {
+            runtime: {
+                getURL: (path) => `chrome-extension://test-extension/${path}`
+            }
+        };
+    </script>
+    
+    <!-- Load all dependencies in order -->
+    <script src="shared/ui-components.js"></script>
+    
+    <script>
+        const resultsDiv = document.getElementById('test-results');
+        
+        function addResult(status, message) {
+            const p = document.createElement('p');
+            p.textContent = `${status} ${message}`;
+            p.style.color = status === '✅' ? 'green' : 'red';
+            resultsDiv.appendChild(p);
+        }
+        
+        try {
+            // Test 1: Check if classes are available
+            if (typeof window.PowerCloudUI !== 'undefined') {
+                addResult('✅', 'PowerCloudUI class loaded successfully');
+            } else {
+                addResult('❌', 'PowerCloudUI class not available');
+            }
+            
+            if (typeof window.PowerCloudButtonManager !== 'undefined') {
+                addResult('✅', 'PowerCloudButtonManager class loaded successfully');
+            } else {
+                addResult('❌', 'PowerCloudButtonManager class not available');
+            }
+            
+            // Test 2: Test singleton pattern
+            const manager1 = new window.PowerCloudButtonManager();
+            const manager2 = new window.PowerCloudButtonManager();
+            
+            if (manager1 === manager2) {
+                addResult('✅', 'Singleton pattern working correctly');
+            } else {
+                addResult('❌', 'Singleton pattern not working');
+            }
+            
+            // Test 3: Test PowerCloudUI.getButtonManager()
+            if (typeof window.PowerCloudUI.getButtonManager === 'function') {
+                const manager3 = window.PowerCloudUI.getButtonManager();
+                if (manager1 === manager3) {
+                    addResult('✅', 'PowerCloudUI.getButtonManager() returns singleton correctly');
+                } else {
+                    addResult('❌', 'PowerCloudUI.getButtonManager() returns different instance');
+                }
+            } else {
+                addResult('❌', 'PowerCloudUI.getButtonManager() method not available');
+            }
+            
+            // Test 4: Test initialization
+            try {
+                window.PowerCloudUI.initialize();
+                addResult('✅', 'PowerCloudUI.initialize() executed without errors');
+            } catch (error) {
+                addResult('❌', `PowerCloudUI.initialize() error: ${error.message}`);
+            }
+            
+            // Test 5: Test button creation API
+            try {
+                const button = window.PowerCloudUI.createButton({
+                    text: 'Test Button',
+                    variant: 'primary'
+                });
+                if (button && button.tagName === 'BUTTON') {
+                    addResult('✅', 'Button creation API working');
+                } else {
+                    addResult('❌', 'Button creation API not working');
+                }
+            } catch (error) {
+                addResult('❌', `Button creation error: ${error.message}`);
+            }
+            
+        } catch (error) {
+            addResult('❌', `General error: ${error.message}`);
+        }
+    </script>
+</body>
+</html>

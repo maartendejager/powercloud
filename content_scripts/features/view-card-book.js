@@ -41,7 +41,6 @@ if (typeof BaseFeature === 'undefined') {
 class ViewCardBookFeature extends BaseFeature {
   constructor() {
     super('view-card-book', {
-      hostElementId: 'powercloud-book-shadow-host',
       enableDebugLogging: false
     });
     
@@ -62,7 +61,7 @@ class ViewCardBookFeature extends BaseFeature {
     };
     
     // UI elements
-    this.bookButton = null;
+    this.buttonManager = null;
   }
 
   /**
@@ -299,17 +298,6 @@ class ViewCardBookFeature extends BaseFeature {
       // Add button to view card book
       this.addCardBookButton();
       
-      // Double-check that button was created successfully
-      setTimeout(() => {
-        const host = document.getElementById(this.config.hostElementId);
-        if (!host || !this.bookButtonCreated) {
-          console.warn('[DEBUG][ViewCardBook] Button creation check failed, retrying once');
-          this.bookButtonCreated = false; // Reset flag
-          this.addCardBookButton(); // Try again
-        } else {
-          console.log('[DEBUG][ViewCardBook] Button creation verification successful');
-        }
-      }, 500);
     } catch (error) {
       this.handleError('Failed to activate view card book feature', error);
       console.error('[DEBUG][ViewCardBook] Activation error:', error);
@@ -351,90 +339,43 @@ class ViewCardBookFeature extends BaseFeature {
         return;
       }
       
-      console.log('[DEBUG][ViewCardBook] Creating button with:', {
+      console.log('[DEBUG][ViewCardBook] Creating button with PowerCloudButtonManager:', {
         bookId: this.bookId,
-        currentPeriod: this.currentPeriod,
-        hostElementId: this.config.hostElementId
+        currentPeriod: this.currentPeriod
       });
       
-      // Remove any existing host element to avoid duplication
-      this.removeCardBookButton();
+      // Initialize button manager if not already done
+      if (!window.PowerCloudUI || !window.PowerCloudButtonManager) {
+        console.error('[DEBUG][ViewCardBook] PowerCloudUI or PowerCloudButtonManager not available');
+        this.emergencyShowButton();
+        return;
+      }
       
-      // Create shadow DOM container
-      console.log('[DEBUG][ViewCardBook] Creating new shadow host with ID:', this.config.hostElementId);
-      const shadowHost = document.createElement('div');
-      shadowHost.id = this.config.hostElementId;
-      document.body.appendChild(shadowHost);
+      // Get the singleton button manager instance
+      this.buttonManager = window.PowerCloudUI.getButtonManager();
       
-      // Set styling for the host element
-      shadowHost.style.position = 'fixed';
-      shadowHost.style.right = '85px'; // Position to the left of card info button
-      shadowHost.style.bottom = '20px';
-      shadowHost.style.zIndex = '9999';
-      shadowHost.style.display = 'block'; // Ensure visibility
+      // Add button using the centralized button manager
+      const button = this.buttonManager.addButton('view-card-book', {
+        id: 'book',
+        text: 'View Card Book',
+        variant: 'success',
+        size: 'medium',
+        onClick: () => this.handleCardBookClick()
+      });
       
-      console.log('[DEBUG][ViewCardBook] Shadow host created and added to document body');
-      
-      // Create shadow DOM
-      const shadow = shadowHost.attachShadow({ mode: 'open' });
-      console.log('[DEBUG][ViewCardBook] Shadow DOM attached to host');
-      
-      // Create button element
-      this.bookButton = document.createElement('button');
-      this.bookButton.textContent = 'View Card Book';
-      this.bookButton.id = 'powercloud-view-card-book-button'; // Add ID for easier debugging
-      this.bookButton.addEventListener('click', () => this.handleCardBookClick());
-      console.log('[DEBUG][ViewCardBook] Button element created with click handler');
-      
-      // Style the button
-      const style = document.createElement('style');
-      style.textContent = `
-        button {
-          background-color: #4CAF50;
-          color: white;
-          padding: 10px 15px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: bold;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-          transition: background-color 0.3s;
-          display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        button:hover {
-          background-color: #45a049;
-        }
-        button:focus {
-          outline: none;
-          box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
-        }
-      `;
-      
-      // Append elements to shadow DOM
-      shadow.appendChild(style);
-      shadow.appendChild(this.bookButton);
-      console.log('[DEBUG][ViewCardBook] Style and button appended to shadow DOM');
-      
-      this.bookButtonCreated = true;
-      this.log('Card book button added successfully');
-      console.log('[DEBUG][ViewCardBook] Button creation completed successfully');
-      
-      // Check if button is visible in the DOM
-      setTimeout(() => {
-        const isVisible = this.debugCheckButtonVisibility();
-        console.log('[DEBUG][ViewCardBook] Button visibility check result:', isVisible);
+      if (button) {
+        this.bookButtonCreated = true;
+        this.log('Card book button added successfully using PowerCloudButtonManager');
+        console.log('[DEBUG][ViewCardBook] Button creation completed successfully using PowerCloudButtonManager');
         
-        // If button isn't visible, try emergency method after 1 second
-        if (!isVisible) {
-          setTimeout(() => {
-            console.log('[DEBUG][ViewCardBook] Regular button not visible, trying emergency method');
-            this.emergencyShowButton();
-          }, 1000);
-        }
-      }, 100);
+        // Verify button is visible
+        setTimeout(() => {
+          console.log('[DEBUG][ViewCardBook] Button manager status:', this.buttonManager.getStatus());
+        }, 100);
+      } else {
+        console.warn('[DEBUG][ViewCardBook] Button creation failed, falling back to emergency method');
+        this.emergencyShowButton();
+      }
     } catch (error) {
       this.handleError('Failed to add card book button', error);
       console.error('[DEBUG][ViewCardBook] Error during button creation:', error);
@@ -448,38 +389,19 @@ class ViewCardBookFeature extends BaseFeature {
     console.log('[DEBUG][ViewCardBook] Checking button visibility');
     
     try {
-      // Check if shadow host exists
-      const shadowHost = document.getElementById(this.config.hostElementId);
-      if (!shadowHost) {
-        console.warn('[DEBUG][ViewCardBook] Host element not found in DOM');
+      // Check if button manager exists and has our button
+      if (!this.buttonManager) {
+        console.warn('[DEBUG][ViewCardBook] Button manager not found');
         return false;
       }
       
-      // Check if it's properly styled
-      const hostStyles = getComputedStyle(shadowHost);
-      console.log('[DEBUG][ViewCardBook] Host element styles:', {
-        position: hostStyles.position,
-        right: hostStyles.right,
-        bottom: hostStyles.bottom,
-        zIndex: hostStyles.zIndex,
-        display: hostStyles.display
-      });
+      const status = this.buttonManager.getStatus();
+      console.log('[DEBUG][ViewCardBook] Button manager status:', status);
       
-      // Check if it has a shadow root and button
-      const shadow = shadowHost.shadowRoot;
-      if (!shadow) {
-        console.warn('[DEBUG][ViewCardBook] Shadow root not found');
-        return false;
-      }
-      
-      const button = shadow.querySelector('button');
-      if (!button) {
-        console.warn('[DEBUG][ViewCardBook] Button not found in shadow DOM');
-        return false;
-      }
-      
-      console.log('[DEBUG][ViewCardBook] Button found in DOM, should be visible');
-      return true;
+      // Check if our button is registered
+      const hasButton = status.buttonCount > 0;
+      console.log('[DEBUG][ViewCardBook] Button found in manager:', hasButton);
+      return hasButton;
     } catch (error) {
       console.error('[DEBUG][ViewCardBook] Error checking button visibility:', error);
       return false;
@@ -617,11 +539,16 @@ class ViewCardBookFeature extends BaseFeature {
    */
   removeCardBookButton() {
     try {
-      const shadowHost = document.getElementById(this.config.hostElementId);
-      if (shadowHost) {
-        shadowHost.remove();
+      if (this.buttonManager) {
+        this.buttonManager.removeButton('view-card-book', 'book');
         this.bookButtonCreated = false;
         this.log('Card book button removed');
+      }
+      
+      // Also clean up any emergency buttons that might exist
+      const emergencyBtn = document.getElementById('powercloud-emergency-book-btn');
+      if (emergencyBtn) {
+        emergencyBtn.remove();
       }
     } catch (error) {
       this.handleError('Failed to remove card book button', error);

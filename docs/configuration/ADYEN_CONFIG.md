@@ -22,12 +22,12 @@ Fixed all three features to handle both old and new API response formats:
 #### 2. Book Feature (`adyen-book.js`)  
 - **Status**: ✅ Fixed response structure handling
 - **Old format**: `response.balanceAccountId`
-- **New format**: `response.adyenBalanceAccountId`
+- **New format**: `response.remoteBalanceAccountId`
 
 #### 3. Entries Feature (`adyen-entries.js`)
 - **Status**: ✅ Fixed response structure handling
-- **Old format**: `response.entry.adyenTransferId`
-- **New format**: `response.data.data.attributes.adyenTransferId` or `response.data.attributes.adyenTransferId`
+- **Old format**: `response.entry.remoteTransferId`
+- **New format**: `response.data.data.attributes.remoteTransferId` or `response.data.attributes.remoteTransferId`
 
 ### Enhanced Debug Logging
 Added comprehensive console logging to track:

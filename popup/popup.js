@@ -1117,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Debug logging to see what we're receiving
       console.log('[popup] Entries response received:', response);
       if (response && response.success) {
-        console.log('[popup] Response has adyenTransferId:', response.adyenTransferId);
+        console.log('[popup] Response has remoteTransferId:', response.remoteTransferId);
         console.log('[popup] Response data:', response.data);
       }
       
@@ -1170,8 +1170,8 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
         
       case 'entries':
-        if (response.adyenTransferId) {
-          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/transfers/${response.adyenTransferId}`;
+        if (response.remoteTransferId) {
+          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/transfers/${response.remoteTransferId}`;
           chrome.tabs.create({ url: adyenUrl });
           resultDiv.textContent = 'Opening transfer in Adyen dashboard...';
           resultDiv.className = 'action-result success';

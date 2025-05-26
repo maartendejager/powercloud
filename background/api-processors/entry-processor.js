@@ -2,7 +2,7 @@
  * Book Entry API Processor
  * 
  * Handles processing of book entry details requests and data extraction.
- * Extracts adyenTransferId from book entry resources.
+ * Extracts remoteTransferId from book entry resources.
  */
 
 import { getEntryDetails as apiGetEntryDetails } from '../../shared/api-module.js';
@@ -45,21 +45,21 @@ export function processEntryDetailsRequest(customer, entryId, isDev, requestId, 
   // Get entry details using our API module
   apiGetEntryDetails(customer, entryId, isDev)
     .then(data => {
-      // Extract adyenTransferId from the response data similar to how the content script does it
-      let adyenTransferId = null;
+      // Extract remoteTransferId from the response data similar to how the content script does it
+      let remoteTransferId = null;
       
-      if (data?.data?.attributes?.adyenTransferId) {
-        adyenTransferId = data.data.attributes.adyenTransferId;
-      } else if (data?.attributes?.adyenTransferId) {
-        adyenTransferId = data.attributes.adyenTransferId;
-      } else if (data?.adyenTransferId) {
-        adyenTransferId = data.adyenTransferId;
+      if (data?.data?.attributes?.remoteTransferId) {
+        remoteTransferId = data.data.attributes.remoteTransferId;
+      } else if (data?.attributes?.remoteTransferId) {
+        remoteTransferId = data.attributes.remoteTransferId;
+      } else if (data?.remoteTransferId) {
+        remoteTransferId = data.remoteTransferId;
       }
       
-      // Send back the response with extracted adyenTransferId
+      // Send back the response with extracted remoteTransferId
       sendResponse({
         success: true,
-        adyenTransferId: adyenTransferId,
+        remoteTransferId: remoteTransferId,
         data: data,
         requestId
       });

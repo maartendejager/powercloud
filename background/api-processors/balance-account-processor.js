@@ -46,18 +46,18 @@ export function processBalanceAccountDetailsRequest(customer, balanceAccountId, 
     .then(data => {
       
       // Extract the Adyen balance account ID from attributes if available
-      // Path: data->attributes->adyenBalanceAccountId
-      let adyenBalanceAccountId = null;
-      if (data?.data?.attributes?.adyenBalanceAccountId) {
-        adyenBalanceAccountId = data.data.attributes.adyenBalanceAccountId;
-      } else if (data?.attributes?.adyenBalanceAccountId) {
-        adyenBalanceAccountId = data.attributes.adyenBalanceAccountId;
+      // Path: data->attributes->remoteBalanceAccountId
+      let remoteBalanceAccountId = null;
+      if (data?.data?.attributes?.remoteBalanceAccountId) {
+        remoteBalanceAccountId = data.data.attributes.remoteBalanceAccountId;
+      } else if (data?.attributes?.remoteBalanceAccountId) {
+        remoteBalanceAccountId = data.attributes.remoteBalanceAccountId;
       }
       
       sendResponse({
         success: true,
         balanceAccountId: balanceAccountId,
-        adyenBalanceAccountId: adyenBalanceAccountId,
+        remoteBalanceAccountId: remoteBalanceAccountId,
         data: data.data || data
       });
     })

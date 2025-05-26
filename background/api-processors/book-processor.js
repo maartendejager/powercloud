@@ -62,7 +62,7 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
     // Extract the necessary fields
     const bookType = bookData?.bookType;
     let balanceAccountId = null; // Internal balance account ID
-    let adyenBalanceAccountId = bookData?.adyenBalanceAccountId; // Try direct first
+    let remoteBalanceAccountId = bookData?.remoteBalanceAccountId; // Try direct first
     let administrationId = bookData?.administrationId;
     const balanceAccountReference = bookData?.balanceAccountReference;
     
@@ -126,7 +126,7 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
     
     logger.debug('After extraction', {
       balanceAccountId: balanceAccountId,
-      adyenBalanceAccountId: adyenBalanceAccountId,
+      remoteBalanceAccountId: remoteBalanceAccountId,
       administrationId: administrationId,
       balanceAccountReference: balanceAccountReference,
       bookType: bookType,
@@ -135,7 +135,7 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
     
     // If we have a balance account ID but no Adyen balance account ID, 
     // fetch balance account details to get the Adyen balance account ID
-    if (balanceAccountId && !adyenBalanceAccountId) {
+    if (balanceAccountId && !remoteBalanceAccountId) {
       logger.info('Fetching balance account details', { 
         balanceAccountId, 
         requestId 
@@ -145,16 +145,16 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
         const balanceAccountData = await apiGetBalanceAccountDetails(customer, balanceAccountId, isDev);
         
         // Extract the Adyen balance account ID from balance account attributes
-        if (balanceAccountData?.data?.attributes?.adyenBalanceAccountId) {
-          adyenBalanceAccountId = balanceAccountData.data.attributes.adyenBalanceAccountId;
+        if (balanceAccountData?.data?.attributes?.remoteBalanceAccountId) {
+          remoteBalanceAccountId = balanceAccountData.data.attributes.remoteBalanceAccountId;
           logger.info('Found Adyen balance account ID', { 
-            adyenBalanceAccountId, 
+            remoteBalanceAccountId, 
             requestId 
           });
-        } else if (balanceAccountData?.attributes?.adyenBalanceAccountId) {
-          adyenBalanceAccountId = balanceAccountData.attributes.adyenBalanceAccountId;
+        } else if (balanceAccountData?.attributes?.remoteBalanceAccountId) {
+          remoteBalanceAccountId = balanceAccountData.attributes.remoteBalanceAccountId;
           logger.info('Found Adyen balance account ID', { 
-            adyenBalanceAccountId, 
+            remoteBalanceAccountId, 
             requestId 
           });
         } else {
@@ -168,7 +168,7 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
           error: error.message, 
           requestId 
         });
-        // Continue without adyenBalanceAccountId - the feature will handle this gracefully
+        // Continue without remoteBalanceAccountId - the feature will handle this gracefully
       }
     }
     
@@ -176,7 +176,7 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
       success: true,
       bookType: bookType,
       balanceAccountId: balanceAccountId, // Internal balance account ID 
-      adyenBalanceAccountId: adyenBalanceAccountId, // Actual Adyen balance account ID
+      remoteBalanceAccountId: remoteBalanceAccountId, // Actual Adyen balance account ID
       administrationId: administrationId,
       balanceAccountReference: balanceAccountReference,
       data: data.data || data,

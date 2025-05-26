@@ -100,8 +100,8 @@ This plan outlines structured improvements to enhance the PowerCloud extension's
 - [x] Implement feature-specific configuration options
 - [x] **CRITICAL FIX**: Fixed response structure handling for all three features
   - [x] Card feature: Handle both `response.card.adyenCardToken` and `response.paymentInstrumentId`
-  - [x] Book feature: Handle both `response.balanceAccountId` and `response.adyenBalanceAccountId`
-  - [x] Entries feature: Handle multiple response structures for `adyenTransferId`
+  - [x] Book feature: Handle both `response.balanceAccountId` and `response.remoteBalanceAccountId`
+  - [x] Entries feature: Handle multiple response structures for `remoteTransferId`
 - [x] Enhanced debug logging and error tracking
 - [x] Added comprehensive testing tools (`response-structure-test.js`, `final-validation-test.js`)
 - [x] Created configuration documentation (`ADYEN_CONFIG.md`)

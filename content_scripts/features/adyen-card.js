@@ -38,7 +38,6 @@ if (typeof BaseFeature === 'undefined') {
 class AdyenCardFeature extends BaseFeature {
   constructor() {
     super('adyen-card', {
-      hostElementId: 'powercloud-shadow-host',
       enableDebugLogging: false
     });
     
@@ -61,6 +60,10 @@ class AdyenCardFeature extends BaseFeature {
     // Error tracking
     this.apiErrors = new Map();
     this.lastErrorTime = null;
+    
+    // UI elements
+    this.buttonManager = null;
+    this.cardButtonCreated = false;
   }
 
   /**
@@ -384,6 +387,69 @@ class AdyenCardFeature extends BaseFeature {
    * Adds a button to view card information at Adyen
    */
   addCardInfoButton() {
+    if (this.cardButtonCreated) {
+      this.log('Card info button already exists, skipping creation');
+      return;
+    }
+
+    try {
+      // Initialize button manager if not already done
+      if (!window.PowerCloudUI || !window.PowerCloudButtonManager) {
+        console.error('[DEBUG][AdyenCard] PowerCloudUI or PowerCloudButtonManager not available');
+        this.createFallbackButton();
+        return;
+      }
+      
+      // Get the singleton button manager instance
+      this.buttonManager = window.PowerCloudUI.getButtonManager();
+      
+      // Determine button configuration based on vendor
+      let buttonConfig;
+      if (this.isAdyenCard) {
+        buttonConfig = {
+          id: 'card',
+          text: 'View in Adyen',
+          variant: 'primary',
+          size: 'medium',
+          onClick: () => this.handleCardInfoClick()
+        };
+      } else {
+        buttonConfig = {
+          id: 'card',
+          text: `Card not in Adyen (${this.vendor || 'unknown vendor'})`,
+          variant: 'secondary',
+          size: 'medium',
+          disabled: true
+        };
+      }
+      
+      // Add button using the centralized button manager
+      const button = this.buttonManager.addButton('adyen-card', buttonConfig);
+      
+      if (button) {
+        this.cardButtonCreated = true;
+        this.log('Card info button added successfully using PowerCloudButtonManager');
+        console.log('[DEBUG][AdyenCard] Button creation completed successfully using PowerCloudButtonManager');
+        
+        // Verify button is visible
+        setTimeout(() => {
+          console.log('[DEBUG][AdyenCard] Button manager status:', this.buttonManager.getStatus());
+        }, 100);
+      } else {
+        console.warn('[DEBUG][AdyenCard] Button creation failed, falling back to legacy method');
+        this.createFallbackButton();
+      }
+    } catch (error) {
+      this.handleError('Failed to add card info button', error);
+      console.error('[DEBUG][AdyenCard] Error during button creation:', error);
+      this.createFallbackButton();
+    }
+  }
+
+  /**
+   * Create fallback button if PowerCloudButtonManager is not available
+   */
+  createFallbackButton() {
     // Check if button already exists
     if (this.getHostElement()) {
       return;
@@ -391,7 +457,7 @@ class AdyenCardFeature extends BaseFeature {
 
     // Create shadow DOM host element
     const shadowHost = document.createElement('div');
-    shadowHost.id = this.hostElementId;
+    shadowHost.id = 'powercloud-fallback-card-host';
 
     // Check if buttons should be hidden by default
     chrome.storage.local.get('showButtons', (result) => {
@@ -435,7 +501,8 @@ class AdyenCardFeature extends BaseFeature {
     // Add shadow host to the page
     document.body.appendChild(shadowHost);
     
-    this.log('Card info button added');
+    this.cardButtonCreated = true;
+    this.log('Fallback card info button added');
   }
 
   /**
@@ -515,16 +582,30 @@ class AdyenCardFeature extends BaseFeature {
    * Removes the card information button and any related UI elements
    */
   removeCardInfoButton() {
-    // Remove the shadow host for the button
-    this.removeHostElement();
+    try {
+      if (this.buttonManager) {
+        this.buttonManager.removeButton('adyen-card', 'card');
+        this.cardButtonCreated = false;
+        this.log('Card info button removed from PowerCloudButtonManager');
+      }
+      
+      // Also clean up any fallback buttons that might exist
+      const fallbackHost = document.getElementById('powercloud-fallback-card-host');
+      if (fallbackHost) {
+        fallbackHost.remove();
+        this.cardButtonCreated = false;
+        this.log('Fallback card info button removed');
+      }
 
-    // Also remove any result shadow host that might be showing
-    const resultHost = document.getElementById('powercloud-result-host');
-    if (resultHost) {
-      resultHost.remove();
+      // Also remove any result shadow host that might be showing
+      const resultHost = document.getElementById('powercloud-result-host');
+      if (resultHost) {
+        resultHost.remove();
+      }
+      
+    } catch (error) {
+      this.handleError('Failed to remove card info button', error);
     }
-    
-    this.log('Card info button removed');
   }
 
   /**

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PowerCloud Button Integration Test</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007cba;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #005a87;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        #log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>PowerCloud Button Integration Test</h1>
+    <p>This test simulates how the view-card-book and adyen-card features interact with the PowerCloudButtonManager singleton.</p>
+
+    <div class="test-section">
+        <h2>Test 1: Singleton Pattern Verification</h2>
+        <p>Verify that both features use the same PowerCloudButtonManager instance.</p>
+        <button class="test-button" onclick="testSingleton()">Test Singleton Pattern</button>
+        <div id="singleton-status" class="status info">Ready to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Multi-Button Integration</h2>
+        <p>Simulate both features adding buttons to verify they don't conflict.</p>
+        <button class="test-button" onclick="testMultiButton()">Test Multi-Button Integration</button>
+        <div id="multibutton-status" class="status info">Ready to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Button Container Layout</h2>
+        <p>Verify the button container properly handles multiple buttons with flex layout.</p>
+        <button class="test-button" onclick="testLayout()">Test Layout</button>
+        <div id="layout-status" class="status info">Ready to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="log"></div>
+        <button class="test-button" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <!-- Load PowerCloud scripts in order -->
+    <script src="shared/logger.js"></script>
+    <script src="shared/enhanced-debug.js"></script>
+    <script src="shared/error-handling.js"></script>
+    <script src="shared/debug-mode.js"></script>
+    <script src="shared/url-patterns.js"></script>
+    <script src="shared/auth.js"></script>
+    <script src="shared/api.js"></script>
+    <script src="shared/settings-manager.js"></script>
+    <script src="shared/ui-components.js"></script>
+    <script src="shared/accessibility-utils.js"></script>
+    <script src="shared/responsive-design.js"></script>
+    <script src="shared/base-feature.js"></script>
+
+    <script>
+        // Mock window environment for testing
+        const originalConsoleLog = console.log;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleError = console.error;
+        
+        function logToDiv(level, ...args) {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            log.textContent += `[${timestamp}] ${level.toUpperCase()}: ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        console.log = (...args) => {
+            originalConsoleLog(...args);
+            logToDiv('info', ...args);
+        };
+        console.warn = (...args) => {
+            originalConsoleWarn(...args);
+            logToDiv('warn', ...args);
+        };
+        console.error = (...args) => {
+            originalConsoleError(...args);
+            logToDiv('error', ...args);
+        };
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        // Test 1: Singleton Pattern
+        function testSingleton() {
+            try {
+                console.log('🧪 Testing singleton pattern...');
+                
+                // Initialize PowerCloud UI
+                if (window.PowerCloudUI) {
+                    window.PowerCloudUI.initialize();
+                    console.log('✅ PowerCloudUI initialized');
+                } else {
+                    throw new Error('PowerCloudUI not available');
+                }
+                
+                // Get manager instances using both methods
+                const manager1 = window.PowerCloudUI.getButtonManager();
+                const manager2 = window.PowerCloudUI.getButtonManager();
+                const manager3 = new window.PowerCloudButtonManager();
+                
+                console.log('✅ Retrieved three manager instances');
+                
+                // Test if all are the same instance
+                if (manager1 === manager2 && manager2 === manager3) {
+                    updateStatus('singleton-status', '✅ PASS: All instances are the same (singleton working)', 'success');
+                    console.log('✅ Singleton test passed!');
+                } else {
+                    updateStatus('singleton-status', '❌ FAIL: Instances are different', 'error');
+                    console.log('❌ Singleton test failed!');
+                }
+                
+            } catch (error) {
+                updateStatus('singleton-status', `❌ ERROR: ${error.message}`, 'error');
+                console.error('Test failed:', error);
+            }
+        }
+
+        // Test 2: Multi-Button Integration
+        function testMultiButton() {
+            try {
+                console.log('🧪 Testing multi-button integration...');
+                
+                const manager = window.PowerCloudUI.getButtonManager();
+                
+                // Simulate view-card-book feature adding a button
+                const bookButton = manager.addButton('view-card-book', {
+                    id: 'book',
+                    text: 'View Card Book',
+                    variant: 'success',
+                    size: 'medium',
+                    onClick: () => console.log('Book button clicked!')
+                });
+                
+                // Simulate adyen-card feature adding a button
+                const cardButton = manager.addButton('adyen-card', {
+                    id: 'card',
+                    text: 'View in Adyen',
+                    variant: 'primary',
+                    size: 'medium',
+                    onClick: () => console.log('Card button clicked!')
+                });
+                
+                if (bookButton && cardButton) {
+                    updateStatus('multibutton-status', '✅ PASS: Both buttons created successfully', 'success');
+                    console.log('✅ Multi-button test passed!');
+                    console.log('Manager status:', manager.getStatus ? manager.getStatus() : 'Status method not available');
+                } else {
+                    updateStatus('multibutton-status', '❌ FAIL: One or both buttons failed to create', 'error');
+                    console.log('❌ Multi-button test failed!');
+                }
+                
+            } catch (error) {
+                updateStatus('multibutton-status', `❌ ERROR: ${error.message}`, 'error');
+                console.error('Test failed:', error);
+            }
+        }
+
+        // Test 3: Layout Test
+        function testLayout() {
+            try {
+                console.log('🧪 Testing button layout...');
+                
+                // Check if button container exists
+                const container = document.querySelector('#powercloud-button-container');
+                if (container) {
+                    const buttonCount = container.querySelectorAll('[data-button-id]').length;
+                    updateStatus('layout-status', `✅ PASS: Container found with ${buttonCount} buttons`, 'success');
+                    console.log(`✅ Layout test passed! Found container with ${buttonCount} buttons`);
+                } else {
+                    updateStatus('layout-status', '⚠️ Container not found - this is normal in test environment', 'info');
+                    console.log('⚠️ Container not found - this is expected in test environment');
+                }
+                
+            } catch (error) {
+                updateStatus('layout-status', `❌ ERROR: ${error.message}`, 'error');
+                console.error('Test failed:', error);
+            }
+        }
+
+        // Initialize UI when page loads
+        window.addEventListener('load', () => {
+            console.log('🚀 PowerCloud Button Integration Test loaded');
+            console.log('Available classes:', {
+                PowerCloudUI: typeof window.PowerCloudUI,
+                PowerCloudButtonManager: typeof window.PowerCloudButtonManager,
+                PowerCloudButtonContainer: typeof window.PowerCloudButtonContainer
+            });
+        });
+    </script>
+</body>
+</html>

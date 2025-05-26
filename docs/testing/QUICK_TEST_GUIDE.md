@@ -56,12 +56,12 @@ Look for these console messages:
 - `[PowerCloud] Opening Adyen payment instrument: PI_...`
 
 **Book Feature**:  
-- `[PowerCloud] Book API response structure: { hasAdyenBalanceAccountId: true, usingFallback: false }`
-- `[PowerCloud] Opening Adyen balance account: { adyenBalanceAccountId: "BA_..." }`
-- ⚠️ **Important**: Check that `adyenBalanceAccountId` starts with "BA_" not just "1" or another internal ID
+- `[PowerCloud] Book API response structure: { hasremoteBalanceAccountId: true, usingFallback: false }`
+- `[PowerCloud] Opening Adyen balance account: { remoteBalanceAccountId: "BA_..." }`
+- ⚠️ **Important**: Check that `remoteBalanceAccountId` starts with "BA_" not just "1" or another internal ID
 
 **Entries Feature**:
-- `[PowerCloud] Entries API response structure: { hasAdyenTransferId: true, transferIdLocation: "..." }`
+- `[PowerCloud] Entries API response structure: { hasremoteTransferId: true, transferIdLocation: "..." }`
 - `[PowerCloud] Opening Adyen transfer: TR_...`
 ```
 [PowerCloud] Using old format: [value]
@@ -187,12 +187,12 @@ Look for these console messages:
 - `[PowerCloud] Opening Adyen payment instrument: PI_...`
 
 **Book Feature**:  
-- `[PowerCloud] Book API response structure: { hasAdyenBalanceAccountId: true, usingFallback: false }`
-- `[PowerCloud] Opening Adyen balance account: { adyenBalanceAccountId: "BA_..." }`
-- ⚠️ **Important**: Check that `adyenBalanceAccountId` starts with "BA_" not just "1" or another internal ID
+- `[PowerCloud] Book API response structure: { hasremoteBalanceAccountId: true, usingFallback: false }`
+- `[PowerCloud] Opening Adyen balance account: { remoteBalanceAccountId: "BA_..." }`
+- ⚠️ **Important**: Check that `remoteBalanceAccountId` starts with "BA_" not just "1" or another internal ID
 
 **Entries Feature**:
-- `[PowerCloud] Entries API response structure: { hasAdyenTransferId: true, transferIdLocation: "..." }`
+- `[PowerCloud] Entries API response structure: { hasremoteTransferId: true, transferIdLocation: "..." }`
 - `[PowerCloud] Opening Adyen transfer: TR_...`
 ```
 [PowerCloud] Using old format: [value]

@@ -66,7 +66,7 @@ class AdyenBookFeature extends BaseFeature {
     this.bookId = null;
     this.bookType = null;
     this.balanceAccountId = null; // Internal balance account ID 
-    this.adyenBalanceAccountId = null; // Actual Adyen balance account ID (BA_...)
+    this.remoteBalanceAccountId = null; // Actual Adyen balance account ID (BA_...)
     this.administrationId = null;
     this.balanceAccountReference = null;
     
@@ -197,22 +197,22 @@ class AdyenBookFeature extends BaseFeature {
           
           // Handle different response structures for Adyen balance account ID
           // Only use the actual Adyen balance account ID, never fall back to internal ID
-          this.adyenBalanceAccountId = response.adyenBalanceAccountId || null; // Adyen ID (like "BA_...")
+          this.remoteBalanceAccountId = response.remoteBalanceAccountId || null; // Adyen ID (like "BA_...")
           
           this.administrationId = response.administrationId;
           this.balanceAccountReference = response.balanceAccountReference;
           
           bookLogger.info('Book API response structure', {
             hasBalanceAccountId: !!response.balanceAccountId,
-            hasAdyenBalanceAccountId: !!response.adyenBalanceAccountId,
+            hasremoteBalanceAccountId: !!response.remoteBalanceAccountId,
             internalBalanceAccountId: this.balanceAccountId,
-            adyenBalanceAccountId: this.adyenBalanceAccountId,
+            remoteBalanceAccountId: this.remoteBalanceAccountId,
             bookType: this.bookType,
-            warning: !this.adyenBalanceAccountId ? 'No Adyen balance account ID found - using internal ID would be incorrect!' : null
+            warning: !this.remoteBalanceAccountId ? 'No Adyen balance account ID found - using internal ID would be incorrect!' : null
           });
 
           // Don't create button if no Adyen balance account ID
-          if (!this.adyenBalanceAccountId) {
+          if (!this.remoteBalanceAccountId) {
             bookLogger.warn('Cannot create Adyen button: No Adyen balance account ID available');
             bookLogger.info('Internal balance account ID available', { balanceAccountId: this.balanceAccountId });
             this.log('Skipping button creation - no Adyen balance account ID found');
@@ -561,22 +561,22 @@ class AdyenBookFeature extends BaseFeature {
     try {
       bookLogger.info('Book info click handler called', {
         hasInternalBalanceAccountId: !!this.balanceAccountId,
-        hasAdyenBalanceAccountId: !!this.adyenBalanceAccountId,
+        hasremoteBalanceAccountId: !!this.remoteBalanceAccountId,
         internalBalanceAccountId: this.balanceAccountId,
-        adyenBalanceAccountId: this.adyenBalanceAccountId,
+        remoteBalanceAccountId: this.remoteBalanceAccountId,
         bookType: this.bookType
       });
       
-      if (!this.adyenBalanceAccountId) {
+      if (!this.remoteBalanceAccountId) {
         bookLogger.warn('No Adyen balance account ID available for book');
         this.showBookInfoResult('No Adyen Balance Account ID found for this book', 'warning');
         return;
       }
 
-      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${this.adyenBalanceAccountId}`;
+      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${this.remoteBalanceAccountId}`;
       
       bookLogger.info('Opening Adyen balance account', {
-        adyenBalanceAccountId: this.adyenBalanceAccountId,
+        remoteBalanceAccountId: this.remoteBalanceAccountId,
         url: adyenUrl
       });
       
