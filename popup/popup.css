@@ -858,15 +858,15 @@ h3 {
   border-radius: 6px;
   padding: 8px;
   text-align: center;
-  min-height: 60px;
+  min-height: 70px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
 }
 
 .metric-card h5 {
-  margin: 0 0 4px 0;
-  font-size: 11px;
+  margin: 0;
+  font-size: 10px;
   color: #666;
   font-weight: 500;
 }
@@ -875,13 +875,18 @@ h3 {
   font-size: 18px;
   font-weight: bold;
   color: #333;
-  margin: 2px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
 }
 
 .metric-card small {
   font-size: 9px;
   color: #999;
-  margin-top: 2px;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px dotted rgba(0,0,0,0.05);
 }
 
 /* Tokens Section Styles - Enhanced to match Health Dashboard */
@@ -1126,6 +1131,7 @@ h3 {
     justify-content: space-between;
   }
 
+  .metrics-grid,
   .tokens-metrics {
     grid-template-columns: repeat(2, 1fr);
   }

@@ -18,6 +18,10 @@
   transition: transform 0.2s ease;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 70px;
 }
 
 .metric-card::before {
@@ -53,15 +57,22 @@
 .metric-value {
   font-size: 24px;
   font-weight: 700;
-  margin-bottom: 5px;
+  margin: 0;
   color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
 }
 
 .metric-label {
-  font-size: 11px;
+  font-size: 9px;
   color: #757575;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px dotted rgba(0,0,0,0.05);
 }
 
 /* 2. Token card styles with better text handling */

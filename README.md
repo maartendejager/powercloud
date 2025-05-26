@@ -10,6 +10,10 @@ The extension works on both production (`https://[customer].spend.cloud/*`) and 
 - **[Development Notes](./DEVELOPMENT_NOTES.md)** - Current development context and troubleshooting
 - **[Improvement Plan](./IMPROVEMENT_PLAN.md)** - Development roadmap and planned features
 - **[Developer Documentation](./docs/)** - Comprehensive guides for developers
+- **[UI Improvements](./docs/ui-improvements/)** - UI enhancement documentation including:
+  - [Metrics Grid Styling](./docs/ui-improvements/enhanced-metrics-grid.md)
+  - [Token Tenant Display](./docs/ui-improvements/token-tenant-display-fix.md)
+  - [Token UI Enhancements](./docs/ui-improvements/token-ui-enhancements.md)
 
 ### For New Developers
 Start with the [Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md) for a complete setup and development guide.
