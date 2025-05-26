@@ -24,131 +24,234 @@ document.addEventListener('DOMContentLoaded', () => {
   const fetchAndDisplayTokens = () => {
     console.log('[popup] Requesting auth tokens from background...');
     chrome.runtime.sendMessage({action: "getAuthTokens"}, (response) => {
-    console.log('[popup] Received response from background:', response);
-    const tokensList = document.getElementById('tokens-list');
-    
-    if (!response || !response.authTokens || response.authTokens.length === 0) {
-      tokensList.textContent = "No authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.";
-      return;
-    }
-    
-    // Additional filtering in case any non-API tokens are still present
-    const apiTokens = response.authTokens.filter(token => 
-      token.url && isApiRoute(token.url)
-    );
-    
-    if (apiTokens.length === 0) {
-      tokensList.textContent = "No API authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.";
-      return;
-    }
-    
-    // Use filtered tokens
-    response.authTokens = apiTokens;
-    
-    // Clear the loading message
-    tokensList.innerHTML = '';
-    
-    // Add each token to the UI
-    response.authTokens.forEach((entry, index) => {
-      const tokenDiv = document.createElement('div');
-      tokenDiv.className = 'token-entry';
+      console.log('[popup] Received response from background:', response);
+      const tokensList = document.getElementById('tokens-list');
       
-      // Format the timestamp
-      const date = new Date(entry.timestamp);
-      const formattedDate = date.toLocaleString();
-      
-      // Get token validity status
-      let expiryInfo = '';
-      let isExpired = false;
-      
-      if (entry.hasOwnProperty('isValid') && entry.isValid === false) {
-        isExpired = true;
+      if (!response || !response.authTokens || response.authTokens.length === 0) {
+        updateTokenMetrics(0, 0, 0, 0);
+        updateTokensOverview('No tokens found', 'warning');
+        tokensList.innerHTML = '<div class="no-tokens-message">No authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.</div>';
+        return;
       }
       
-      if (entry.expiryDate) {
-        const expiryDate = new Date(entry.expiryDate);
-        const now = new Date();
-        isExpired = expiryDate < now;
-        expiryInfo = `<br>Expires: ${expiryDate.toLocaleString()} (${isExpired ? '<span style="color:red;font-weight:bold">EXPIRED</span>' : '<span style="color:green">Valid</span>'})`;
-      } else {
-        // Try to parse the JWT if expiry info isn't stored
-        try {
-          const payload = JSON.parse(atob(entry.token.split('.')[1]));
-          if (payload.exp) {
-            const expiryDate = new Date(payload.exp * 1000);
-            const now = new Date();
-            isExpired = expiryDate < now;
-            expiryInfo = `<br>Expires: ${expiryDate.toLocaleString()} (${isExpired ? '<span style="color:red;font-weight:bold">EXPIRED</span>' : '<span style="color:green">Valid</span>'})`;
-          }
-        } catch (e) {
-          // Ignore parsing errors
+      // Additional filtering in case any non-API tokens are still present
+      const apiTokens = response.authTokens.filter(token => 
+        token.url && isApiRoute(token.url)
+      );
+      
+      if (apiTokens.length === 0) {
+        updateTokenMetrics(0, 0, 0, 0);
+        updateTokensOverview('No API tokens found', 'warning');
+        tokensList.innerHTML = '<div class="no-tokens-message">No API authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.</div>';
+        return;
+      }
+      
+      // Calculate token metrics
+      const totalTokens = apiTokens.length;
+      let validTokens = 0;
+      let expiredTokens = 0;
+      const environments = new Set();
+      
+      apiTokens.forEach(token => {
+        const isExpired = checkTokenExpiry(token);
+        if (isExpired) {
+          expiredTokens++;
+        } else {
+          validTokens++;
         }
+        environments.add(token.clientEnvironment || 'Unknown');
+      });
+      
+      // Update metrics cards
+      updateTokenMetrics(totalTokens, validTokens, expiredTokens, environments.size);
+      
+      // Update overview status
+      if (expiredTokens > 0) {
+        updateTokensOverview(`${expiredTokens} expired token(s)`, 'warning');
+      } else if (validTokens > 0) {
+        updateTokensOverview('All tokens valid', 'healthy');
+      } else {
+        updateTokensOverview('No valid tokens', 'error');
       }
       
-      // Determine environment class for styling based on whether it's a dev route
-      const envClass = entry.isDevRoute ? 'development' : 'production';
+      // Clear the loading message
+      tokensList.innerHTML = '';
       
-      tokenDiv.innerHTML = `
-        <div class="environment-badge ${envClass}">
-          ${entry.clientEnvironment || 'Unknown'}
-          ${entry.isDevRoute ? '<span class="dev-route-indicator">DEV</span>' : ''}
-        </div>
-        <div class="token" style="${isExpired ? 'opacity:0.6;' : ''}">${entry.token}</div>
-        <div class="meta">
-          ${isExpired ? '<span style="color:red;font-weight:bold">⚠️ EXPIRED</span> - ' : '<span style="color:green;font-weight:bold">✓ VALID</span> - '}
-          Captured: ${formattedDate}
-          ${expiryInfo}
-          <br>URL: ${entry.url}
-          ${entry.source ? `<br>Source: ${entry.source}` : ''}
-        </div>
-        <div class="token-actions">
-          <button class="copy-btn" data-token="${entry.token}" ${isExpired ? 'title="Warning: This token is expired"' : ''}>
-            Copy Token${isExpired ? ' (Expired)' : ''}
-          </button>
-          <button class="delete-btn" data-token="${entry.token}" title="Delete this token">
-            Delete
-          </button>
-        </div>
-      `;
+      // Add each token as a modern card
+      apiTokens.forEach((entry, index) => {
+        const tokenCard = createTokenCard(entry);
+        tokensList.appendChild(tokenCard);
+      });
       
-      tokensList.appendChild(tokenDiv);
+      // Add event handlers for all token actions
+      addTokenEventHandlers();
     });
+  };
+  
+  // Helper function to check token expiry
+  function checkTokenExpiry(token) {
+    if (token.hasOwnProperty('isValid') && token.isValid === false) {
+      return true;
+    }
     
-    // Add click handlers for copy buttons
+    if (token.expiryDate) {
+      const expiryDate = new Date(token.expiryDate);
+      return expiryDate < new Date();
+    }
+    
+    // Try to parse JWT
+    try {
+      const payload = JSON.parse(atob(token.token.split('.')[1]));
+      if (payload.exp) {
+        const expiryDate = new Date(payload.exp * 1000);
+        return expiryDate < new Date();
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+    
+    return false;
+  }
+  
+  // Helper function to get token expiry info
+  function getTokenExpiryInfo(token) {
+    if (token.expiryDate) {
+      const expiryDate = new Date(token.expiryDate);
+      return expiryDate;
+    }
+    
+    try {
+      const payload = JSON.parse(atob(token.token.split('.')[1]));
+      if (payload.exp) {
+        return new Date(payload.exp * 1000);
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+    
+    return null;
+  }
+  
+  // Helper function to update token metrics
+  function updateTokenMetrics(total, valid, expired, envCount) {
+    document.getElementById('tokens-total').textContent = total;
+    document.getElementById('tokens-valid').textContent = valid;
+    document.getElementById('tokens-expired').textContent = expired;
+    document.getElementById('tokens-environments').textContent = envCount;
+  }
+  
+  // Helper function to update tokens overview
+  function updateTokensOverview(statusText, statusType) {
+    const statusDot = document.querySelector('#tokens-overview .status-dot');
+    const statusTextEl = document.querySelector('#tokens-overview .status-text');
+    
+    statusDot.className = `status-dot ${statusType}`;
+    statusTextEl.textContent = statusText;
+  }
+  
+  // Helper function to create a token card
+  function createTokenCard(token) {
+    const tokenCard = document.createElement('div');
+    tokenCard.className = 'token-card';
+    
+    const isExpired = checkTokenExpiry(token);
+    const expiryDate = getTokenExpiryInfo(token);
+    const formattedTimestamp = new Date(token.timestamp).toLocaleString();
+    const envClass = token.isDevRoute ? 'development' : 'production';
+    
+    if (isExpired) {
+      tokenCard.classList.add('expired');
+    }
+    
+    let expiryInfo = '';
+    if (expiryDate) {
+      const formattedExpiry = expiryDate.toLocaleString();
+      expiryInfo = `<div class="token-expiry">Expires: ${formattedExpiry}</div>`;
+    }
+    
+    tokenCard.innerHTML = `
+      <div class="token-card-header">
+        <div class="token-status ${isExpired ? 'expired' : 'valid'}">
+          <span class="status-icon">${isExpired ? '⚠️' : '✓'}</span>
+          <span class="status-text">${isExpired ? 'Expired' : 'Valid'}</span>
+        </div>
+        <div class="environment-badge ${envClass}">
+          ${token.clientEnvironment || 'Unknown'}
+          ${token.isDevRoute ? '<span class="dev-indicator">DEV</span>' : ''}
+        </div>
+      </div>
+      
+      <div class="token-content">
+        <div class="token-value">${token.token}</div>
+      </div>
+      
+      <div class="token-meta">
+        <div class="token-captured">Captured: ${formattedTimestamp}</div>
+        ${expiryInfo}
+        <div class="token-url">URL: ${token.url}</div>
+        ${token.source ? `<div class="token-source">Source: ${token.source}</div>` : ''}
+      </div>
+      
+      <div class="token-actions">
+        <button class="action-btn copy-btn" data-token="${token.token}" title="${isExpired ? 'Warning: This token is expired' : 'Copy token to clipboard'}">
+          <span class="btn-icon">📋</span>
+          Copy${isExpired ? ' (Expired)' : ''}
+        </button>
+        <button class="action-btn delete-btn" data-token="${token.token}" title="Delete this token">
+          <span class="btn-icon">🗑️</span>
+          Delete
+        </button>
+      </div>
+    `;
+    
+    return tokenCard;
+  }
+  
+  // Helper function to add event handlers for token actions
+  function addTokenEventHandlers() {
+    // Copy button handlers
     document.querySelectorAll('.copy-btn').forEach(button => {
       button.addEventListener('click', () => {
         const token = button.getAttribute('data-token');
         navigator.clipboard.writeText(token)
           .then(() => {
-            // Change button text temporarily
-            const originalText = button.textContent;
-            button.textContent = "Copied!";
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<span class="btn-icon">✓</span>Copied!';
+            button.classList.add('success');
             setTimeout(() => {
-              button.textContent = originalText;
+              button.innerHTML = originalHTML;
+              button.classList.remove('success');
+            }, 1500);
+          })
+          .catch(err => {
+            console.error('Failed to copy token:', err);
+            button.innerHTML = '<span class="btn-icon">❌</span>Failed';
+            setTimeout(() => {
+              button.innerHTML = originalHTML;
             }, 1500);
           });
       });
     });
     
-    // Add click handlers for delete buttons
+    // Delete button handlers
     document.querySelectorAll('.delete-btn').forEach(button => {
       button.addEventListener('click', () => {
         const token = button.getAttribute('data-token');
-        chrome.runtime.sendMessage({
-          action: "deleteToken",
-          token: token
-        }, (response) => {
-          if (response && response.success) {
-            // Refresh the token list
-            fetchAndDisplayTokens();
-          } else {
-            alert('Failed to delete token: ' + (response?.error || 'Unknown error'));
-          }
-        });
+        if (confirm('Are you sure you want to delete this token?')) {
+          chrome.runtime.sendMessage({
+            action: "deleteToken",
+            token: token
+          }, (response) => {
+            if (response && response.success) {
+              fetchAndDisplayTokens();
+            } else {
+              alert('Failed to delete token: ' + (response?.error || 'Unknown error'));
+            }
+          });
+        }
       });
     });
-  });
-  };
+  }
   
   // Initial fetch of tokens
   fetchAndDisplayTokens();
@@ -156,20 +259,58 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load page actions since it's the default active tab
   loadPageActions();
   
-  // Add event listener for the "Delete All Tokens" button
-  document.getElementById('delete-all-btn').addEventListener('click', () => {
-    chrome.runtime.sendMessage({
-      action: "deleteAllTokens"
-    }, (response) => {
-      if (response && response.success) {
-        // Refresh the token list
-        fetchAndDisplayTokens();
-      } else {
-        alert('Failed to delete all tokens: ' + (response?.error || 'Unknown error'));
-      }
-    });
+  // Add event listener for the "Refresh Tokens" button
+  document.getElementById('refresh-tokens-btn').addEventListener('click', () => {
+    fetchAndDisplayTokens();
   });
   
+  // Add event listener for the "Export Tokens" button
+  document.getElementById('export-tokens-btn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({action: "getAuthTokens"}, (response) => {
+      if (!response || !response.authTokens || response.authTokens.length === 0) {
+        alert('No tokens to export');
+        return;
+      }
+      
+      // Filter API tokens
+      const apiTokens = response.authTokens.filter(token => 
+        token.url && isApiRoute(token.url)
+      );
+      
+      if (apiTokens.length === 0) {
+        alert('No API tokens to export');
+        return;
+      }
+      
+      // Create export data
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        totalTokens: apiTokens.length,
+        tokens: apiTokens.map(token => ({
+          token: token.token,
+          url: token.url,
+          environment: token.clientEnvironment || 'Unknown',
+          isDevRoute: token.isDevRoute,
+          timestamp: token.timestamp,
+          expiryDate: token.expiryDate,
+          source: token.source,
+          isExpired: checkTokenExpiry(token)
+        }))
+      };
+      
+      // Create and download file
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `powercloud-tokens-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  });
+
   // Tab switching functionality
   function switchToTab(tabId) {
     // Hide all sections
@@ -197,17 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  document.getElementById('tokens-tab').addEventListener('click', () => switchToTab('tokens'));
-  
-  // Actions tab event listener
-  document.getElementById('actions-tab').addEventListener('click', () => {
-    switchToTab('actions');
-    // Load page actions when the tab is activated
-    loadPageActions();
-  });
-  
-  // Health tab event listener
-  document.getElementById('health-tab').addEventListener('click', () => switchToTab('health'));
+  // Tab event listeners are moved inside the DOMContentLoaded event handler
   
   // Health dashboard functionality
   function loadHealthDashboard() {
@@ -1341,6 +1472,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+  }
+  
+  // Add event listener for the "Delete All Tokens" button
+  const deleteAllTokensBtn = document.getElementById('delete-all-tokens-btn');
+  if (deleteAllTokensBtn) {
+    deleteAllTokensBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to delete ALL tokens? This action cannot be undone.')) {
+        chrome.runtime.sendMessage({
+          action: "deleteAllTokens"
+        }, (response) => {
+          if (response && response.success) {
+            fetchAndDisplayTokens();
+          } else {
+            alert('Failed to delete all tokens: ' + (response?.error || 'Unknown error'));
+          }
+        });
+      }
+    });
+  } else {
+    console.error('Delete All Tokens button not found in the DOM');
+  }
+  
+  // Tab event listeners
+  const tokensTab = document.getElementById('tokens-tab');
+  const actionsTab = document.getElementById('actions-tab');
+  const healthTab = document.getElementById('health-tab');
+  
+  if (tokensTab) {
+    tokensTab.addEventListener('click', () => switchToTab('tokens'));
+  } else {
+    console.error('Tokens tab element not found');
+  }
+  
+  if (actionsTab) {
+    actionsTab.addEventListener('click', () => {
+      switchToTab('actions');
+      // Load page actions when the tab is activated
+      loadPageActions();
+    });
+  } else {
+    console.error('Actions tab element not found');
+  }
+  
+  if (healthTab) {
+    healthTab.addEventListener('click', () => switchToTab('health'));
+  } else {
+    console.error('Health tab element not found');
   }
 
 });

@@ -884,6 +884,233 @@ h3 {
   margin-top: 2px;
 }
 
+/* Tokens Section Styles - Enhanced to match Health Dashboard */
+.tokens-overview {
+  margin-bottom: 20px;
+}
+
+.tokens-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tokens-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tokens-controls .action-button {
+  flex: 1;
+  min-width: 120px;
+}
+
+.tokens-details {
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.tokens-display {
+  background: #f9f9f9;
+  border-radius: 4px;
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.tokens-display.empty {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 40px 20px;
+}
+
+.token-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.token-card:hover {
+  border-color: #2196F3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
+}
+
+.token-card:last-child {
+  margin-bottom: 0;
+}
+
+.token-card.expired {
+  opacity: 0.7;
+  border-left: 4px solid var(--status-error);
+}
+
+.token-card.valid {
+  border-color: #4CAF50;
+  background: #e8f5e9;
+}
+
+.token-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.token-environment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.token-environment-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 500;
+}
+
+.token-environment-badge.production {
+  background-color: #4CAF50;
+}
+
+.token-environment-badge.development {
+  background-color: #FF9800;
+}
+
+.token-environment-badge.staging {
+  background-color: #9C27B0;
+}
+
+.token-environment-badge.local {
+  background-color: #2196F3;
+}
+
+.token-environment-badge.unknown {
+  background-color: #9E9E9E;
+}
+
+.token-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.token-card-info {
+  margin-bottom: 8px;
+}
+
+.token-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2px 0;
+  font-size: 11px;
+  color: #666;
+}
+
+.token-info-label {
+  font-weight: 500;
+  min-width: 60px;
+}
+
+.token-info-value {
+  color: #333;
+  font-family: monospace;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.token-url {
+  font-family: monospace;
+  font-size: 10px;
+  color: #666;
+  margin: 4px 0;
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+.token-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.token-action-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background-color 0.2s;
+}
+
+.token-action-btn:hover {
+  background-color: #3e8e41;
+}
+
+.token-action-btn.delete {
+  background-color: #f44336;
+}
+
+.token-action-btn.delete:hover {
+  background-color: #d32f2f;
+}
+
+.token-action-btn.expired {
+  background-color: #6c757d;
+  opacity: 0.7;
+}
+
+.token-action-btn.expired:hover {
+  background-color: #5a6268;
+}
+
+/* No tokens message */
+.no-tokens-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-style: italic;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* Button icons */
+.btn-icon {
+  margin-right: 4px;
+  font-size: 12px;
+}
+
+/* Environment badge improvements */
+.environment-badge .dev-indicator {
+  background: var(--status-warning);
+  color: white;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
   .health-metrics {
@@ -897,6 +1124,25 @@ h3 {
   
   .filter-group {
     justify-content: space-between;
+  }
+
+  .tokens-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tokens-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .token-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .token-info-value {
+    max-width: 120px;
   }
 }
 

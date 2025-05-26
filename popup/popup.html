@@ -24,12 +24,56 @@
   </div>
   
   <div id="tokens-section" style="display: none;">
-    <h3>Recent Authentication Tokens</h3>
-    <div class="tokens-section-header">
-      <button id="delete-all-btn" class="action-button" title="Delete all tokens">Delete All Tokens</button>
+    <!-- Tokens Overview Card -->
+    <div class="overview-card">
+      <div id="tokens-overview" class="status-item">
+        <div class="status-dot healthy"></div>
+        <div class="status-text">Loading tokens...</div>
+      </div>
     </div>
-    <div id="tokens-list">
-      Loading tokens...
+
+    <!-- Tokens Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value" id="tokens-total">-</div>
+        <div class="metric-label">Total Tokens</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="tokens-valid">-</div>
+        <div class="metric-label">Valid</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="tokens-expired">-</div>
+        <div class="metric-label">Expired</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="tokens-environments">-</div>
+        <div class="metric-label">Environments</div>
+      </div>
+    </div>
+
+    <!-- Tokens Controls -->
+    <div class="controls-grid">
+      <button id="refresh-tokens-btn" class="action-button refresh">
+        <span class="button-icon">🔄</span>
+        Refresh
+      </button>
+      <button id="export-tokens-btn" class="action-button export">
+        <span class="button-icon">📁</span>
+        Export
+      </button>
+      <button id="delete-all-tokens-btn" class="action-button delete">
+        <span class="button-icon">🗑️</span>
+        Delete All
+      </button>
+    </div>
+
+    <!-- Tokens Details -->
+    <div class="details-section">
+      <h3>Token Details</h3>
+      <div id="tokens-list">
+        Loading tokens...
+      </div>
     </div>
   </div>
   

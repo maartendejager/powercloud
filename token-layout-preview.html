@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerCloud Extension - New Token Layout Preview</title>
+    <link rel="stylesheet" href="popup/popup.css">
+    <style>
+        body {
+            margin: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+        }
+        .popup-container {
+            width: 450px;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background: white;
+            margin: 0 auto;
+        }
+        .preview-header {
+            background: #f5f5f5;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            text-align: center;
+            font-size: 14px;
+        }
+        .description {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>PowerCloud Extension - New Token Layout</h1>
+    <div class="description">
+        <p>Preview of the updated auth tokens section with modern card-based layout inspired by the health dashboard.</p>
+    </div>
+    
+    <div class="popup-container">
+        <div class="preview-header">Extension Popup - Auth Tokens Tab</div>
+        <!-- Include the popup content here -->
+        <div class="popup-content">
+            <div class="tabs">
+                <button id="tokens-tab" class="tab active">Auth Tokens</button>
+                <button id="actions-tab" class="tab">Page Actions</button>
+                <button id="health-tab" class="tab">Health Dashboard</button>
+            </div>
+
+            <!-- Auth Tokens Section -->
+            <div id="tokens-section" class="section">
+                <!-- Tokens Overview Card -->
+                <div class="overview-card">
+                    <div id="tokens-overview" class="status-item">
+                        <div class="status-dot warning"></div>
+                        <div class="status-text">1 expired token</div>
+                    </div>
+                </div>
+
+                <!-- Tokens Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="tokens-total">2</div>
+                        <div class="metric-label">Total Tokens</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="tokens-valid">1</div>
+                        <div class="metric-label">Valid</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="tokens-expired">1</div>
+                        <div class="metric-label">Expired</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="tokens-environments">2</div>
+                        <div class="metric-label">Environments</div>
+                    </div>
+                </div>
+
+                <!-- Tokens Controls -->
+                <div class="controls-grid">
+                    <button id="refresh-tokens-btn" class="action-button refresh">
+                        <span class="button-icon">🔄</span>
+                        Refresh
+                    </button>
+                    <button id="export-tokens-btn" class="action-button export">
+                        <span class="button-icon">📁</span>
+                        Export
+                    </button>
+                    <button id="delete-all-tokens-btn" class="action-button delete">
+                        <span class="button-icon">🗑️</span>
+                        Delete All
+                    </button>
+                </div>
+
+                <!-- Tokens Details -->
+                <div class="details-section">
+                    <h3>Token Details</h3>
+                    <div id="tokens-list">
+                        <!-- Sample token cards for preview -->
+                        <div class="token-card">
+                            <div class="token-card-header">
+                                <div class="token-status valid">
+                                    <span class="status-icon">✓</span>
+                                    <span class="status-text">Valid</span>
+                                </div>
+                                <div class="environment-badge production">
+                                    Production
+                                </div>
+                            </div>
+                            
+                            <div class="token-content">
+                                <div class="token-value">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</div>
+                            </div>
+                            
+                            <div class="token-meta">
+                                <div class="token-captured">Captured: 2024-01-15 10:30:45</div>
+                                <div class="token-expiry">Expires: 2024-02-15 10:30:45</div>
+                                <div class="token-url">URL: https://api.spend.cloud/v1/users</div>
+                            </div>
+                            
+                            <div class="token-actions">
+                                <button class="action-btn copy-btn" title="Copy token to clipboard">
+                                    <span class="btn-icon">📋</span>
+                                    Copy
+                                </button>
+                                <button class="action-btn delete-btn" title="Delete this token">
+                                    <span class="btn-icon">🗑️</span>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="token-card expired">
+                            <div class="token-card-header">
+                                <div class="token-status expired">
+                                    <span class="status-icon">⚠️</span>
+                                    <span class="status-text">Expired</span>
+                                </div>
+                                <div class="environment-badge development">
+                                    Development
+                                    <span class="dev-indicator">DEV</span>
+                                </div>
+                            </div>
+                            
+                            <div class="token-content">
+                                <div class="token-value">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkphbmUgRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567</div>
+                            </div>
+                            
+                            <div class="token-meta">
+                                <div class="token-captured">Captured: 2023-12-01 14:20:30</div>
+                                <div class="token-expiry">Expires: 2023-12-31 14:20:30</div>
+                                <div class="token-url">URL: https://dev.spend.cloud/api/v1/auth</div>
+                            </div>
+                            
+                            <div class="token-actions">
+                                <button class="action-btn copy-btn" title="Warning: This token is expired">
+                                    <span class="btn-icon">📋</span>
+                                    Copy (Expired)
+                                </button>
+                                <button class="action-btn delete-btn" title="Delete this token">
+                                    <span class="btn-icon">🗑️</span>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder sections for other tabs -->
+            <div id="actions-section" class="section" style="display: none;">
+                <h2>Page Actions</h2>
+                <p>Page actions content...</p>
+            </div>
+
+            <div id="health-section" class="section" style="display: none;">
+                <h2>Health Dashboard</h2>
+                <p>Health dashboard content...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple tab switching for preview
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active from all tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+                
+                // Activate clicked tab
+                tab.classList.add('active');
+                const sectionId = tab.id.replace('-tab', '-section');
+                document.getElementById(sectionId).style.display = 'block';
+            });
+        });
+
+        // Mock button interactions
+        document.querySelector('.copy-btn').addEventListener('click', function() {
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<span class="btn-icon">✓</span>Copied!';
+            this.classList.add('success');
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.classList.remove('success');
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

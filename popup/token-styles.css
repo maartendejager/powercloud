@@ -1,0 +1,246 @@
+/* Enhanced Token Card Styles */
+
+/* 1. Redesigned Metrics grid - more compact and visually interesting */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.metric-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-left: 3px solid #2196F3;
+  transition: transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.3), transparent);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.metric-card:nth-child(1) {
+  border-left-color: #673AB7; /* purple for total */
+}
+
+.metric-card:nth-child(2) {
+  border-left-color: #4CAF50; /* green for valid */
+}
+
+.metric-card:nth-child(3) {
+  border-left-color: #FF9800; /* orange for expired */
+}
+
+.metric-card:nth-child(4) {
+  border-left-color: #2196F3; /* blue for environments */
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: #757575;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 2. Token card styles with better text handling */
+.token-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  border-left: 4px solid #2196F3;
+  position: relative;
+}
+
+.token-card.expired {
+  border-left-color: #FF9800;
+}
+
+.token-card:hover {
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+/* 3. Client Environment & Environment badge styling */
+.token-header {
+  margin-bottom: 12px;
+}
+
+.client-environment {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 5px;
+  letter-spacing: 0.3px;
+}
+
+.environment-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.environment-badge.production {
+  background-color: #4CAF50;
+}
+
+.environment-badge.development {
+  background-color: #FF9800;
+}
+
+/* Token status display */
+.token-status {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.token-status.valid {
+  color: #4CAF50;
+}
+
+.token-status.expired {
+  color: #FF9800;
+}
+
+.status-icon {
+  margin-right: 5px;
+}
+
+/* 2. Token content with proper text handling */
+.token-content {
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 10px 0;
+  position: relative;
+}
+
+.token-value {
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.5;
+  max-height: 80px;
+  overflow-y: auto;
+  padding: 8px;
+  color: #444;
+  border: 1px solid #eaeaea;
+  border-radius: 3px;
+  background-color: #fafafa;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.token-meta {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.token-meta > div {
+  margin: 5px 0;
+}
+
+.token-url {
+  font-family: monospace;
+  word-break: break-all;
+}
+
+/* 4. Token action buttons with consistent size */
+.token-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 36px;
+  box-sizing: border-box;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 80px;
+}
+
+.copy-btn {
+  background-color: #2196F3;
+  color: white;
+}
+
+.copy-btn:hover {
+  background-color: #1976D2;
+}
+
+.delete-btn {
+  background-color: #F44336;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #D32F2F;
+}
+
+.action-btn.success {
+  background-color: #4CAF50;
+}
+
+.btn-icon {
+  margin-right: 6px;
+}
+
+/* Controls grid for token actions */
+.controls-grid {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.controls-grid .action-button {
+  flex: 1;
+  min-width: 100px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
