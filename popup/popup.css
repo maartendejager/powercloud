@@ -154,26 +154,6 @@ h3 {
   background-color: #d0d0d0;
 }
 
-/* Card form styles */
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #555;
-}
-
-.input-field {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  width: 80%;
-  font-size: 14px;
-}
-
 .action-button {
   background-color: #4CAF50;
   color: white;
@@ -192,29 +172,6 @@ h3 {
 .action-button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
-}
-
-.result-box {
-  margin-top: 20px;
-  padding: 12px;
-  background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-}
-
-.result-box h4 {
-  margin-top: 0;
-  margin-bottom: 8px;
-}
-
-#card-result-content {
-  word-break: break-all;
-  font-family: monospace;
-  background-color: #e8e8e8;
-  padding: 10px;
-  border-radius: 3px;
-  max-height: 100px;
-  overflow-y: auto;
 }
 
 .token-actions {

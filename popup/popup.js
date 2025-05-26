@@ -170,85 +170,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   
-  // Function to extract and pre-fill card details from the active tab URL
-  function fillCardDetailsFromActiveTab() {
-    console.log('Attempting to fill card details from active tab');
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0] && tabs[0].url) {
-        const url = tabs[0].url;
-        console.log('Current URL:', url);
-        
-        // Define all the URL patterns that might contain card information
-        const patterns = [
-          // Standard card URL
-          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, name: 'standard' },
-          // Proactive single card update URL
-          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, name: 'proactive' },
-          // Kasboek passen show URL
-          { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, name: 'kasboek' }
-        ];
-        
-        // Try each pattern until we find a match
-        let match = null;
-        let matchType = null;
-        
-        for (const patternObj of patterns) {
-          const result = url.match(patternObj.pattern);
-          if (result) {
-            match = result;
-            matchType = patternObj.name;
-            break;
-          }
-        }
-        
-        console.log('URL match result:', match, 'Type:', matchType);
-        
-        // Show or hide the card tab based on whether we're on a card page
-        const cardTab = document.getElementById('card-tab');
-        if (match) {
-          cardTab.style.display = 'block';
-          const customerDomain = match[1];
-          const cardId = match[2];
-          console.log(`Extracted customer domain: ${customerDomain}, card ID: ${cardId} from ${matchType} URL`);
-          
-          // Make sure the elements exist
-          const domainInput = document.getElementById('customer-domain');
-          const cardInput = document.getElementById('card-id');
-          
-          if (domainInput && cardInput) {
-            // Fill the form fields
-            domainInput.value = customerDomain;
-            cardInput.value = cardId;
-            console.log('Form fields populated successfully');
-            
-            // Auto-switch to the card tab if we're on a card page
-            switchToTab('card');
-          }
-        } else {
-          cardTab.style.display = 'none';
-          // If we're not on a card page and the card tab is active, switch to tokens tab
-          if (document.getElementById('card-section').style.display !== 'none') {
-            switchToTab('tokens');
-          }
-        }
-      }
-    });
-  }
-  
-  // Call this when the popup is opened with a slight delay to ensure DOM is ready
-  setTimeout(fillCardDetailsFromActiveTab, 100);
-  
   // Tab switching functionality
   function switchToTab(tabId) {
     // Hide all sections
     document.getElementById('tokens-section').style.display = 'none';
-    document.getElementById('card-section').style.display = 'none';
     document.getElementById('actions-section').style.display = 'none';
     document.getElementById('health-section').style.display = 'none';
     
     // Remove active class from all tabs
     document.getElementById('tokens-tab').classList.remove('active');
-    document.getElementById('card-tab').classList.remove('active');
     document.getElementById('actions-tab').classList.remove('active');
     document.getElementById('health-tab').classList.remove('active');
     
@@ -268,99 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   document.getElementById('tokens-tab').addEventListener('click', () => switchToTab('tokens'));
-  document.getElementById('card-tab').addEventListener('click', () => {
-    // Only allow clicking the card tab if we're on a card page
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0] && tabs[0].url) {
-        const url = tabs[0].url;
-        
-        // Check all supported card URL patterns
-        const cardUrlPatterns = [
-          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
-          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
-          /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
-        ];
-        
-        // Check if any of the patterns match
-        const isCardPage = cardUrlPatterns.some(pattern => pattern.test(url));
-        
-        if (isCardPage) {
-          switchToTab('card');
-        }
-      }
-    });
-  });
-  
-  // Card details functionality
-  document.getElementById('fetch-card-btn').addEventListener('click', () => {
-    const customerDomain = document.getElementById('customer-domain').value.trim();
-    const cardId = document.getElementById('card-id').value.trim();
-    
-    if (!customerDomain || !cardId) {
-      showCardResult('Please enter both customer domain and card ID', false);
-      return;
-    }
-    
-    // Show loading state
-    const button = document.getElementById('fetch-card-btn');
-    const originalText = button.textContent;
-    button.textContent = 'Loading...';
-    button.disabled = true;
-    
-    // Request the card details and open Adyen in a single step
-    chrome.runtime.sendMessage({
-      action: "fetchCardDetails",
-      customer: customerDomain,
-      cardId: cardId
-    }, (response) => {
-      // Reset button
-      button.textContent = originalText;
-      button.disabled = false;
-      
-      if (!response) {
-        showCardResult('No response from background script', false);
-        return;
-      }
-      
-      if (!response.success) {
-        showCardResult(`Error: ${response.error || 'Failed to fetch card details'}`, false);
-        return;
-      }
-      
-      // Check if the card is from Adyen
-      const vendor = response.vendor ? response.vendor.toLowerCase() : null;
-      if (vendor && vendor !== 'adyen') {
-        showCardResult(`This is a non-Adyen card (vendor: ${vendor}). Cannot view in Adyen dashboard.`, false);
-        return;
-      }
-      
-      const paymentInstrumentId = response.paymentInstrumentId;
-      if (paymentInstrumentId) {
-        // Open Adyen directly in a new tab
-        const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${paymentInstrumentId}`;
-        chrome.tabs.create({ url: adyenUrl });
-        showCardResult(`Opening card in Adyen dashboard...`, true);
-      } else {
-        showCardResult('No payment instrument ID found for this card', false);
-      }
-    });
-  });
-  
-  function showCardResult(message, isSuccess) {
-    const resultBox = document.getElementById('card-result');
-    const resultContent = document.getElementById('card-result-content');
-    
-    resultBox.style.display = 'block';
-    
-    // Allow HTML in error messages for better formatting
-    if (message.includes('Error:')) {
-      resultContent.innerHTML = `<div style="color: #d32f2f; font-weight: bold;">${message}</div>`;
-    } else {
-      resultContent.textContent = message;
-    }
-    
-    resultContent.style.backgroundColor = isSuccess ? '#e8f5e9' : '#ffebee';
-  }
   
   // Actions tab event listener
   document.getElementById('actions-tab').addEventListener('click', () => {
