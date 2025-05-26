@@ -20,6 +20,7 @@
   <div class="tabs">
     <div class="tab active" id="tokens-tab">Auth Tokens</div>
     <div class="tab" id="card-tab">Card Info</div>
+    <div class="tab" id="actions-tab">Page Actions</div>
     <div class="tab" id="health-tab">Health Dashboard</div>
   </div>
   
@@ -53,6 +54,58 @@
     <div id="card-result" class="result-box" style="display: none;">
       <h4>Result:</h4>
       <div id="card-result-content"></div>
+    </div>
+  </div>
+
+  <div id="actions-section" style="display: none;">
+    <h3>Page Actions</h3>
+    <p>Actions for the current page (always available regardless of toggle setting).</p>
+    
+    <div id="page-context" class="page-context">
+      <div class="context-info">
+        <span id="page-type">Detecting page...</span>
+      </div>
+    </div>
+    
+    <div id="actions-container">
+      <!-- Card actions -->
+      <div id="card-actions" class="action-group" style="display: none;">
+        <h4>Card Actions</h4>
+        <div class="action-description">
+          <strong>Customer:</strong> <span id="card-customer">-</span><br>
+          <strong>Card ID:</strong> <span id="card-id-display">-</span>
+        </div>
+        <button id="popup-card-btn" class="action-button">View Card in Adyen</button>
+        <div id="card-action-result" class="action-result" style="display: none;"></div>
+      </div>
+      
+      <!-- Book actions -->
+      <div id="book-actions" class="action-group" style="display: none;">
+        <h4>Balance Account Actions</h4>
+        <div class="action-description">
+          <strong>Customer:</strong> <span id="book-customer">-</span><br>
+          <strong>Book ID:</strong> <span id="book-id-display">-</span>
+        </div>
+        <button id="popup-book-btn" class="action-button">View Balance Account in Adyen</button>
+        <div id="book-action-result" class="action-result" style="display: none;"></div>
+      </div>
+      
+      <!-- Entries actions -->
+      <div id="entries-actions" class="action-group" style="display: none;">
+        <h4>Transfer Actions</h4>
+        <div class="action-description">
+          <strong>Customer:</strong> <span id="entries-customer">-</span><br>
+          <strong>Entry ID:</strong> <span id="entry-id-display">-</span>
+        </div>
+        <button id="popup-entries-btn" class="action-button">View Transfer in Adyen</button>
+        <div id="entries-action-result" class="action-result" style="display: none;"></div>
+      </div>
+      
+      <!-- No actions available -->
+      <div id="no-actions" class="action-group">
+        <p class="no-actions-message">No page actions available for this page.</p>
+        <p class="no-actions-description">Navigate to a card, book, or entries page to see available actions.</p>
+      </div>
     </div>
   </div>
 

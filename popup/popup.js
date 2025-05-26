@@ -240,11 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hide all sections
     document.getElementById('tokens-section').style.display = 'none';
     document.getElementById('card-section').style.display = 'none';
+    document.getElementById('actions-section').style.display = 'none';
     document.getElementById('health-section').style.display = 'none';
     
     // Remove active class from all tabs
     document.getElementById('tokens-tab').classList.remove('active');
     document.getElementById('card-tab').classList.remove('active');
+    document.getElementById('actions-tab').classList.remove('active');
     document.getElementById('health-tab').classList.remove('active');
     
     // Show the selected section and activate the tab
@@ -351,6 +353,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     resultContent.style.backgroundColor = isSuccess ? '#e8f5e9' : '#ffebee';
   }
+  
+  // Actions tab event listener
+  document.getElementById('actions-tab').addEventListener('click', () => {
+    switchToTab('actions');
+    // Load page actions when the tab is activated
+    loadPageActions();
+  });
   
   // Health tab event listener
   document.getElementById('health-tab').addEventListener('click', () => switchToTab('health'));
@@ -914,6 +923,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="feature-card-metrics">
+      </div>
+      <div class="feature-card-metrics">
         <div class="feature-metric">
           <div class="feature-metric-value">${errorCount}</div>
           <div class="feature-metric-label">Errors</div>
@@ -973,6 +984,367 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgPerf = Object.values(health.performance)
           .reduce((sum, metric) => sum + (metric.average || 0), 0) / Object.keys(health.performance).length;
         document.getElementById('avg-performance').textContent = Math.round(avgPerf * 100) / 100;
+      }
+    });
+  }
+
+  // Page Actions tab functionality
+  function updatePageActions() {
+    const actionsList = document.getElementById('page-actions-list');
+    actionsList.innerHTML = ''; // Clear existing actions
+    
+    // Get the active tab's URL
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const url = tabs[0]?.url;
+      if (!url) {
+        actionsList.innerHTML = '<div class="empty-state">No active tab detected</div>';
+        return;
+      }
+      
+      // Define your page-specific actions here
+      const pageActions = [
+        {
+          // Card actions
+          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+          action: () => {
+            const customer = RegExp.$1;
+            const cardId = RegExp.$2;
+            return `
+              <div class="action-item">
+                <span class="action-label">Card ID:</span>
+                <span class="action-value">${cardId}</span>
+              </div>
+              <div class="action-item">
+                <span class="action-label">Customer:</span>
+                <span class="action-value">${customer}</span>
+              </div>
+              <button class="action-button" id="popup-card-btn">
+                View in Adyen
+              </button>
+            `;
+          }
+        },
+        {
+          // Book actions
+          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/,
+          action: () => {
+            const customer = RegExp.$1;
+            const bookId = RegExp.$2;
+            return `
+              <div class="action-item">
+                <span class="action-label">Book ID:</span>
+                <span class="action-value">${bookId}</span>
+              </div>
+              <div class="action-item">
+                <span class="action-label">Customer:</span>
+                <span class="action-value">${customer}</span>
+              </div>
+              <button class="action-button" id="popup-book-btn">
+                View in Adyen
+              </button>
+            `;
+          }
+        },
+        {
+          // Entry actions
+          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
+          action: () => {
+            const customer = RegExp.$1;
+            const entryId = RegExp.$2;
+            return `
+              <div class="action-item">
+                <span class="action-label">Entry ID:</span>
+                <span class="action-value">${entryId}</span>
+              </div>
+              <div class="action-item">
+                <span class="action-label">Customer:</span>
+                <span class="action-value">${customer}</span>
+              </div>
+              <button class="action-button" id="popup-entries-btn">
+                View in Adyen
+              </button>
+            `;
+          }
+        }
+      ];
+      
+      // Check each action and add to the list if it matches the URL
+      pageActions.forEach(pageAction => {
+        const { urlPattern, action } = pageAction;
+        if (urlPattern.test(url)) {
+          const actionHtml = action();
+          actionsList.innerHTML = actionHtml;
+        }
+      });
+    });
+  }
+  
+  // Load page actions when the tab is updated
+  function loadPageActions() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].url) {
+        const url = tabs[0].url;
+        const pageInfo = detectPageType(url);
+        updatePageActionsUI(pageInfo);
+      } else {
+        showNoPageActions();
+      }
+    });
+  }
+
+  function detectPageType(url) {
+    // URL patterns matching those in main.js
+    const patterns = {
+      card: [
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, type: 'standard' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, type: 'proactive' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, type: 'kasboek' }
+      ],
+      book: [
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/, type: 'kasboek' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/book\/([^\/]+)(\/.*|$)/, type: 'adyen' }
+      ],
+      entries: [
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/, type: 'kasboek' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/entries\/([^\/]+)(\/.*|$)/, type: 'adyen' }
+      ]
+    };
+
+    // Check each pattern type
+    for (const [pageType, pagePatterns] of Object.entries(patterns)) {
+      for (const patternObj of pagePatterns) {
+        const match = url.match(patternObj.pattern);
+        if (match) {
+          return {
+            type: pageType,
+            subtype: patternObj.type,
+            customer: match[1],
+            id: match[2],
+            url: url
+          };
+        }
+      }
+    }
+
+    return null; // No matching page type
+  }
+
+  function updatePageActionsUI(pageInfo) {
+    const pageTypeElement = document.getElementById('page-type');
+    const cardActions = document.getElementById('card-actions');
+    const bookActions = document.getElementById('book-actions');
+    const entriesActions = document.getElementById('entries-actions');
+    const noActions = document.getElementById('no-actions');
+
+    // Hide all action groups initially
+    cardActions.style.display = 'none';
+    bookActions.style.display = 'none';
+    entriesActions.style.display = 'none';
+    noActions.style.display = 'none';
+
+    if (!pageInfo) {
+      showNoPageActions();
+      return;
+    }
+
+    // Update page context display
+    pageTypeElement.textContent = `${pageInfo.type.charAt(0).toUpperCase() + pageInfo.type.slice(1)} page detected (${pageInfo.subtype})`;
+
+    // Show appropriate action group and populate data
+    switch (pageInfo.type) {
+      case 'card':
+        cardActions.style.display = 'block';
+        document.getElementById('card-customer').textContent = pageInfo.customer;
+        document.getElementById('card-id-display').textContent = pageInfo.id;
+        break;
+      case 'book':
+        bookActions.style.display = 'block';
+        document.getElementById('book-customer').textContent = pageInfo.customer;
+        document.getElementById('book-id-display').textContent = pageInfo.id;
+        break;
+      case 'entries':
+        entriesActions.style.display = 'block';
+        document.getElementById('entries-customer').textContent = pageInfo.customer;
+        document.getElementById('entry-id-display').textContent = pageInfo.id;
+        break;
+    }
+  }
+
+  function showNoPageActions() {
+    const pageTypeElement = document.getElementById('page-type');
+    const noActions = document.getElementById('no-actions');
+
+    pageTypeElement.textContent = 'No supported page detected';
+    
+    // Hide all action groups
+    document.getElementById('card-actions').style.display = 'none';
+    document.getElementById('book-actions').style.display = 'none';
+    document.getElementById('entries-actions').style.display = 'none';
+    
+    // Show no actions message
+    noActions.style.display = 'block';
+  }
+
+  // Action button event listeners
+  document.getElementById('popup-card-btn').addEventListener('click', () => {
+    const customer = document.getElementById('card-customer').textContent;
+    const cardId = document.getElementById('card-id-display').textContent;
+    
+    if (customer === '-' || cardId === '-') return;
+
+    // Show loading state
+    const button = document.getElementById('popup-card-btn');
+    const resultDiv = document.getElementById('card-action-result');
+    const originalText = button.textContent;
+    
+    button.textContent = 'Loading...';
+    button.disabled = true;
+    resultDiv.style.display = 'none';
+
+    // Send message to fetch card details and open Adyen
+    chrome.runtime.sendMessage({
+      action: "fetchCardDetails",
+      customer: customer,
+      cardId: cardId
+    }, (response) => {
+      // Reset button
+      button.textContent = originalText;
+      button.disabled = false;
+      
+      showActionResult(resultDiv, response, 'card');
+    });
+  });
+
+  document.getElementById('popup-book-btn').addEventListener('click', () => {
+    const customer = document.getElementById('book-customer').textContent;
+    const bookId = document.getElementById('book-id-display').textContent;
+    
+    if (customer === '-' || bookId === '-') return;
+
+    // Show loading state
+    const button = document.getElementById('popup-book-btn');
+    const resultDiv = document.getElementById('book-action-result');
+    const originalText = button.textContent;
+    
+    button.textContent = 'Loading...';
+    button.disabled = true;
+    resultDiv.style.display = 'none';
+
+    // Send message to fetch book details and open Adyen
+    chrome.runtime.sendMessage({
+      action: "fetchBookDetails",
+      customer: customer,
+      bookId: bookId
+    }, (response) => {
+      // Reset button
+      button.textContent = originalText;
+      button.disabled = false;
+      
+      showActionResult(resultDiv, response, 'book');
+    });
+  });
+
+  document.getElementById('popup-entries-btn').addEventListener('click', () => {
+    const customer = document.getElementById('entries-customer').textContent;
+    const entryId = document.getElementById('entry-id-display').textContent;
+    
+    if (customer === '-' || entryId === '-') return;
+
+    // Show loading state
+    const button = document.getElementById('popup-entries-btn');
+    const resultDiv = document.getElementById('entries-action-result');
+    const originalText = button.textContent;
+    
+    button.textContent = 'Loading...';
+    button.disabled = true;
+    resultDiv.style.display = 'none';
+
+    // Send message to fetch entry details and open Adyen
+    chrome.runtime.sendMessage({
+      action: "fetchEntryDetails",
+      customer: customer,
+      entryId: entryId
+    }, (response) => {
+      // Reset button
+      button.textContent = originalText;
+      button.disabled = false;
+      
+      showActionResult(resultDiv, response, 'entries');
+    });
+  });
+
+  function showActionResult(resultDiv, response, actionType) {
+    resultDiv.style.display = 'block';
+    
+    if (!response) {
+      resultDiv.textContent = 'No response from background script';
+      resultDiv.className = 'action-result error';
+      return;
+    }
+
+    if (!response.success) {
+      resultDiv.textContent = `Error: ${response.error || 'Failed to fetch details'}`;
+      resultDiv.className = 'action-result error';
+      return;
+    }
+
+    // Handle success based on action type
+    switch (actionType) {
+      case 'card':
+        if (response.vendor && response.vendor.toLowerCase() !== 'adyen') {
+          resultDiv.textContent = `Non-Adyen card (vendor: ${response.vendor}). Cannot view in Adyen dashboard.`;
+          resultDiv.className = 'action-result warning';
+        } else if (response.paymentInstrumentId) {
+          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${response.paymentInstrumentId}`;
+          chrome.tabs.create({ url: adyenUrl });
+          resultDiv.textContent = 'Opening card in Adyen dashboard...';
+          resultDiv.className = 'action-result success';
+        } else {
+          resultDiv.textContent = 'No payment instrument ID found for this card';
+          resultDiv.className = 'action-result error';
+        }
+        break;
+        
+      case 'book':
+        if (response.balanceAccountId) {
+          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${response.balanceAccountId}`;
+          chrome.tabs.create({ url: adyenUrl });
+          resultDiv.textContent = 'Opening balance account in Adyen dashboard...';
+          resultDiv.className = 'action-result success';
+        } else {
+          resultDiv.textContent = 'No balance account ID found for this book';
+          resultDiv.className = 'action-result error';
+        }
+        break;
+        
+      case 'entries':
+        if (response.transferId) {
+          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/transfers/${response.transferId}`;
+          chrome.tabs.create({ url: adyenUrl });
+          resultDiv.textContent = 'Opening transfer in Adyen dashboard...';
+          resultDiv.className = 'action-result success';
+        } else {
+          resultDiv.textContent = 'No transfer ID found for this entry';
+          resultDiv.className = 'action-result error';
+        }
+        break;
+    }
+  }
+
+  // Load page actions when popup opens with a slight delay
+  setTimeout(() => {
+    loadPageActions();
+  }, 150);
+
+  // Listen for tab updates to refresh page actions
+  if (chrome.tabs && chrome.tabs.onUpdated) {
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+      if (changeInfo.url) {
+        // Only update if the actions tab is currently active
+        const actionsSection = document.getElementById('actions-section');
+        if (actionsSection && actionsSection.style.display !== 'none') {
+          loadPageActions();
+        }
       }
     });
   }
