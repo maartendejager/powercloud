@@ -635,9 +635,12 @@ export function handleRecordStructuredLog(message, sender, sendResponse) {
       return true;
     }
     
+    // Ensure data is always an object to prevent spread operator errors
+    const safeData = data && typeof data === 'object' ? data : {};
+    
     // Record structured log with content script source
     recordStructuredLog(level, logMessage, {
-      ...data,
+      ...safeData,
       tabId: sender.tab?.id,
       tabUrl: sender.tab?.url,
       source: 'content-script'
@@ -664,9 +667,12 @@ export function handleRecordFeatureEvent(message, sender, sendResponse) {
       return true;
     }
     
+    // Ensure data is always an object to prevent spread operator errors
+    const safeData = data && typeof data === 'object' ? data : {};
+    
     // Record feature event with content script source
     recordFeatureEvent(featureName, event, level, logMessage, {
-      ...data,
+      ...safeData,
       tabId: sender.tab?.id,
       tabUrl: sender.tab?.url,
       source: 'content-script'
@@ -693,9 +699,12 @@ export function handleRecordPerformanceMetric(message, sender, sendResponse) {
       return true;
     }
     
+    // Ensure metadata is always an object to prevent spread operator errors
+    const safeMetadata = metadata && typeof metadata === 'object' ? metadata : {};
+    
     // Use enhanced performance metric recording
     recordEnhancedPerformanceMetric(feature, metric, value, {
-      ...metadata,
+      ...safeMetadata,
       tabId: sender.tab?.id,
       source: 'content-script'
     });
