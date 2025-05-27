@@ -184,6 +184,7 @@ class ViewEntryCardFeature extends BaseFeature {
    */
   async onCleanup() {
     this.removeEntryCardButton();
+    this.removeResultFeedback();
     await super.onCleanup();
     
     entryCardLogger.info('ViewEntryCardFeature cleanup completed');
@@ -459,20 +460,101 @@ class ViewEntryCardFeature extends BaseFeature {
   /**
    * Placeholder for button creation (to be implemented in Phase 3)
    */
+  /**
+   * Create and add the entry card navigation button
+   * Step 3.1: Button Creation and Styling with shadow DOM
+   */
   addEntryCardButton() {
     entryCardLogger.info('addEntryCardButton called', { 
       hasCardId: !!this.cardId,
       cardId: this.cardId 
     });
-    
-    // Check if we have a valid card ID to determine button state
-    if (this.cardId) {
-      entryCardLogger.info('Card ID available - button will be enabled', { cardId: this.cardId });
-      // TODO: Phase 3 will implement the actual enabled button creation
-    } else {
-      entryCardLogger.info('No card ID available - button will be disabled');
-      // TODO: Phase 3 will implement the actual disabled button creation
+
+    // Check if button already exists
+    if (this.cardButtonCreated) {
+      entryCardLogger.info('Entry card button already exists, skipping creation');
+      return;
     }
+
+    // Remove any existing button first
+    this.removeEntryCardButton();
+
+    // Create shadow DOM host for button
+    const shadowHost = document.createElement('div');
+    shadowHost.id = this.config.hostElementId || 'powercloud-entry-card-shadow-host';
+    
+    // Attach a shadow DOM tree
+    const shadowRoot = shadowHost.attachShadow({ mode: 'closed' });
+    
+    // Add link to our external stylesheet in shadow DOM
+    const linkElem = document.createElement('link');
+    linkElem.rel = 'stylesheet';
+    linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+    shadowRoot.appendChild(linkElem);
+
+    // Create button container with styling
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'powercloud-container powercloud-button-container';
+    buttonContainer.id = 'powercloud-entry-card-button-container';
+
+    // Create the button
+    const button = document.createElement('button');
+    button.id = 'powercloud-entry-card-btn';
+    button.className = 'powercloud-button';
+
+    // Step 3.1: Handle enabled/disabled states based on card availability
+    if (this.cardId) {
+      // Enabled state - card available
+      button.textContent = 'View Card Details';
+      button.addEventListener('click', () => this.handleViewCardClick());
+      button.title = `Navigate to card details for card ${this.cardId}`;
+      
+      // Add ARIA attributes for accessibility
+      button.setAttribute('aria-label', `View details for card ${this.cardId}`);
+      button.setAttribute('aria-describedby', 'powercloud-entry-card-description');
+      
+      entryCardLogger.info('Created enabled entry card button', { cardId: this.cardId });
+    } else {
+      // Disabled state - no card available
+      button.textContent = 'No Associated Card';
+      button.disabled = true;
+      button.className += ' powercloud-button-disabled';
+      button.title = 'This entry is not linked to any card';
+      
+      // Add ARIA attributes for accessibility
+      button.setAttribute('aria-label', 'No associated card available');
+      button.setAttribute('aria-describedby', 'powercloud-entry-card-description');
+      
+      entryCardLogger.info('Created disabled entry card button - no card ID available');
+    }
+
+    // Add hidden description for screen readers
+    const description = document.createElement('div');
+    description.id = 'powercloud-entry-card-description';
+    description.className = 'powercloud-sr-only';
+    description.textContent = this.cardId 
+      ? `Button to navigate to the card details page for card ${this.cardId}`
+      : 'This entry does not have an associated card to view';
+
+    // Add elements to container
+    buttonContainer.appendChild(button);
+    buttonContainer.appendChild(description);
+    
+    // Add container to shadow DOM
+    shadowRoot.appendChild(buttonContainer);
+
+    // Add shadow host to the page
+    document.body.appendChild(shadowHost);
+    
+    // Store reference for cleanup
+    this.shadowHost = shadowHost;
+    this.cardButtonCreated = true;
+    
+    entryCardLogger.info('Entry card button added to page', { 
+      hasCardId: !!this.cardId,
+      cardId: this.cardId,
+      buttonEnabled: !!this.cardId
+    });
   }
 
   /**
@@ -583,11 +665,8 @@ class ViewEntryCardFeature extends BaseFeature {
     // Remove the shadow host for the button
     this.removeHostElement();
 
-    // Also remove any result shadow host that might be showing
-    const resultHost = document.getElementById('powercloud-entry-card-result-host');
-    if (resultHost) {
-      resultHost.remove();
-    }
+    // Also remove any result feedback that might be showing
+    this.removeResultFeedback();
     
     this.cardButtonCreated = false;
     entryCardLogger.info('Entry card button removed');
@@ -595,7 +674,7 @@ class ViewEntryCardFeature extends BaseFeature {
 
   /**
    * Enhanced result feedback with error categorization
-   * Step 2.2: User-friendly error messages
+   * Step 3.3: Result Feedback System - UI implementation
    * @param {string} message - The message to display
    */
   showEntryCardResult(message) {
@@ -606,12 +685,118 @@ class ViewEntryCardFeature extends BaseFeature {
     
     entryCardLogger.info('Result message categorized', { 
       message, 
-      messageType,
-      willImplementUI: 'Phase 3'
+      messageType 
     });
     
-    // TODO: Phase 3 will implement the actual result feedback UI
-    // For now, just log the enhanced message info
+    // Remove any existing result feedback
+    this.removeResultFeedback();
+    
+    // Create shadow DOM host for result feedback
+    const resultHost = document.createElement('div');
+    resultHost.id = 'powercloud-entry-card-result-host';
+    
+    // Attach shadow DOM for styling isolation
+    const shadowRoot = resultHost.attachShadow({ mode: 'closed' });
+    
+    // Add link to our external stylesheet
+    const linkElem = document.createElement('link');
+    linkElem.rel = 'stylesheet';
+    linkElem.href = chrome.runtime.getURL('content_scripts/styles.css');
+    shadowRoot.appendChild(linkElem);
+    
+    // Create result container
+    const resultContainer = document.createElement('div');
+    resultContainer.className = `powercloud-container powercloud-result-container powercloud-result-${messageType}`;
+    resultContainer.id = 'powercloud-entry-card-result';
+    
+    // Create result message element
+    const messageElement = document.createElement('div');
+    messageElement.className = 'powercloud-result-message';
+    messageElement.textContent = message;
+    
+    // Add ARIA attributes for accessibility
+    messageElement.setAttribute('role', messageType === 'error' ? 'alert' : 'status');
+    messageElement.setAttribute('aria-live', messageType === 'error' ? 'assertive' : 'polite');
+    
+    // Create close button for manual dismissal
+    const closeButton = document.createElement('button');
+    closeButton.className = 'powercloud-result-close';
+    closeButton.textContent = '×';
+    closeButton.title = 'Close message';
+    closeButton.setAttribute('aria-label', 'Close result message');
+    closeButton.addEventListener('click', () => this.removeResultFeedback());
+    
+    // Add elements to container
+    resultContainer.appendChild(messageElement);
+    resultContainer.appendChild(closeButton);
+    
+    // Add container to shadow DOM
+    shadowRoot.appendChild(resultContainer);
+    
+    // Position the result near the button or at top of page
+    this.positionResultFeedback(resultHost);
+    
+    // Add to page
+    document.body.appendChild(resultHost);
+    
+    // Store reference for cleanup
+    this.resultHost = resultHost;
+    
+    // Auto-hide non-error messages after 5 seconds
+    if (messageType !== 'error') {
+      setTimeout(() => {
+        this.removeResultFeedback();
+      }, 5000);
+    }
+    
+    entryCardLogger.info('Result feedback UI created', {
+      messageType,
+      message,
+      autoHide: messageType !== 'error'
+    });
+  }
+  
+  /**
+   * Position the result feedback element appropriately
+   * Step 3.3: Smart positioning relative to button or page
+   * @param {HTMLElement} resultHost - The result feedback host element
+   */
+  positionResultFeedback(resultHost) {
+    // Try to position near the entry card button if it exists
+    const buttonHost = document.getElementById('powercloud-entry-card-shadow-host');
+    
+    if (buttonHost) {
+      // Position below the button
+      resultHost.style.position = 'fixed';
+      resultHost.style.zIndex = '10001';
+      
+      const buttonRect = buttonHost.getBoundingClientRect();
+      resultHost.style.top = `${buttonRect.bottom + 10}px`;
+      resultHost.style.left = `${buttonRect.left}px`;
+      resultHost.style.maxWidth = '400px';
+    } else {
+      // Fallback: position at top-right of viewport
+      resultHost.style.position = 'fixed';
+      resultHost.style.top = '20px';
+      resultHost.style.right = '20px';
+      resultHost.style.zIndex = '10001';
+      resultHost.style.maxWidth = '400px';
+    }
+  }
+  
+  /**
+   * Remove result feedback UI
+   * Step 3.3: Cleanup result feedback elements
+   */
+  removeResultFeedback() {
+    const existingResult = document.getElementById('powercloud-entry-card-result-host');
+    if (existingResult) {
+      existingResult.remove();
+      entryCardLogger.info('Removed existing result feedback');
+    }
+    
+    // Clear reference
+    this.resultHost = null;
   }
 
   /**
