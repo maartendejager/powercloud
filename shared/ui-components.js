@@ -1138,9 +1138,10 @@ class PowerCloudButtonManager {
                 return this.buttons.get(buttonId).button;
             }
             
+            const { id: originalId, ...configWithoutId } = buttonConfig;
             const button = this.container.addButton({
                 id: buttonId,
-                ...buttonConfig
+                ...configWithoutId
             });
             
             this.buttons.set(buttonId, {
