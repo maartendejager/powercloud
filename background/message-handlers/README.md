@@ -25,3 +25,41 @@ When adding a new handler:
 - For sync responses, return `false` to close the channel
 - Use the consistent parameter names: `message`, `sender`, `sendResponse`
 - Document the handler with JSDoc comments
+
+### Defensive Programming for Data Validation
+
+**IMPORTANT**: Always validate data parameters before using spread operators to prevent TypeError crashes.
+
+When handling messages that include `data` or similar object parameters, use this defensive pattern:
+
+```javascript
+export function handleYourMessage(message, sender, sendResponse) {
+    try {
+        const { data, metadata } = message;
+        
+        // Defensive validation - REQUIRED for spread operations
+        const safeData = data && typeof data === 'object' ? data : {};
+        const safeMetadata = metadata && typeof metadata === 'object' ? metadata : {};
+        
+        const record = {
+            timestamp: Date.now(),
+            source: sender.tab?.id || 'unknown',
+            ...safeData,  // Now safe to spread
+            metadata: {
+                ...safeMetadata  // Now safe to spread
+            }
+        };
+        
+        // Process the record...
+        sendResponse({ success: true });
+        
+    } catch (error) {
+        console.error('[handler] Error processing message:', error);
+        sendResponse({ success: false, error: error.message });
+    }
+    
+    return true;
+}
+```
+
+This pattern prevents the TypeError "Cannot convert undefined or null to object" that occurs when content scripts send messages with null or undefined data properties.

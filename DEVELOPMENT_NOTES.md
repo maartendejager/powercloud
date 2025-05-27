@@ -16,6 +16,17 @@ For comprehensive developer documentation, see the [docs/](./docs/) directory.
 
 ## Recent Major Changes & Bug Fixes
 
+### TypeError Bug Fix - Message Handler Data Validation (December 2024)
+- **Problem**: TypeError "Cannot convert undefined or null to object" in health-handlers.js when AdyenEntriesFeature sent messages with null/undefined data properties
+- **Root Cause**: Spread operator (`...data`) failed when `data` was null/undefined in message handlers
+- **Solution**: Implemented defensive programming pattern across all vulnerable message handlers:
+  - `handleRecordStructuredLog()` - Added safety check: `const safeData = data && typeof data === 'object' ? data : {};`
+  - `handleRecordFeatureEvent()` - Added safety check for data parameter
+  - `handleRecordPerformanceMetric()` - Added safety check for metadata parameter
+- **Testing**: Comprehensive test coverage for all edge cases (null, undefined, empty object, string data)
+- **Files affected**: `background/message-handlers/health-handlers.js`
+- **Pattern**: This defensive programming pattern should be applied to all future message handlers that use spread operators
+
 ### Enhanced Authentication Error Handling (May 25, 2025)
 - **Problem**: Generic error messages when no valid tokens found didn't provide helpful user guidance
 - **Solution**: Implemented context-aware error messages that:

@@ -274,6 +274,45 @@ async function sendMessage(action, data = {}) {
 }
 ```
 
+**Defensive Message Handler Pattern**
+Always validate data parameters before using spread operators to prevent TypeError crashes:
+
+```javascript
+/**
+ * Safe message handler with defensive data validation
+ * @param {Object} message - Message object
+ * @param {Object} sender - Sender information
+ * @param {Function} sendResponse - Response callback
+ */
+export function handleRecordData(message, sender, sendResponse) {
+    try {
+        const { data, metadata } = message;
+        
+        // Defensive validation before spread operation
+        const safeData = data && typeof data === 'object' ? data : {};
+        const safeMetadata = metadata && typeof metadata === 'object' ? metadata : {};
+        
+        const record = {
+            timestamp: Date.now(),
+            source: sender.tab?.id || 'unknown',
+            ...safeData,  // Safe to spread
+            metadata: {
+                ...safeMetadata  // Safe to spread
+            }
+        };
+        
+        // Process the record...
+        sendResponse({ success: true });
+        
+    } catch (error) {
+        console.error('[handler] Error processing message:', error);
+        sendResponse({ success: false, error: error.message });
+    }
+    
+    return true;
+}
+```
+
 #### Storage Access
 Use consistent patterns for Chrome storage:
 

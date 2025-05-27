@@ -1313,7 +1313,35 @@ async saveConfiguration() {
         this.handleError('Failed to save configuration', error);
     }
 }
+
+// Example: Health dashboard logging with defensive data handling
+recordFeatureEvent(event, level, message, data = {}) {
+    try {
+        // IMPORTANT: Always validate data before sending to prevent TypeError crashes
+        const safeData = data && typeof data === 'object' ? data : {};
+        
+        chrome.runtime.sendMessage({
+            action: 'recordFeatureEvent',
+            featureName: this.featureName,
+            event: event,
+            level: level,
+            logMessage: message,
+            data: {
+                ...safeData,  // Safe to spread - always an object
+                timestamp: Date.now(),
+                url: window.location.href
+            }
+        }).catch(() => {
+            // Silently ignore messaging errors - health logging is not critical
+        });
+    } catch (error) {
+        // Don't let health logging errors break the feature
+        console.warn(`[${this.featureName}] Health logging failed:`, error);
+    }
+}
 ```
+
+**⚠️ Defensive Programming for Message Data**: Always validate data objects before using spread operators in messages to prevent TypeError crashes when data is null or undefined.
 
 ### Essential Methods Checklist
 
