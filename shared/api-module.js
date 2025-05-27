@@ -694,7 +694,22 @@ async function getEntryDetails(customer, entryId, isDev = false) {
   const url = buildApiUrl(customer, `/book-entries/${entryId}`, isDev);
   
   try {
+    console.log('[DEBUG][API] Making getEntryDetails request:', {
+      customer,
+      entryId,
+      isDev,
+      url
+    });
+    
     const response = await get(url);
+    
+    console.log('[DEBUG][API] getEntryDetails response received:', {
+      hasResponse: !!response,
+      responseType: typeof response,
+      responseKeys: response ? Object.keys(response) : 'No response',
+      responseStructure: JSON.stringify(response, null, 2)
+    });
+    
     return response;
   } catch (error) {
     logger.error(`Entry API request failed: ${error.message}`);

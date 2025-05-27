@@ -43,6 +43,7 @@ const logger = (() => {
  */
 export function processEntryDetailsRequest(customer, entryId, isDev, requestId, sendResponse) {
   // Get entry details using our API module
+  
   apiGetEntryDetails(customer, entryId, isDev)
     .then(data => {
       // Extract remoteTransferId from the response data similar to how the content script does it

@@ -1374,12 +1374,180 @@ if (window.PowerCloudFeatures?.otherFeature) {
 
 ## Testing Your Feature
 
-1. Add console logs to verify loading
-2. Verify in the browser console that your script is loaded when visiting matching URLs
-3. Look for potential conflicts with existing features or scripts
-4. Test with both production and development domains:
-   - `https://[customer].spend.cloud/*`
-   - `https://[customer].dev.spend.cloud/*`
+### Development Testing and Debugging
+
+When developing features, follow these debugging best practices:
+
+#### 1. Enable Debug Logging During Development
+
+Always enable debug logging in your feature constructor during development:
+
+```javascript
+class MyNewFeature extends BaseFeature {
+    constructor() {
+        super('my-new-feature', {
+            enableDebugLogging: true // Enable for development, disable for production
+        });
+    }
+}
+```
+
+#### 2. Systematic Debugging Approach
+
+When debugging data flow issues, add comprehensive logging at key points:
+
+```javascript
+// Example: Debugging API response processing
+async processApiResponse(response) {
+    // Log the complete response structure during debugging
+    if (this.enableDebugLogging) {
+        console.log('[DEBUG][MyFeature] API Response Structure:', JSON.stringify(response, null, 2));
+        console.log('[DEBUG][MyFeature] Response Analysis:', {
+            hasData: !!response.data,
+            dataKeys: response.data ? Object.keys(response.data) : 'No data',
+            hasNestedData: !!(response.data && response.data.data),
+            responseType: typeof response
+        });
+    }
+    
+    // Process the response...
+}
+
+// Example: Debugging data extraction
+extractDataFromResponse(responseData) {
+    if (this.enableDebugLogging) {
+        console.log('[DEBUG][MyFeature] Extracting data from:', typeof responseData);
+        console.log('[DEBUG][MyFeature] Data structure:', JSON.stringify(responseData, null, 2));
+        
+        // Test each extraction path
+        console.log('[DEBUG][MyFeature] Path 1 (responseData.field):', responseData.field);
+        console.log('[DEBUG][MyFeature] Path 2 (responseData.nested?.field):', responseData.nested?.field);
+        console.log('[DEBUG][MyFeature] Path 3 (responseData.data?.field):', responseData.data?.field);
+    }
+    
+    // Extraction logic...
+}
+```
+
+#### 3. Common JSON:API Response Patterns
+
+PowerCloud APIs often use JSON:API format. Be prepared to handle these structures:
+
+```javascript
+// Typical JSON:API response structure
+{
+    "data": {
+        "id": "123",
+        "type": "entry",
+        "attributes": {
+            // Main data fields here
+            "field1": "value1",
+            "field2": "value2"
+        },
+        "relationships": {
+            "relatedResource": {
+                "data": {
+                    "id": "456",
+                    "type": "card"
+                }
+            }
+        }
+    }
+}
+
+// Extraction patterns for JSON:API
+extractDataFromJsonApi(response) {
+    // Main data is typically in response.data.attributes
+    const mainData = response?.data?.attributes || {};
+    
+    // Related resource IDs are in response.data.relationships
+    const relatedId = response?.data?.relationships?.relatedResource?.data?.id;
+    
+    // Always check multiple possible paths
+    const possiblePaths = [
+        response?.data?.attributes?.targetField,
+        response?.data?.targetField,
+        response?.targetField,
+        response?.data?.relationships?.targetResource?.data?.id
+    ];
+    
+    return possiblePaths.find(path => path !== undefined && path !== null);
+}
+```
+
+#### 4. Validation Method Debugging
+
+When validation fails, debug with detailed logging:
+
+```javascript
+validateData(data) {
+    if (this.enableDebugLogging) {
+        console.log('[DEBUG][MyFeature] Data validation:', {
+            isObject: typeof data === 'object',
+            isNull: data === null,
+            keys: data ? Object.keys(data) : 'No keys',
+            hasRequiredField1: !!data?.requiredField1,
+            hasRequiredField2: !!data?.requiredField2
+        });
+    }
+    
+    if (!data || typeof data !== 'object') {
+        this.logger.warn('Data validation failed: not an object');
+        return false;
+    }
+    
+    // Flexible validation that accepts multiple valid formats
+    const isValid = data.requiredField1 || 
+                   data.alternativeField || 
+                   (data.nested && data.nested.field);
+    
+    if (!isValid) {
+        this.logger.warn('Data validation failed: missing required fields', {
+            availableKeys: Object.keys(data)
+        });
+    }
+    
+    return isValid;
+}
+```
+
+#### 5. Remove Debug Logging Before Production
+
+Always clean up debug logging before deployment:
+
+```javascript
+// Before production deployment, remove all console.log statements
+// and set enableDebugLogging to false
+
+class MyNewFeature extends BaseFeature {
+    constructor() {
+        super('my-new-feature', {
+            enableDebugLogging: false // Always false for production
+        });
+    }
+}
+```
+
+### Chrome Developer Tools Integration
+
+1. **Console Monitoring**: Always keep DevTools console open during development
+2. **Network Tab**: Monitor API calls to understand response structures
+3. **Sources Tab**: Use breakpoints for complex debugging
+4. **Extension Inspection**: Use `chrome://extensions` → "Inspect views" for background script debugging
+
+### Local Testing Checklist
+
+- [ ] Feature activates on correct URL patterns
+- [ ] Feature handles missing data gracefully
+- [ ] Feature handles API errors with retries
+- [ ] Feature validates data formats correctly
+- [ ] Feature extracts data from all supported response formats
+- [ ] Feature cleans up UI elements properly
+- [ ] Feature follows PowerCloud styling conventions
+- [ ] Debug logging is removed for production
+- [ ] Test with both production and development domains:
+  - `https://[customer].spend.cloud/*`
+  - `https://[customer].dev.spend.cloud/*`
 
 ## Best Practices
 

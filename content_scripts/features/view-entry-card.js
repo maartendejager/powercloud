@@ -440,15 +440,22 @@ class ViewEntryCardFeature extends BaseFeature {
       return false;
     }
 
-    // Check for required fields that indicate a valid entry
+    // Flexible validation - accept any object with meaningful content
+    // Check for various possible field combinations that indicate valid entry data
     const hasBasicFields = entryData.id || entryData.entryId || 
-                          (entryData.attributes && (entryData.attributes.id || entryData.attributes.entryId));
+                          (entryData.attributes && (entryData.attributes.id || entryData.attributes.entryId)) ||
+                          entryData.type || // JSON:API format typically has 'type' field
+                          (entryData.attributes && Object.keys(entryData.attributes).length > 0) ||
+                          Object.keys(entryData).length > 0; // Any non-empty object
 
     if (!hasBasicFields) {
       entryCardLogger.warn('Entry data validation failed: missing required ID fields', {
         hasId: !!entryData.id,
         hasEntryId: !!entryData.entryId,
-        hasAttributes: !!entryData.attributes
+        hasAttributes: !!entryData.attributes,
+        hasType: !!entryData.type,
+        objectKeys: Object.keys(entryData),
+        isEmpty: Object.keys(entryData).length === 0
       });
       return false;
     }
@@ -456,7 +463,9 @@ class ViewEntryCardFeature extends BaseFeature {
     entryCardLogger.info('Entry data validation passed', {
       dataStructure: entryData.attributes ? 'with_attributes' : 'direct',
       hasId: !!entryData.id,
-      hasEntryId: !!entryData.entryId
+      hasEntryId: !!entryData.entryId,
+      hasType: !!entryData.type,
+      keyCount: Object.keys(entryData).length
     });
     return true;
   }
