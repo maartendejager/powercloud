@@ -532,7 +532,7 @@ class ViewEntryCardFeature extends BaseFeature {
       let buttonConfig;
       if (this.cardId) {
         buttonConfig = {
-          id: 'card',
+          id: 'view-card',
           text: 'View Card Details',
           variant: 'primary',
           size: 'medium',
@@ -541,7 +541,7 @@ class ViewEntryCardFeature extends BaseFeature {
         };
       } else {
         buttonConfig = {
-          id: 'card',
+          id: 'view-card',
           text: 'No Associated Card',
           variant: 'secondary',
           size: 'medium',
@@ -760,7 +760,7 @@ class ViewEntryCardFeature extends BaseFeature {
   removeEntryCardButton() {
     try {
       if (this.buttonManager) {
-        this.buttonManager.removeButton('view-entry-card', 'card');
+        this.buttonManager.removeButton('view-entry-card', 'view-card');
         this.cardButtonCreated = false;
         entryCardLogger.info('Entry card button removed using PowerCloudButtonManager');
       }

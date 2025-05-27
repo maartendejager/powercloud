@@ -36,7 +36,7 @@ if (viewEntryCardContent.includes('this.buttonManager.addButton(\'view-entry-car
     process.exit(1);
 }
 
-if (viewEntryCardContent.includes('this.buttonManager.removeButton(\'view-entry-card\', \'card\')')) {
+if (viewEntryCardContent.includes('this.buttonManager.removeButton(\'view-entry-card\', \'view-card\')')) {
     console.log('✅ PASS: view-entry-card.js uses buttonManager.removeButton() correctly');
 } else {
     console.log('❌ FAIL: view-entry-card.js does not use buttonManager.removeButton() correctly');

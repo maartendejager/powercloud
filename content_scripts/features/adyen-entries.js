@@ -49,6 +49,10 @@ class AdyenEntriesFeature extends BaseFeature {
     this.entry = null;
     this.remoteTransferId = null;
     
+    // UI elements
+    this.buttonManager = null;
+    this.transferButtonCreated = false;
+    
     // Error handling and configuration
     this.config = {
       retryAttempts: 3,
@@ -310,6 +314,71 @@ class AdyenEntriesFeature extends BaseFeature {
    */
   addEntriesInfoButton() {
     // Check if button already exists
+    if (this.transferButtonCreated) {
+      entriesLogger.info('Transfer button already exists, skipping creation');
+      return;
+    }
+
+    try {
+      // Initialize button manager if not already done
+      if (!window.PowerCloudUI || !window.PowerCloudButtonManager) {
+        entriesLogger.error('PowerCloudUI or PowerCloudButtonManager not available');
+        this.createFallbackButton();
+        return;
+      }
+      
+      // Get the singleton button manager instance
+      this.buttonManager = window.PowerCloudUI.getButtonManager();
+      
+      // Determine button configuration based on remoteTransferId availability
+      let buttonConfig;
+      if (this.remoteTransferId) {
+        buttonConfig = {
+          id: 'transfer',
+          text: 'View Transfer in Adyen',
+          variant: 'primary',
+          size: 'medium',
+          title: `Open Adyen transfer ${this.remoteTransferId} in new tab`,
+          onClick: () => this.handleEntriesInfoClick()
+        };
+      } else {
+        buttonConfig = {
+          id: 'transfer',
+          text: 'No Adyen Transfer ID',
+          variant: 'secondary',
+          size: 'medium',
+          disabled: true,
+          title: 'This entry is not linked to an Adyen transfer'
+        };
+      }
+      
+      // Add button using the centralized button manager
+      const button = this.buttonManager.addButton('adyen-entries', buttonConfig);
+      
+      if (button) {
+        this.transferButtonCreated = true;
+        entriesLogger.info('Transfer button added successfully using PowerCloudButtonManager');
+        
+        // Verify button is visible
+        setTimeout(() => {
+          entriesLogger.info('Button manager status:', this.buttonManager.getStatus());
+        }, 100);
+      } else {
+        entriesLogger.warn('Button creation failed, falling back to alternative method');
+        this.createFallbackButton();
+      }
+    } catch (error) {
+      this.handleError('Failed to add transfer button', error);
+      entriesLogger.error('Error during button creation:', error);
+      this.createFallbackButton();
+    }
+  }
+
+  /**
+   * Create fallback button if PowerCloudButtonManager is not available
+   */
+  createFallbackButton() {
+    // Check if button already exists
     if (this.getHostElement()) {
       return;
     }
@@ -347,6 +416,7 @@ class AdyenEntriesFeature extends BaseFeature {
     if (this.remoteTransferId) {
       button.textContent = 'View Transfer in Adyen';
       button.addEventListener('click', () => this.handleEntriesInfoClick());
+      button.title = `Open Adyen transfer ${this.remoteTransferId} in new tab`;
     } else {
       button.textContent = 'No Adyen Transfer ID';
       button.disabled = true;
@@ -361,7 +431,11 @@ class AdyenEntriesFeature extends BaseFeature {
     // Add shadow host to the page
     document.body.appendChild(shadowHost);
     
-    this.log('Entries info button added', { 
+    // Store reference for cleanup
+    this.shadowHost = shadowHost;
+    this.transferButtonCreated = true;
+    
+    entriesLogger.info('Fallback transfer button added', { 
       hasTransferId: !!this.remoteTransferId,
       transferId: this.remoteTransferId 
     });
@@ -441,13 +515,30 @@ class AdyenEntriesFeature extends BaseFeature {
    * Removes the entries information button and any related UI elements
    */
   removeEntriesInfoButton() {
-    // Remove the shadow host for the button
-    this.removeHostElement();
-
-    // Also remove any result shadow host that might be showing
-    const resultHost = document.getElementById('powercloud-result-host');
-    if (resultHost) {
-      resultHost.remove();
+    try {
+      // Use PowerCloudButtonManager if available
+      if (this.buttonManager && this.transferButtonCreated) {
+        this.buttonManager.removeButton('adyen-entries', 'transfer');
+        this.transferButtonCreated = false;
+        this.log('Transfer button removed using PowerCloudButtonManager');
+      } else {
+        // Fallback to direct element removal
+        this.removeHostElement();
+        this.log('Transfer button removed using fallback method');
+      }
+      
+      // Also remove any result shadow host that might be showing
+      const resultHost = document.getElementById('powercloud-result-host');
+      if (resultHost) {
+        resultHost.remove();
+      }
+      
+    } catch (error) {
+      this.handleError('Failed to remove transfer button', error);
+      entriesLogger.error('Error during button removal:', error);
+      
+      // Fallback to direct element removal
+      this.removeHostElement();
     }
     
     this.log('Entries info button removed');
