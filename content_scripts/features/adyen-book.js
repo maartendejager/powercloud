@@ -213,7 +213,7 @@ class AdyenBookFeature extends BaseFeature {
 
           // Don't create button if no Adyen balance account ID
           if (!this.remoteBalanceAccountId) {
-            bookLogger.warn('Cannot create Adyen button: No Adyen balance account ID available');
+            bookLogger.info('Cannot create Adyen button: No Adyen balance account ID available (this is normal for books without Adyen integration)');
             bookLogger.info('Internal balance account ID available', { balanceAccountId: this.balanceAccountId });
             this.log('Skipping button creation - no Adyen balance account ID found');
             return;
@@ -568,8 +568,8 @@ class AdyenBookFeature extends BaseFeature {
       });
       
       if (!this.remoteBalanceAccountId) {
-        bookLogger.warn('No Adyen balance account ID available for book');
-        this.showBookInfoResult('No Adyen Balance Account ID found for this book', 'warning');
+        bookLogger.info('No Adyen balance account ID available for book (this is normal for books without Adyen integration)');
+        this.showBookInfoResult('No Adyen Balance Account ID found for this book', 'info');
         return;
       }
 
