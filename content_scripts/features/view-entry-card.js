@@ -503,7 +503,7 @@ class ViewEntryCardFeature extends BaseFeature {
    */
   /**
    * Create and add the entry card navigation button
-   * Step 3.1: Button Creation and Styling with shadow DOM
+   * Step 3.1: Button Creation using PowerCloudButtonManager
    */
   addEntryCardButton() {
     entryCardLogger.info('addEntryCardButton called', { 
@@ -517,9 +517,64 @@ class ViewEntryCardFeature extends BaseFeature {
       return;
     }
 
-    // Remove any existing button first
-    this.removeEntryCardButton();
+    try {
+      // Initialize button manager if not already done
+      if (!window.PowerCloudUI || !window.PowerCloudButtonManager) {
+        entryCardLogger.error('PowerCloudUI or PowerCloudButtonManager not available');
+        this.createFallbackButton();
+        return;
+      }
+      
+      // Get the singleton button manager instance
+      this.buttonManager = window.PowerCloudUI.getButtonManager();
+      
+      // Determine button configuration based on card availability
+      let buttonConfig;
+      if (this.cardId) {
+        buttonConfig = {
+          id: 'card',
+          text: 'View Card Details',
+          variant: 'primary',
+          size: 'medium',
+          title: `Navigate to card details for card ${this.cardId}`,
+          onClick: () => this.handleViewCardClick()
+        };
+      } else {
+        buttonConfig = {
+          id: 'card',
+          text: 'No Associated Card',
+          variant: 'secondary',
+          size: 'medium',
+          disabled: true,
+          title: 'This entry is not linked to any card'
+        };
+      }
+      
+      // Add button using the centralized button manager
+      const button = this.buttonManager.addButton('view-entry-card', buttonConfig);
+      
+      if (button) {
+        this.cardButtonCreated = true;
+        entryCardLogger.info('Entry card button added successfully using PowerCloudButtonManager');
+        
+        // Verify button is visible
+        setTimeout(() => {
+          entryCardLogger.info('Button manager status:', this.buttonManager.getStatus());
+        }, 100);
+      } else {
+        entryCardLogger.warn('Button creation failed, falling back to alternative method');
+        this.createFallbackButton();
+      }
+    } catch (error) {
+      this.handleError('Failed to add entry card button', error);
+      entryCardLogger.error('Error during button creation:', error);
+    }
+  }
 
+  /**
+   * Create fallback button if PowerCloudButtonManager is not available
+   */
+  createFallbackButton() {
     // Create shadow DOM host for button
     const shadowHost = document.createElement('div');
     shadowHost.id = this.config.hostElementId || 'powercloud-entry-card-shadow-host';
@@ -543,7 +598,7 @@ class ViewEntryCardFeature extends BaseFeature {
     button.id = 'powercloud-entry-card-btn';
     button.className = 'powercloud-button';
 
-    // Step 3.1: Handle enabled/disabled states based on card availability
+    // Handle enabled/disabled states based on card availability
     if (this.cardId) {
       // Enabled state - card available
       button.textContent = 'View Card Details';
@@ -591,7 +646,7 @@ class ViewEntryCardFeature extends BaseFeature {
     this.shadowHost = shadowHost;
     this.cardButtonCreated = true;
     
-    entryCardLogger.info('Entry card button added to page', { 
+    entryCardLogger.info('Fallback entry card button added to page', { 
       hasCardId: !!this.cardId,
       cardId: this.cardId,
       buttonEnabled: !!this.cardId
@@ -686,8 +741,8 @@ class ViewEntryCardFeature extends BaseFeature {
     const isDev = window.location.hostname.includes('.dev.');
     const devSuffix = isDev ? '.dev' : '';
     
-    // Construct the card URL maintaining the same environment
-    const cardUrl = `https://${this.customer}${devSuffix}.spend.cloud/cards/${cardId}`;
+    // Construct the card URL for the single card update page
+    const cardUrl = `https://${this.customer}${devSuffix}.spend.cloud/proactive/data.card/single_card_update?id=${cardId}`;
     
     entryCardLogger.info('Card URL constructed', {
       cardId,
@@ -703,14 +758,24 @@ class ViewEntryCardFeature extends BaseFeature {
    * Removes the entry card navigation button and any related UI elements
    */
   removeEntryCardButton() {
-    // Remove the shadow host for the button
-    this.removeHostElement();
+    try {
+      if (this.buttonManager) {
+        this.buttonManager.removeButton('view-entry-card', 'card');
+        this.cardButtonCreated = false;
+        entryCardLogger.info('Entry card button removed using PowerCloudButtonManager');
+      }
+      
+      // Also remove fallback shadow host if it exists
+      this.removeHostElement();
 
-    // Also remove any result feedback that might be showing
-    this.removeResultFeedback();
-    
-    this.cardButtonCreated = false;
-    entryCardLogger.info('Entry card button removed');
+      // Also remove any result feedback that might be showing
+      this.removeResultFeedback();
+      
+      this.cardButtonCreated = false;
+      entryCardLogger.info('Entry card button removed');
+    } catch (error) {
+      this.handleError('Failed to remove entry card button', error);
+    }
   }
 
   /**
