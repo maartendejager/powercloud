@@ -9,6 +9,7 @@ The extension works on both production (`https://[customer].spend.cloud/*`) and 
 - **[Architecture Guide](./ARCHITECTURE.md)** - Technical architecture and design patterns
 - **[Development Notes](./DEVELOPMENT_NOTES.md)** - Current development context and troubleshooting
 - **[Improvement Plan](./IMPROVEMENT_PLAN.md)** - Development roadmap and planned features
+- **[Feature Development Guide](./docs/FEATURE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide for creating new features
 - **[Developer Documentation](./docs/)** - Comprehensive guides for developers
 - **[UI Improvements](./docs/ui-improvements/)** - UI enhancement documentation including:
   - [Metrics Grid Styling](./docs/ui-improvements/enhanced-metrics-grid.md)

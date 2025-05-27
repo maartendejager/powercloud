@@ -426,14 +426,21 @@ const DEFAULT_PERFORMANCE_THRESHOLDS = {
  * @since 1.0.0
  * 
  * @example
- * // Extending BaseFeature
+ * // Extending BaseFeature  
  * class AdyenCardFeature extends BaseFeature {
  *     constructor() {
- *         super('adyen-card', '1.0.0');
+ *         super('adyen-card', {
+ *             enableDebugLogging: false
+ *         });
+ *         
+ *         this.customer = null;
+ *         this.cardId = null;
  *     }
  *     
- *     async onInit() {
- *         // Feature-specific initialization
+ *     async onInit(match) {
+ *         await super.onInit(match);
+ *         this.customer = match[1];
+ *         this.cardId = match[2];
  *     }
  * }
  */
@@ -441,74 +448,102 @@ class BaseFeature {
     /**
      * Creates a new BaseFeature instance.
      * 
-     * @param {string} name - Feature name
-     * @param {string} version - Feature version
-     * @param {FeatureConfig} [config={}] - Feature configuration
+     * @param {string} name - Unique feature name for identification
+     * @param {Object} [options={}] - Configuration options
+     * @param {string} [options.hostElementId] - Host element ID
+     * @param {boolean} [options.enableDebugLogging=false] - Enable debug logging
      * 
-     * @throws {FeatureError} When invalid parameters provided
+     * @throws {TypeError} When name is not provided or invalid
      */
-    constructor(name, version, config = {}) {
+    constructor(name, options = {}) {
         // Implementation
     }
     
     /**
-     * Initializes the feature (must be implemented by subclasses).
+     * Initialize the feature with URL match data.
      * 
      * @abstract
      * @async
      * @method
+     * @param {Object} match - URL match result with capture groups
      * @returns {Promise<void>}
-     * @throws {NotImplementedError} When not implemented by subclass
+     * @throws {Error} When initialization fails
      */
-    async onInit() {
+    async onInit(match) {
         throw new NotImplementedError('onInit must be implemented by subclass');
     }
 }
 
 /**
- * Adyen payment card feature implementation.
+ * Adyen card feature implementation for PowerCloud extension.
  * 
- * Extends BaseFeature to provide Adyen-specific functionality
- * including card detection, payment processing integration,
- * and transaction monitoring.
+ * Extends BaseFeature to provide card information viewing functionality
+ * including vendor detection, UI management, and integration with
+ * Chrome storage for configuration.
  * 
  * @class
  * @extends BaseFeature
- * @classdesc Adyen payment integration feature
- * @memberof PowerCloud.Features.Payment
+ * @classdesc Adyen card viewing feature for PowerCloud extension
+ * @memberof PowerCloud.Features.Adyen
  * @since 1.0.0
  * 
  * @example
- * // Initialize Adyen card feature
- * const adyenFeature = new AdyenCardFeature({
- *     apiKey: 'your-api-key',
- *     environment: 'test',
- *     enableLogging: true
- * });
+ * // Feature registration pattern
+ * const adyenCardFeature = new AdyenCardFeature();
  * 
- * await adyenFeature.init();
+ * window.PowerCloudFeatures = window.PowerCloudFeatures || {};
+ * window.PowerCloudFeatures.card = {
+ *     init: async (match) => {
+ *         try {
+ *             await adyenCardFeature.onInit(match);
+ *             await adyenCardFeature.onActivate();
+ *         } catch (error) {
+ *             adyenCardFeature.onError(error, 'initialization');
+ *         }
+ *     },
+ *     cleanup: async () => {
+ *         await adyenCardFeature.onCleanup();
+ *     }
+ * };
  */
 class AdyenCardFeature extends BaseFeature {
     /**
      * Creates a new AdyenCardFeature instance.
-     * 
-     * @param {Object} [options={}] - Adyen-specific configuration
-     * @param {string} options.apiKey - Adyen API key
-     * @param {string} [options.environment='test'] - Adyen environment
-     * @param {boolean} [options.enableLogging=false] - Enable transaction logging
-     * @param {Object} [options.paymentMethods] - Supported payment methods
      */
-    constructor(options = {}) {
-        super('adyen-card', '1.2.0', options);
-        // Adyen-specific initialization
+    constructor() {
+        super('adyen-card', {
+            enableDebugLogging: false
+        });
+        
+        // Feature-specific properties
+        this.customer = null;
+        this.cardId = null;
+        this.vendor = null;
+        
+        // Configuration with defaults
+        this.config = {
+            retryAttempts: 3,
+            retryDelay: 1000,
+            timeout: 5000
+        };
     }
     
     /**
      * @inheritdoc
      * @override
+     * @param {Object} match - URL match with customer and card ID
+     * @param {string} match[1] - Customer identifier  
+     * @param {string} match[2] - Card ID
      */
-    async onInit() {
-        // Adyen-specific initialization logic
+    async onInit(match) {
+        await super.onInit(match);
+        
+        // Extract card-specific data
+        this.customer = match[1];
+        this.cardId = match[2];
+        
+        // Load feature configuration
+        await this.loadFeatureConfig();
     }
 }
 ```

@@ -62,7 +62,7 @@ All features in the PowerCloud extension follow a consistent architecture based 
  */
 class ExampleFeature extends BaseFeature {
     constructor() {
-        super('example-feature', '1.0.0', {
+        super('example-feature', {
             urlPatterns: ['*.spend.cloud/example/*'],
             dependencies: ['auth', 'api'],
             settings: {
@@ -74,9 +74,10 @@ class ExampleFeature extends BaseFeature {
 
     /**
      * Feature initialization - called when feature is loaded.
+     * @param {Object} match - URL match information
      */
-    async onInit() {
-        this.logger.info('Initializing example feature');
+    async onInit(match) {
+        this.logger.info('Initializing example feature', { match });
         
         // Feature-specific initialization
         await this.setupUI();
@@ -195,7 +196,7 @@ Create a new file in `content_scripts/features/`:
 
 class MyNewFeature extends BaseFeature {
     constructor() {
-        super('my-new-feature', '1.0.0', {
+        super('my-new-feature', {
             urlPatterns: ['*.spend.cloud/my-pattern/*'],
             dependencies: [],
             settings: {
@@ -204,7 +205,7 @@ class MyNewFeature extends BaseFeature {
         });
     }
 
-    async onInit() {
+    async onInit(match) {
         // Implementation here
     }
 }

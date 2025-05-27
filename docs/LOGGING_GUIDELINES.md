@@ -264,15 +264,17 @@ for (let item of largeArray) {
 ### **Feature Initialization**
 ```javascript
 class MyFeature extends BaseFeature {
-  async initialize() {
+  async onInit(match) {
     try {
       recordStructuredLog({
         level: 'debug',
         feature: this.name,
         category: 'lifecycle',
         message: 'Feature initialization started',
-        data: { feature: this.name }
+        data: { feature: this.name, match }
       });
+      
+      await super.onInit(match);
       
       // ... initialization logic ...
       
