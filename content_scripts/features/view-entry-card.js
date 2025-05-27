@@ -171,7 +171,8 @@ class ViewEntryCardFeature extends BaseFeature {
         entryId: this.entryId 
       });
       
-      // TODO: Phase 2 will implement fetchEntryDetailsAndExtractCard
+      // Fetch entry details to determine if cardId exists before adding button
+      await this.fetchEntryDetailsAndExtractCard();
       
     } catch (error) {
       this.handleError('Failed to activate view entry card feature', error);
@@ -243,19 +244,336 @@ class ViewEntryCardFeature extends BaseFeature {
   }
 
   /**
-   * Placeholder for button creation (to be implemented in Phase 3)
+   * Fetch entry details and extract card ID for navigation
+   * Implements Step 2.1: Entry Data Fetching with retry logic and multiple format handling
    */
-  addEntryCardButton() {
-    entryCardLogger.info('addEntryCardButton called - placeholder implementation');
-    // TODO: Phase 3 will implement the actual button creation
+  async fetchEntryDetailsAndExtractCard() {
+    let attempt = 0;
+    const maxAttempts = this.config.retryAttempts;
+    
+    while (attempt < maxAttempts) {
+      try {
+        entryCardLogger.info(`Fetching entry details (attempt ${attempt + 1}/${maxAttempts})`);
+        
+        const response = await this.sendMessageWithTimeout({
+          action: "fetchEntryDetails",
+          customer: this.customer,
+          entryId: this.entryId
+        }, this.config.timeout);
+
+        if (response && response.success) {
+          // Handle both old and new response formats
+          // Step 2.3: Data Validation - extract and validate card data
+          let entryData = null;
+          let cardId = null;
+
+          if (response.entry) {
+            // Old format
+            entryData = response.entry;
+            cardId = this.extractCardIdFromEntry(response.entry);
+            entryCardLogger.info('Using old format entry data', { cardId });
+          } else if (response.data) {
+            // New format - extract from data structure
+            if (response.data.data && response.data.data.attributes) {
+              entryData = response.data.data.attributes;
+              cardId = this.extractCardIdFromEntry(response.data.data);
+            } else if (response.data.attributes) {
+              entryData = response.data.attributes;
+              cardId = this.extractCardIdFromEntry(response.data);
+            } else {
+              entryData = response.data;
+              cardId = this.extractCardIdFromEntry(response.data);
+            }
+            entryCardLogger.info('Using new format entry data', { 
+              cardId,
+              dataStructure: response.data.data ? 'nested' : 'flat'
+            });
+          }
+          
+          // Step 2.3: Validate entry data completeness
+          if (!this.validateEntryData(entryData)) {
+            throw new Error('Entry data validation failed - incomplete or invalid data');
+          }
+          
+          this.entry = entryData;
+          this.cardId = cardId;
+          
+          entryCardLogger.info('Entry details processing result', {
+            hasEntry: !!this.entry,
+            hasCardId: !!this.cardId,
+            cardId: this.cardId,
+            entryValidation: 'passed'
+          });
+          
+          this.addEntryCardButton();
+          this.clearApiError('fetchEntryDetails');
+          return;
+        } else {
+          throw new Error(response?.error || 'Unknown API error');
+        }
+      } catch (error) {
+        attempt++;
+        this.trackApiError('fetchEntryDetails', error);
+        
+        if (attempt >= maxAttempts) {
+          const errorMessage = this.config.showDetailedErrors 
+            ? `Failed to fetch entry details after ${maxAttempts} attempts: ${error.message}`
+            : 'Unable to load entry details';
+            
+          this.handleError('Failed to fetch entry details', error, { 
+            showUserMessage: true, 
+            userMessage: errorMessage 
+          });
+          
+          if (this.config.fallbackToDefaultBehavior) {
+            entryCardLogger.info('Using fallback behavior - adding disabled button');
+            this.addEntryCardButton();
+          }
+          return;
+        } else {
+          // Step 2.2: Retry logic with exponential backoff
+          const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
+          entryCardLogger.warn(`Retrying entry details fetch in ${delay}ms (attempt ${attempt}/${maxAttempts})`, {
+            error: error.message
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
   }
 
   /**
-   * Placeholder for button event handling (to be implemented in Phase 3)
+   * Extract card ID from entry data, handling multiple response formats
+   * Step 2.1: Handle multiple API response structures
+   * @param {Object} entryData - Entry data from API response
+   * @returns {string|null} Card ID if found, null otherwise
+   */
+  extractCardIdFromEntry(entryData) {
+    if (!entryData) {
+      entryCardLogger.warn('No entry data provided for card ID extraction');
+      return null;
+    }
+
+    // Try different possible locations for card ID
+    const possiblePaths = [
+      // Direct card ID in attributes
+      entryData.attributes?.cardId,
+      entryData.cardId,
+      
+      // Card relationship structure (new format)
+      entryData.relationships?.card?.data?.id,
+      entryData.data?.relationships?.card?.data?.id,
+      
+      // Card object with ID (old format)
+      entryData.card?.id,
+      entryData.attributes?.card?.id,
+      
+      // Alternative card reference structures
+      entryData.cardReference?.id,
+      entryData.attributes?.cardReference?.id,
+      
+      // Legacy format variations
+      entryData.card_id,
+      entryData.attributes?.card_id
+    ];
+
+    for (const cardId of possiblePaths) {
+      if (cardId && this.isValidCardId(cardId)) {
+        entryCardLogger.info('Card ID extracted successfully', { 
+          cardId, 
+          source: 'entry_data_extraction' 
+        });
+        return String(cardId);
+      }
+    }
+
+    entryCardLogger.info('No valid card ID found in entry data', { 
+      entryDataKeys: Object.keys(entryData),
+      hasAttributes: !!entryData.attributes,
+      hasRelationships: !!entryData.relationships
+    });
+    return null;
+  }
+
+  /**
+   * Validate entry data completeness and structure
+   * Step 2.3: Data Validation
+   * @param {Object} entryData - Entry data to validate
+   * @returns {boolean} True if data is valid, false otherwise
+   */
+  validateEntryData(entryData) {
+    if (!entryData || typeof entryData !== 'object') {
+      entryCardLogger.warn('Entry data validation failed: not an object', { entryData });
+      return false;
+    }
+
+    // Check for required fields that indicate a valid entry
+    const hasBasicFields = entryData.id || entryData.entryId || 
+                          (entryData.attributes && (entryData.attributes.id || entryData.attributes.entryId));
+
+    if (!hasBasicFields) {
+      entryCardLogger.warn('Entry data validation failed: missing required ID fields', {
+        hasId: !!entryData.id,
+        hasEntryId: !!entryData.entryId,
+        hasAttributes: !!entryData.attributes
+      });
+      return false;
+    }
+
+    entryCardLogger.info('Entry data validation passed', {
+      dataStructure: entryData.attributes ? 'with_attributes' : 'direct',
+      hasId: !!entryData.id,
+      hasEntryId: !!entryData.entryId
+    });
+    return true;
+  }
+
+  /**
+   * Validate if a card ID is in the correct format
+   * Step 2.3: Card ID validation
+   * @param {*} cardId - Card ID to validate
+   * @returns {boolean} True if valid card ID, false otherwise
+   */
+  isValidCardId(cardId) {
+    if (!cardId) return false;
+    
+    // Convert to string for validation
+    const cardIdStr = String(cardId).trim();
+    
+    // Card ID should be non-empty and not contain only whitespace
+    if (cardIdStr.length === 0) return false;
+    
+    // Card ID should not be common invalid values
+    const invalidValues = ['null', 'undefined', '0', '', 'false'];
+    if (invalidValues.includes(cardIdStr.toLowerCase())) return false;
+    
+    // Additional validation: should be alphanumeric (allowing hyphens, underscores)
+    if (!/^[a-zA-Z0-9_-]+$/.test(cardIdStr)) {
+      entryCardLogger.warn('Card ID contains invalid characters', { cardId: cardIdStr });
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Placeholder for button creation (to be implemented in Phase 3)
+   */
+  addEntryCardButton() {
+    entryCardLogger.info('addEntryCardButton called', { 
+      hasCardId: !!this.cardId,
+      cardId: this.cardId 
+    });
+    
+    // Check if we have a valid card ID to determine button state
+    if (this.cardId) {
+      entryCardLogger.info('Card ID available - button will be enabled', { cardId: this.cardId });
+      // TODO: Phase 3 will implement the actual enabled button creation
+    } else {
+      entryCardLogger.info('No card ID available - button will be disabled');
+      // TODO: Phase 3 will implement the actual disabled button creation
+    }
+  }
+
+  /**
+   * Enhanced button event handling with card navigation
+   * Step 2.1: Navigation logic with error handling
    */
   async handleViewCardClick() {
-    entryCardLogger.info('handleViewCardClick called - placeholder implementation');
-    // TODO: Phase 3 will implement the actual navigation logic
+    let attempt = 0;
+    const maxAttempts = this.config.retryAttempts;
+    
+    entryCardLogger.info('Card navigation click handler called', {
+      hasCardId: !!this.cardId,
+      cardId: this.cardId,
+      customer: this.customer
+    });
+    
+    while (attempt < maxAttempts) {
+      try {
+        if (!this.cardId) {
+          entryCardLogger.warn('No card ID available for navigation');
+          this.showEntryCardResult('No associated card found for this entry');
+          return;
+        }
+
+        // Step 2.1: Construct proper card URL for navigation
+        const cardUrl = this.buildCardUrl(this.cardId);
+        
+        entryCardLogger.info(`Opening card page (attempt ${attempt + 1}/${maxAttempts})`, { 
+          cardId: this.cardId,
+          cardUrl: cardUrl,
+          attempt: attempt + 1
+        });
+        
+        // Open card URL in new tab with timeout
+        await this.sendMessageWithTimeout({
+          action: "openTab",
+          url: cardUrl
+        }, this.config.timeout);
+        
+        this.showEntryCardResult('Card page opened successfully');
+        this.clearApiError('openTab');
+        return;
+        
+      } catch (error) {
+        attempt++;
+        this.trackApiError('openTab', error);
+        
+        if (attempt >= maxAttempts) {
+          const errorMessage = this.config.showDetailedErrors
+            ? `Failed to open card page after ${maxAttempts} attempts: ${error.message}`
+            : 'Unable to open card page';
+            
+          this.handleError('Failed to handle card navigation click', error, {
+            showUserMessage: true,
+            userMessage: errorMessage
+          });
+          
+          if (this.config.fallbackToDefaultBehavior) {
+            this.showEntryCardResult('Error: Unable to open card page. You can try navigating manually.');
+          } else {
+            this.showEntryCardResult('Error: Unable to open card page');
+          }
+          return;
+        } else {
+          // Step 2.2: Wait before retry with exponential backoff
+          const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
+          entryCardLogger.warn(`Retrying card navigation in ${delay}ms (attempt ${attempt}/${maxAttempts})`, {
+            error: error.message
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+  }
+
+  /**
+   * Build the card URL for navigation
+   * Step 2.1: URL construction with environment detection
+   * @param {string} cardId - The card ID to navigate to
+   * @returns {string} Complete card URL
+   */
+  buildCardUrl(cardId) {
+    if (!cardId) {
+      throw new Error('Card ID is required to build card URL');
+    }
+
+    // Detect if we're on dev environment
+    const isDev = window.location.hostname.includes('.dev.');
+    const devSuffix = isDev ? '.dev' : '';
+    
+    // Construct the card URL maintaining the same environment
+    const cardUrl = `https://${this.customer}${devSuffix}.spend.cloud/cards/${cardId}`;
+    
+    entryCardLogger.info('Card URL constructed', {
+      cardId,
+      customer: this.customer,
+      isDev,
+      cardUrl
+    });
+    
+    return cardUrl;
   }
 
   /**
@@ -276,12 +594,44 @@ class ViewEntryCardFeature extends BaseFeature {
   }
 
   /**
-   * Placeholder for result feedback (to be implemented in Phase 3)
+   * Enhanced result feedback with error categorization
+   * Step 2.2: User-friendly error messages
    * @param {string} message - The message to display
    */
   showEntryCardResult(message) {
     entryCardLogger.info('showEntryCardResult called', { message });
-    // TODO: Phase 3 will implement the actual result feedback system
+    
+    // Categorize message type for appropriate styling
+    const messageType = this.categorizeResultMessage(message);
+    
+    entryCardLogger.info('Result message categorized', { 
+      message, 
+      messageType,
+      willImplementUI: 'Phase 3'
+    });
+    
+    // TODO: Phase 3 will implement the actual result feedback UI
+    // For now, just log the enhanced message info
+  }
+
+  /**
+   * Categorize result messages for appropriate UI styling
+   * Step 2.2: Enhanced user feedback
+   * @param {string} message - The message to categorize
+   * @returns {string} Message category (success, error, warning, info)
+   */
+  categorizeResultMessage(message) {
+    const messageLower = message.toLowerCase();
+    
+    if (messageLower.includes('success') || messageLower.includes('opened')) {
+      return 'success';
+    } else if (messageLower.includes('error') || messageLower.includes('failed') || messageLower.includes('unable')) {
+      return 'error';
+    } else if (messageLower.includes('no') || messageLower.includes('not found')) {
+      return 'warning';
+    } else {
+      return 'info';
+    }
   }
 
   /**
