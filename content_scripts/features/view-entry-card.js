@@ -245,6 +245,38 @@ class ViewEntryCardFeature extends BaseFeature {
   }
 
   /**
+   * Send message to background script with timeout support
+   * @param {Object} message
+   * @param {number} timeout
+   * @returns {Promise<Object>}
+   */
+  sendMessageWithTimeout(message, timeout = this.config.timeout) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Message timeout after ${timeout}ms`));
+      }, timeout);
+      
+      chrome.runtime.sendMessage(message, (response) => {
+        clearTimeout(timeoutId);
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
+  /**
+   * Send message to background script as a Promise (legacy support)
+   * @param {Object} message
+   * @returns {Promise<Object>}
+   */
+  sendMessage(message) {
+    return this.sendMessageWithTimeout(message);
+  }
+
+  /**
    * Fetch entry details and extract card ID for navigation
    * Implements Step 2.1: Entry Data Fetching with retry logic and multiple format handling
    */

@@ -208,6 +208,49 @@ class MyNewFeature extends BaseFeature {
         // Clean up any UI elements created by this feature
         this.log('Cleaning up feature UI');
     }
+
+    /**
+     * Send message to background script with timeout handling
+     * Required for features that communicate with background script
+     * @param {Object} message - Message to send
+     * @param {number} timeout - Timeout in milliseconds (default: 5000)
+     * @returns {Promise<Object>} Response from background script
+     */
+    sendMessageWithTimeout(message, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error(`Message timeout after ${timeout}ms`));
+            }, timeout);
+
+            chrome.runtime.sendMessage(message, (response) => {
+                clearTimeout(timeoutId);
+                
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+    }
+
+    /**
+     * Send message to background script without timeout
+     * Required for features that communicate with background script
+     * @param {Object} message - Message to send
+     * @returns {Promise<Object>} Response from background script
+     */
+    sendMessage(message) {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+    }
 }
 
 // Create feature instance
@@ -1127,7 +1170,14 @@ const health = this.getHealthStatus();
 
 // Storage access pattern
 const settings = await this.getStorageSettings();
+
+// Chrome runtime communication (must be implemented by features that need background communication)
+// Note: These methods are NOT provided by BaseFeature and must be implemented by each feature
+const response = await this.sendMessageWithTimeout(message, timeout);
+const result = await this.sendMessage(message);
 ```
+
+**⚠️ Important**: The `sendMessageWithTimeout()` and `sendMessage()` methods are **not provided by BaseFeature** and must be implemented by features that need Chrome runtime communication. See the "Chrome Runtime Communication" section for implementation details.
 
 ### Feature Registration Pattern
 
@@ -1174,6 +1224,129 @@ All feature scripts in this extension are loaded via the manifest.json file. Thi
 3. Register your feature in the `features` array in `main.js`
 4. Use the `PowerCloudFeatures` namespace to organize all feature functions
 
+## Chrome Runtime Communication (Essential Methods)
+
+**⚠️ IMPORTANT**: Features that communicate with the background script must implement Chrome runtime communication methods. These are commonly forgotten but essential for API integration.
+
+### Required Methods for Background Communication
+
+```javascript
+class MyFeature extends BaseFeature {
+    /**
+     * Send message to background script with timeout handling
+     * @param {Object} message - Message to send
+     * @param {number} timeout - Timeout in milliseconds (default: 5000)
+     * @returns {Promise<Object>} Response from background script
+     */
+    sendMessageWithTimeout(message, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error(`Message timeout after ${timeout}ms`));
+            }, timeout);
+
+            chrome.runtime.sendMessage(message, (response) => {
+                clearTimeout(timeoutId);
+                
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+    }
+
+    /**
+     * Send message to background script without timeout
+     * @param {Object} message - Message to send
+     * @returns {Promise<Object>} Response from background script
+     */
+    sendMessage(message) {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+    }
+}
+```
+
+### Common Usage Patterns
+
+```javascript
+// Example: API call through background script
+async executeFeatureAction() {
+    try {
+        const response = await this.sendMessageWithTimeout({
+            action: 'fetchData',
+            customer: this.customer,
+            resourceId: this.resourceId,
+            config: this.config
+        }, this.config.timeout);
+
+        if (response && response.success) {
+            this.handleSuccess(response.data);
+        } else {
+            this.handleError('API call failed', new Error(response?.error || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        this.handleError('Background communication error', error);
+    }
+}
+
+// Example: Configuration update
+async saveConfiguration() {
+    try {
+        await this.sendMessage({
+            action: 'saveConfiguration',
+            featureName: this.featureName,
+            config: this.config
+        });
+        
+        this.log('Configuration saved successfully');
+    } catch (error) {
+        this.handleError('Failed to save configuration', error);
+    }
+}
+```
+
+### Essential Methods Checklist
+
+When implementing a new feature that communicates with the background script, ensure you include:
+
+- ✅ `sendMessageWithTimeout(message, timeout)` - For API calls with timeout handling
+- ✅ `sendMessage(message)` - For simple background communication
+- ✅ Proper error handling for `chrome.runtime.lastError`
+- ✅ Timeout handling to prevent hanging operations
+- ✅ Response validation and error categorization
+
+### Background Script Message Handling
+
+Ensure your background script (if used) properly handles feature messages:
+
+```javascript
+// In background.js
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    switch (message.action) {
+        case 'fetchData':
+            handleFetchData(message, sendResponse);
+            return true; // Keep message channel open for async response
+            
+        case 'saveConfiguration':
+            handleSaveConfiguration(message, sendResponse);
+            return true;
+            
+        default:
+            sendResponse({ error: 'Unknown action' });
+    }
+});
+```
+
 ## Feature Communication
 
 ### Communication with Background Script
@@ -1209,6 +1382,23 @@ if (window.PowerCloudFeatures?.otherFeature) {
    - `https://[customer].dev.spend.cloud/*`
 
 ## Best Practices
+
+### Development Checklist
+
+Before deploying a new feature, ensure:
+
+- ✅ **Feature Registration**: Feature is properly registered in `PowerCloudFeatures` namespace
+- ✅ **Manifest Integration**: Feature script is added to `manifest.json` content_scripts
+- ✅ **Main.js Registration**: Feature is added to the features array in `main.js`
+- ✅ **Chrome Communication**: If feature needs background communication, `sendMessageWithTimeout()` and `sendMessage()` methods are implemented
+- ✅ **Error Handling**: Comprehensive error handling with proper context and user feedback
+- ✅ **Storage Access**: Uses standardized `getStorageSettings()` pattern for configuration
+- ✅ **Cleanup**: Implements proper cleanup in lifecycle methods to prevent memory leaks
+- ✅ **Logging**: Uses feature-specific logger for debugging and monitoring
+- ✅ **URL Patterns**: URL pattern correctly matches target pages
+- ✅ **Testing**: Feature tested on both production and dev environments
+
+### Code Quality Guidelines
 
 - **Modularity**: Keep features in separate modules within `content_scripts/features/`
 - **Size**: Keep JS files small and focused - no more than 350 lines of code

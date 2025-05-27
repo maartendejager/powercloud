@@ -196,6 +196,11 @@ The feature follows the established PowerCloud pattern:
 - ✅ Uses consistent logging and error handling patterns
 - ✅ Follows established feature lifecycle management
 
+**Phase 4 Bug Fix:**
+- ✅ Added missing `sendMessageWithTimeout()` and `sendMessage()` methods to ViewEntryCardFeature
+- ✅ Methods follow the same implementation pattern as other features (adyen-entries.js)
+- ✅ Proper timeout handling and Chrome runtime error handling implemented
+
 ### Phase 5: Testing and Validation (60 minutes)
 
 #### Step 5.1: Unit Testing (25 minutes)
