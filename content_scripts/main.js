@@ -187,6 +187,18 @@ const features = [
         return window.PowerCloudFeatures.entries.cleanup();
       }
     }
+  },
+  {
+    name: 'viewEntryCard',
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
+    init: loadViewEntryCardFeature,
+    excludes: [], // Compatible with existing entry features
+    cleanup: function() {
+      // Use the view-entry-card specific cleanup function from the namespace
+      if (window.PowerCloudFeatures?.viewEntryCard?.cleanup) {
+        return window.PowerCloudFeatures.viewEntryCard.cleanup();
+      }
+    }
   }
   // Additional features can be registered here
 ];
@@ -321,6 +333,50 @@ async function loadEntriesFeature(match) {
   
   if (logger) {
     logger.error('adyen-entries feature failed to register', { maxAttempts });
+  }
+}
+
+/**
+ * Load and initialize the view entry card feature
+ * @param {object} match - The URL match result containing capture groups
+ */
+async function loadViewEntryCardFeature(match) {
+  const logger = window.loggerFactory ? window.loggerFactory.createLogger('Main') : null;
+  
+  if (logger) {
+    logger.info('loadViewEntryCardFeature called', { match });
+    logger.debug('PowerCloudFeatures state', {
+      exists: !!window.PowerCloudFeatures,
+      keys: window.PowerCloudFeatures ? Object.keys(window.PowerCloudFeatures) : [],
+      viewEntryCard: !!window.PowerCloudFeatures?.viewEntryCard
+    });
+  }
+  
+  // Wait for view-entry-card feature to be available (with timeout)
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 100; // 100ms between attempts
+  
+  while (attempts < maxAttempts) {
+    if (window.PowerCloudFeatures?.viewEntryCard?.init) {
+      if (logger) {
+        logger.info('Calling view-entry-card feature init', { attempt: attempts + 1 });
+      }
+      return await window.PowerCloudFeatures.viewEntryCard.init(match);
+    }
+    
+    attempts++;
+    if (logger) {
+      logger.debug('Waiting for view-entry-card feature to register', { 
+        attempt: attempts, 
+        maxAttempts 
+      });
+    }
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  
+  if (logger) {
+    logger.error('view-entry-card feature failed to register', { maxAttempts });
   }
 }
 

@@ -135,13 +135,13 @@ response.entry.card.id
 3. ✅ Auto-dismiss after timeout with manual close option
 4. ✅ Added comprehensive CSS styles for all message types
 
-### Phase 4: Integration and Registration (30 minutes)
+### Phase 4: Integration and Registration (30 minutes) ✅ COMPLETED
 
-#### Step 4.1: Feature Registration in Main.js (15 minutes)
-1. Add feature to the features array in `/content_scripts/main.js`
-2. Create loader function `loadViewEntryCardFeature(match)`
-3. Handle feature availability and initialization
-4. Ensure proper cleanup registration
+#### Step 4.1: Feature Registration in Main.js (15 minutes) ✅ COMPLETED
+1. ✅ Add feature to the features array in `/content_scripts/main.js`
+2. ✅ Create loader function `loadViewEntryCardFeature(match)`
+3. ✅ Handle feature availability and initialization
+4. ✅ Ensure proper cleanup registration
 
 **Registration Pattern:**
 ```javascript
@@ -158,14 +158,43 @@ response.entry.card.id
 }
 ```
 
-#### Step 4.2: Feature Namespace Integration (10 minutes)
-1. Register feature in `window.PowerCloudFeatures.viewEntryCard`
-2. Expose init and cleanup methods
-3. Ensure proper feature discovery
+#### Step 4.2: Feature Namespace Integration (10 minutes) ✅ COMPLETED
+1. ✅ Register feature in `window.PowerCloudFeatures.viewEntryCard`
+2. ✅ Expose init and cleanup methods
+3. ✅ Ensure proper feature discovery
 
-#### Step 4.3: Manifest Registration (5 minutes)
-1. Verify feature file is included in manifest.json content_scripts
-2. Ensure proper loading order (after base-feature.js)
+#### Step 4.3: Manifest Registration (5 minutes) ✅ COMPLETED
+1. ✅ Verify feature file is included in manifest.json content_scripts
+2. ✅ Ensure proper loading order (after base-feature.js)
+
+## Phase 4 Implementation Summary
+
+**Files Modified:**
+- `/content_scripts/main.js` - Added feature registration and loader function
+- `/manifest.json` - Added view-entry-card.js to content_scripts array
+
+**Key Implementation Details:**
+- **URL Pattern**: `/https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/`
+- **Feature Name**: `viewEntryCard` 
+- **Loader Function**: `loadViewEntryCardFeature(match)`
+- **Namespace Integration**: Uses `window.PowerCloudFeatures.viewEntryCard.init(match)`
+- **Cleanup Integration**: Properly calls `window.PowerCloudFeatures.viewEntryCard.cleanup()`
+- **Loading Strategy**: Waits up to 1 second for feature registration with 100ms intervals
+- **Error Handling**: Logs timeout errors if feature fails to register
+
+**Feature Registration Pattern:**
+The feature follows the established PowerCloud pattern:
+1. **Registration**: Added to features array in main.js
+2. **Initialization**: Async loader function with timeout and retry logic
+3. **Namespace**: Exposed via PowerCloudFeatures.viewEntryCard
+4. **Cleanup**: Proper cleanup function registration
+5. **Manifest**: Included in content_scripts for automatic loading
+
+**Compatibility:**
+- ✅ Compatible with existing `entriesInfo` feature (no exclusions needed)
+- ✅ Shares same URL pattern as `entriesInfo` but provides complementary functionality
+- ✅ Uses consistent logging and error handling patterns
+- ✅ Follows established feature lifecycle management
 
 ### Phase 5: Testing and Validation (60 minutes)
 
