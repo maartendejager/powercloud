@@ -515,19 +515,8 @@ class ViewCardBookFeature extends BaseFeature {
       
       this.log('Opening card book URL', { url: bookUrl });
       
-      // Open the book URL in a new tab
-      chrome.runtime.sendMessage({
-        action: "openTab",
-        url: bookUrl
-      }, (tabResponse) => {
-        this.log('OpenTab response', { response: tabResponse });
-        if (chrome.runtime.lastError) {
-          this.handleError('Error opening tab', chrome.runtime.lastError);
-          this.showCardBookResult('Error opening tab: ' + chrome.runtime.lastError.message);
-        } else {
-          this.showCardBookResult('Card book opened in new tab');
-        }
-      });
+      // Navigate to book URL in the same tab (internal Spend Cloud navigation)
+      window.location.href = bookUrl;
     } catch (error) {
       this.handleError('Failed to handle card book click', error);
       this.showCardBookResult('Error: Unable to open card book');

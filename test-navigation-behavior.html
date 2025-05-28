@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerCloud Navigation Behavior Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .feature-type {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .spend-cloud { border-left: 4px solid #007aca; }
+        .adyen { border-left: 4px solid #0abf53; }
+        .navigation-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>PowerCloud Navigation Behavior Test</h1>
+    <p>This page demonstrates the different navigation behaviors implemented for PowerCloud extension buttons.</p>
+
+    <div class="test-section spend-cloud">
+        <div class="feature-type">Spend Cloud Features (Internal Navigation)</div>
+        <p><strong>These buttons navigate within the same tab:</strong></p>
+        <ul>
+            <li><strong>View Card Details</strong> - from entry pages to card pages</li>
+            <li><strong>View Card Book</strong> - from card pages to book pages</li>
+        </ul>
+        <div class="navigation-info">
+            <strong>Implementation:</strong> <code>window.location.href = url</code><br>
+            <strong>Behavior:</strong> Same tab navigation (internal Spend Cloud pages)<br>
+            <strong>Button Color:</strong> Spend Cloud Blue (#007aca)
+        </div>
+    </div>
+
+    <div class="test-section adyen">
+        <div class="feature-type">Adyen Features (External Navigation)</div>
+        <p><strong>These buttons open in a new tab:</strong></p>
+        <ul>
+            <li><strong>View Card in Adyen</strong> - opens Adyen payment instrument page</li>
+            <li><strong>View Balance Account in Adyen</strong> - opens Adyen balance account page</li>
+            <li><strong>View Entries in Adyen</strong> - opens Adyen transactions page</li>
+        </ul>
+        <div class="navigation-info">
+            <strong>Implementation:</strong> <code>chrome.runtime.sendMessage({ action: "openTab", url: ... })</code><br>
+            <strong>Behavior:</strong> New tab navigation (external Adyen platform)<br>
+            <strong>Button Color:</strong> Adyen Green (#0abf53)
+        </div>
+    </div>
+
+    <h2>Navigation Rationale</h2>
+    <p>The different navigation behaviors are designed to provide the best user experience:</p>
+    <ul>
+        <li><strong>Same Tab (Spend Cloud):</strong> Users stay within their Spend Cloud workflow when navigating between related internal pages</li>
+        <li><strong>New Tab (Adyen):</strong> Users can view external Adyen data while keeping their Spend Cloud session active</li>
+    </ul>
+
+    <h2>Testing the Implementation</h2>
+    <p>To test the navigation behavior:</p>
+    <ol>
+        <li>Load the PowerCloud extension in your browser</li>
+        <li>Navigate to relevant Spend Cloud pages (entry, card, or book pages)</li>
+        <li>Click the PowerCloud buttons and observe the navigation behavior</li>
+        <li>Verify that:
+            <ul>
+                <li>Spend Cloud buttons (blue) navigate in the same tab</li>
+                <li>Adyen buttons (green) open in a new tab</li>
+            </ul>
+        </li>
+    </ol>
+</body>
+</html>

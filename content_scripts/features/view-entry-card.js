@@ -684,14 +684,12 @@ class ViewEntryCardFeature extends BaseFeature {
           attempt: attempt + 1
         });
         
-        // Open card URL in new tab with timeout
-        await this.sendMessageWithTimeout({
-          action: "openTab",
-          url: cardUrl
-        }, this.config.timeout);
+        // Navigate to card URL in the same tab (internal Spend Cloud navigation)
+        window.location.href = cardUrl;
         
-        this.showEntryCardResult('Card page opened successfully');
-        this.clearApiError('openTab');
+        // Note: showEntryCardResult and clearApiError are not needed as we're navigating away
+        // this.showEntryCardResult('Card page opened successfully');
+        // this.clearApiError('openTab');
         return;
         
       } catch (error) {
