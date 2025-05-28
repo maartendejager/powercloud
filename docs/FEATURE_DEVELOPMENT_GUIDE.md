@@ -9,6 +9,7 @@ This guide provides comprehensive instructions for developing new features for t
 - [Development Workflow](#development-workflow)
   - [1. Planning a New Feature](#1-planning-a-new-feature)
   - [2. Feature Implementation Steps](#2-feature-implementation-steps)
+    - [Step 6: Navigation Behavior and Button Variants](#step-6-navigation-behavior-and-button-variants)
   - [3. Testing and Validation](#3-testing-and-validation)
   - [4. Documentation](#4-documentation)
 - [BaseFeature Class](#basefeature-class)
@@ -22,6 +23,7 @@ This guide provides comprehensive instructions for developing new features for t
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
 - [Examples](#examples)
+- [Related Documentation](#related-documentation)
 
 ## Overview
 
@@ -45,9 +47,16 @@ Before starting development:
 
 1. **Define Requirements**: What should the feature do?
 2. **Identify URL Patterns**: Which pages should activate the feature?
-3. **List Dependencies**: What other features or APIs does it need?
-4. **Plan Configuration**: What settings should be configurable?
-5. **Consider Performance**: What are the performance requirements?
+3. **Determine Navigation Type**: Will this feature navigate internally (same tab) or externally (new tab)?
+4. **Choose Button Variant**: Select appropriate variant based on navigation destination
+5. **List Dependencies**: What other features or APIs does it need?
+6. **Plan Configuration**: What settings should be configurable?
+7. **Consider Performance**: What are the performance requirements?
+
+**Navigation Planning Questions**:
+- Does the feature navigate to another Spend Cloud page? → Use same-tab navigation with `spendcloud` variant
+- Does the feature navigate to an external platform (e.g., Adyen)? → Use new-tab navigation with `adyen` variant
+- Is this a general action without navigation? → Use appropriate action variant (`primary`, `secondary`, etc.)
 
 ### 2. Feature Implementation Steps
 
@@ -590,6 +599,109 @@ class MyNewFeature extends BaseFeature {
         this.buttonManager = null;
     }
 }
+
+#### Step 6: Navigation Behavior and Button Variants
+
+PowerCloud features implement differentiated navigation behavior based on their destination type. Choose the appropriate pattern for your feature:
+
+##### Navigation Patterns
+
+**Internal Navigation (Same Tab)** - Use for Spend Cloud internal features:
+```javascript
+class MyInternalFeature extends BaseFeature {
+    handleButtonClick() {
+        // Navigate in same tab for internal Spend Cloud workflows
+        const targetUrl = this.constructInternalUrl();
+        window.location.href = targetUrl;
+    }
+    
+    constructInternalUrl() {
+        const isDev = window.location.href.includes('.dev.spend.cloud');
+        const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.spend.cloud`;
+        return `${baseUrl}/internal-page/${this.resourceId}`;
+    }
+}
+```
+
+**External Navigation (New Tab)** - Use for external platform integrations:
+```javascript
+class MyExternalFeature extends BaseFeature {
+    async handleButtonClick() {
+        // Open external URLs in new tab to preserve user session
+        const externalUrl = this.constructExternalUrl();
+        
+        try {
+            await this.sendMessageWithTimeout({
+                action: "openTab",
+                url: externalUrl
+            }, this.config.timeout);
+            
+            this.showResult('External page opened in new tab');
+        } catch (error) {
+            this.handleError('Failed to open external page', error);
+        }
+    }
+    
+    constructExternalUrl() {
+        return `https://external-platform.com/resource/${this.resourceId}`;
+    }
+}
+```
+
+##### Button Variants
+
+Use appropriate button variants to visually distinguish navigation destinations:
+
+**Spend Cloud Variant (Internal Navigation)**:
+```javascript
+async createMainButton() {
+    const buttonConfig = {
+        text: 'View Details',
+        title: 'Navigate to internal details page',
+        variant: 'spendcloud', // Blue button for internal navigation
+        className: 'powercloud-internal-feature-button',
+        onClick: () => this.handleInternalNavigation()
+    };
+    
+    const button = this.buttonManager.createButton(buttonConfig);
+    this.uiElements.set('mainButton', button);
+}
+```
+
+**Adyen Variant (External Navigation)**:
+```javascript
+async createMainButton() {
+    const buttonConfig = {
+        text: 'View in Adyen',
+        title: 'Open in Adyen platform (new tab)',
+        variant: 'adyen', // Green button for external navigation
+        className: 'powercloud-external-feature-button',
+        onClick: () => this.handleExternalNavigation()
+    };
+    
+    const button = this.buttonManager.createButton(buttonConfig);
+    this.uiElements.set('mainButton', button);
+}
+```
+
+**Available Button Variants**:
+- `'spendcloud'` - Blue (#007aca) for internal Spend Cloud navigation
+- `'adyen'` - Green (#0abf53) for external Adyen platform navigation  
+- `'primary'` - Default blue for general actions
+- `'secondary'` - Gray for secondary actions
+- `'success'` - Green for success actions
+- `'warning'` - Yellow for warning actions
+- `'error'` - Red for error/danger actions
+
+##### Navigation Best Practices
+
+1. **Preserve User Context**: Internal navigation should keep users in their workflow (same tab)
+2. **Maintain Sessions**: External navigation should preserve the original session (new tab)
+3. **Visual Distinction**: Use appropriate button variants to indicate navigation behavior
+4. **Clear Expectations**: Button text and titles should indicate where navigation leads
+5. **Error Handling**: Implement fallbacks for navigation failures
+
+For detailed implementation examples and patterns, see [Navigation Behavior Implementation](./NAVIGATION_BEHAVIOR_IMPLEMENTATION.md).
 
 ### 3. Testing and Validation
 
@@ -1253,7 +1365,6 @@ class MyFeature extends BaseFeature {
                     resolve(response);
                 }
             });
-        });
     }
 
     /**
@@ -1587,12 +1698,15 @@ Before deploying a new feature, ensure:
 - ✅ **Manifest Integration**: Feature script is added to `manifest.json` content_scripts
 - ✅ **Main.js Registration**: Feature is added to the features array in `main.js`
 - ✅ **Chrome Communication**: If feature needs background communication, `sendMessageWithTimeout()` and `sendMessage()` methods are implemented
+- ✅ **Navigation Pattern**: Correct navigation method implemented (same-tab vs new-tab)
+- ✅ **Button Variant**: Appropriate button variant selected for navigation destination
 - ✅ **Error Handling**: Comprehensive error handling with proper context and user feedback
 - ✅ **Storage Access**: Uses standardized `getStorageSettings()` pattern for configuration
 - ✅ **Cleanup**: Implements proper cleanup in lifecycle methods to prevent memory leaks
 - ✅ **Logging**: Uses feature-specific logger for debugging and monitoring
 - ✅ **URL Patterns**: URL pattern correctly matches target pages
 - ✅ **Testing**: Feature tested on both production and dev environments
+- ✅ **Navigation Testing**: Navigation behavior verified for both internal and external links
 
 ### Code Quality Guidelines
 
@@ -1603,6 +1717,15 @@ Before deploying a new feature, ensure:
 - **Performance**: Monitor and optimize feature performance
 - **Cleanup**: Always implement proper cleanup in the feature lifecycle to prevent memory leaks
 - **Testing**: Write tests for your feature to ensure it works as expected
+- **Navigation**: Use appropriate navigation patterns and button variants based on destination type
+
+### Navigation Guidelines
+
+- **Internal Features**: Use same-tab navigation (`window.location.href`) with `spendcloud` button variant
+- **External Features**: Use new-tab navigation (`chrome.runtime.sendMessage`) with `adyen` button variant  
+- **Button Variants**: Choose variants that match the navigation destination and user expectations
+- **User Experience**: Preserve user context for internal navigation, maintain sessions for external navigation
+- **Clear Indication**: Button text and styling should clearly indicate navigation behavior
 
 ## Troubleshooting
 
@@ -1636,122 +1759,36 @@ window.isApiRoute('https://example.spend.cloud/api/test');
 **Symptoms**: Extension shows as inactive in chrome://extensions/
 **Solution**: Check manifest.json syntax and reload extension
 
-## Examples
+## Related Documentation
 
-### DOM Manipulation Example
+For comprehensive development information and specific implementation patterns, see:
 
-```javascript
-/**
- * Safely adds UI elements to the page.
- */
-addUIElement() {
-    // Create container
-    const container = document.createElement('div');
-    container.className = 'powercloud-feature-container';
-    container.innerHTML = `
-        <button class="powercloud-btn" data-action="process">
-            Process Payment
-        </button>
-    `;
+### Core Documentation
+- **[Architecture Guide](../ARCHITECTURE.md)** - Technical architecture and system design
+- **[Developer Onboarding](./DEVELOPER_ONBOARDING.md)** - Setup guide for new developers
+- **[Code Style Guide](./CODE_STYLE_GUIDE.md)** - Coding standards and conventions
+- **[JSDoc Standards](./JSDOC_STANDARDS.md)** - Documentation standards
+- **[Logging Guidelines](./LOGGING_GUIDELINES.md)** - Logging best practices
 
-    // Find insertion point
-    const targetElement = document.querySelector('.payment-section');
-    if (targetElement) {
-        targetElement.appendChild(container);
-        
-        // Track for cleanup
-        this.createdElements.push(container);
-    }
-}
-```
+### Implementation Guides
+- **[Navigation Behavior Implementation](./NAVIGATION_BEHAVIOR_IMPLEMENTATION.md)** - Button navigation patterns and best practices
+- **[Base Feature Documentation](../shared/base-feature-docs.md)** - Detailed BaseFeature class reference
+- **[Testing Documentation](./testing/)** - Comprehensive testing procedures and guides
 
-### Complete Feature Example
+### Configuration and Setup
+- **[Adyen Configuration](./configuration/ADYEN_CONFIG.md)** - Adyen integration setup
+- **[Development Notes](../DEVELOPMENT_NOTES.md)** - Current development context and troubleshooting
 
-```javascript
-/**
- * @fileoverview Example feature for PowerCloud extension.
- * @author Your Name
- * @version 1.0.0
- */
+### UI and Enhancement Documentation
+- **[UI Improvements](./ui-improvements/)** - UI enhancement documentation and patterns
+- **[Button Issues Resolution](./button-issues-resolution.md)** - Button system troubleshooting
+- **[Multi-Button Layout Plan](./multi-button-layout-plan.md)** - Multi-button UI patterns
 
-class ExampleFeature extends BaseFeature {
-    constructor() {
-        super('example-feature', {
-            enableDebugLogging: true
-        });
-        
-        this.createdElements = [];
-    }
+### Quick Reference Links
+- **Main README**: [`../README.md`](../README.md) - Project overview and basic setup
+- **Testing Pipeline**: [`./testing/TESTING_PIPELINE.md`](./testing/TESTING_PIPELINE.md) - Automated testing setup
+- **Quick Test Guide**: [`./testing/QUICK_TEST_GUIDE.md`](./testing/QUICK_TEST_GUIDE.md) - Fast testing procedures
 
-    async onInit(match) {
-        super.onInit(match);
-        
-        try {
-            this.logger.info('Initializing example feature');
-            
-            // Extract tenant name from URL match
-            const tenantName = match ? match[1] : null;
-            
-            // Feature-specific initialization
-            await this.setupUI();
-            this.attachEventListeners();
-            
-            this.logger.info('Example feature initialized successfully', { tenant: tenantName });
-            
-            return true;
-        } catch (error) {
-            this.handleError('Failed to initialize example feature', error);
-            return false;
-        }
-    }
-    
-    setupUI() {
-        const button = document.createElement('button');
-        button.className = 'powercloud-feature-button';
-        button.textContent = 'Example Action';
-        button.addEventListener('click', this.handleButtonClick.bind(this));
-        
-        document.body.appendChild(button);
-        this.createdElements.push(button);
-    }
-    
-    attachEventListeners() {
-        this.handleButtonClick = this.handleButtonClick.bind(this);
-    }
-    
-    handleButtonClick(event) {
-        this.logger.info('Button clicked', { event });
-        // Implement button click functionality
-    }
+---
 
-    async onCleanup() {
-        try {
-            // Remove created elements
-            this.createdElements.forEach(element => {
-                if (element && element.parentNode) {
-                    element.parentNode.removeChild(element);
-                }
-            });
-            
-            this.createdElements = [];
-            
-            super.onCleanup();
-        } catch (error) {
-            this.handleError('Failed to clean up example feature', error);
-        }
-    }
-}
-
-// Register feature
-window.PowerCloudFeatures = window.PowerCloudFeatures || {};
-window.PowerCloudFeatures.exampleFeature = {
-    init: function(match) {
-        const feature = new ExampleFeature();
-        return feature.onInit(match);
-    },
-    cleanup: function() {
-        const feature = new ExampleFeature();
-        return feature.onCleanup();
-    }
-};
-```
+*This guide is part of the PowerCloud Extension developer documentation. For the most up-to-date information, always refer to the latest version in the repository.*

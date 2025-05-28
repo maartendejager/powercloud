@@ -10,6 +10,8 @@ This directory contains comprehensive documentation for developers working on th
 - **[JSDoc Standards](./JSDOC_STANDARDS.md)** - Documentation standards
 
 ### Development Guidelines
+- **[Feature Development Guide](./FEATURE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide for creating new features
+- **[Navigation Behavior Implementation](./NAVIGATION_BEHAVIOR_IMPLEMENTATION.md)** - Button navigation behavior differentiation
 - **[Logging Guidelines](./LOGGING_GUIDELINES.md)** - How to implement proper logging
 - **[Documentation Update Guide](./DOCUMENTATION_UPDATE_GUIDE.md)** - How to maintain docs
 
@@ -52,6 +54,8 @@ docs/
 ├── README.md                    # This file - documentation index
 ├── DEVELOPER_ONBOARDING.md      # New developer guide
 ├── CODE_STYLE_GUIDE.md         # Coding standards
+├── FEATURE_DEVELOPMENT_GUIDE.md # Feature development guide
+├── NAVIGATION_BEHAVIOR_IMPLEMENTATION.md # Button navigation behavior
 ├── JSDOC_STANDARDS.md          # Documentation standards
 ├── LOGGING_GUIDELINES.md       # Logging best practices
 ├── DOCUMENTATION_UPDATE_GUIDE.md # How to maintain docs

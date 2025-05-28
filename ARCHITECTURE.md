@@ -215,6 +215,7 @@ The extension includes a comprehensive validation framework that ensures:
     *   If the URL matches a pattern for a specific feature, it dynamically loads the corresponding script from `content_scripts/features/`.
     *   The feature script (e.g., `adyen-card.js`) manipulates the DOM to add buttons or other UI elements.
     *   These buttons, when clicked, might trigger actions within the content script or send messages to the background script for more complex operations (like opening a new tab to Adyen).
+    *   **Navigation Behavior**: Buttons implement differentiated navigation patterns - internal Spend Cloud buttons navigate in the same tab while external Adyen buttons open in new tabs. See [Navigation Behavior Implementation](./docs/NAVIGATION_BEHAVIOR_IMPLEMENTATION.md) for detailed implementation.
 
 ## Future Development Considerations
 
@@ -232,6 +233,8 @@ For comprehensive development information, see:
 - **[Developer Documentation](./docs/)** - Complete developer guide collection
 - **[Developer Onboarding](./docs/DEVELOPER_ONBOARDING.md)** - Setup guide for new developers
 - **[Code Style Guide](./docs/CODE_STYLE_GUIDE.md)** - Coding standards and conventions
+- **[Feature Development Guide](./docs/FEATURE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide for creating new features
+- **[Navigation Behavior Implementation](./docs/NAVIGATION_BEHAVIOR_IMPLEMENTATION.md)** - Button navigation behavior differentiation
 - **[Testing Documentation](./docs/testing/)** - Comprehensive testing procedures
 - **[Development Notes](./DEVELOPMENT_NOTES.md)** - Current development context
 

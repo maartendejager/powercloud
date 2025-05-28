@@ -43,6 +43,8 @@ Successfully implemented differentiated navigation behavior for PowerCloud exten
 ## Testing
 Created `test-navigation-behavior.html` for documentation and testing guidance.
 
+**Location**: [`/test-navigation-behavior.html`](../test-navigation-behavior.html)
+
 ## Next Steps
 1. Test the implementation in a browser with the extension loaded
 2. Verify that:

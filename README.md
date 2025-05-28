@@ -15,6 +15,7 @@ The extension works on both production (`https://[customer].spend.cloud/*`) and 
   - [Metrics Grid Styling](./docs/ui-improvements/enhanced-metrics-grid.md)
   - [Token Tenant Display](./docs/ui-improvements/token-tenant-display-fix.md)
   - [Token UI Enhancements](./docs/ui-improvements/token-ui-enhancements.md)
+- **[Navigation Behavior Implementation](./docs/NAVIGATION_BEHAVIOR_IMPLEMENTATION.md)** - Button navigation behavior differentiation
 
 ### For New Developers
 Start with the [Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md) for a complete setup and development guide.
