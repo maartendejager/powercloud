@@ -409,7 +409,7 @@ class AdyenCardFeature extends BaseFeature {
         buttonConfig = {
           id: 'card',
           text: 'View in Adyen',
-          variant: 'primary',
+          variant: 'adyen',
           size: 'medium',
           onClick: () => this.handleCardInfoClick()
         };

@@ -303,6 +303,24 @@ static getButtonStyles() {
             background-color: #e0a800;
         }
 
+        .powercloud-button--adyen {
+            background-color: #0abf53;
+            color: white;
+        }
+
+        .powercloud-button--adyen:hover:not(:disabled) {
+            background-color: #089944;
+        }
+
+        .powercloud-button--spendcloud {
+            background-color: #007aca;
+            color: white;
+        }
+
+        .powercloud-button--spendcloud:hover:not(:disabled) {
+            background-color: #0066b3;
+        }
+
         .powercloud-button--disabled {
             opacity: 0.6;
             cursor: not-allowed;

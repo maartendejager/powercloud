@@ -358,7 +358,7 @@ class ViewCardBookFeature extends BaseFeature {
       const button = this.buttonManager.addButton('view-card-book', {
         id: 'book',
         text: 'View Card Book',
-        variant: 'success',
+        variant: 'spendcloud',
         size: 'medium',
         onClick: () => this.handleCardBookClick()
       });

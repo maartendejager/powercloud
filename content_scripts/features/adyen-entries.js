@@ -336,7 +336,7 @@ class AdyenEntriesFeature extends BaseFeature {
         buttonConfig = {
           id: 'transfer',
           text: 'View Transfer in Adyen',
-          variant: 'primary',
+          variant: 'adyen',
           size: 'medium',
           title: `Open Adyen transfer ${this.remoteTransferId} in new tab`,
           onClick: () => this.handleEntriesInfoClick()

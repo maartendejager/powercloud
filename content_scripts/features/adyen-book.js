@@ -432,7 +432,7 @@ class AdyenBookFeature extends BaseFeature {
       // Create button configuration based on balance account availability
       const buttonConfig = {
         text: this.balanceAccountId ? 'View Balance Account in Adyen' : 'No Adyen Balance Account',
-        variant: this.balanceAccountId ? 'primary' : 'secondary',
+        variant: this.balanceAccountId ? 'adyen' : 'secondary',
         disabled: !this.balanceAccountId,
         size: 'medium',
         id: 'powercloud-book-info-btn',

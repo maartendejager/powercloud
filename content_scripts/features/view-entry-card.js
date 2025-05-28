@@ -534,7 +534,7 @@ class ViewEntryCardFeature extends BaseFeature {
         buttonConfig = {
           id: 'view-card',
           text: 'View Card Details',
-          variant: 'primary',
+          variant: 'spendcloud',
           size: 'medium',
           title: `Navigate to card details for card ${this.cardId}`,
           onClick: () => this.handleViewCardClick()
