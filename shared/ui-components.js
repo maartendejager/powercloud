@@ -891,7 +891,14 @@ class PowerCloudButtonContainer extends PowerCloudUIComponent {
                 display: 'flex',
                 flexDirection: pos.flexDirection,
                 gap: this.options.gap,
-                alignItems: 'center'
+                alignItems: 'stretch' // Makes buttons equal width
+            });
+            
+            // Apply styles to make all buttons equal width
+            const buttons = this.wrapper.querySelectorAll('.powercloud-button');
+            buttons.forEach(button => {
+                button.style.width = '100%';
+                button.style.minWidth = '120px'; // Ensure minimum readable width
             });
         }
     }
@@ -921,6 +928,10 @@ class PowerCloudButtonContainer extends PowerCloudUIComponent {
         // Add to wrapper
         if (this.wrapper) {
             this.wrapper.appendChild(buttonElement);
+            
+            // Apply equal width styling to the new button
+            buttonElement.style.width = '100%';
+            buttonElement.style.minWidth = '120px';
         }
         
         // Store reference
