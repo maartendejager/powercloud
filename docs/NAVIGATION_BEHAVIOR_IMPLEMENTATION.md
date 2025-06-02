@@ -41,9 +41,9 @@ Successfully implemented differentiated navigation behavior for PowerCloud exten
 - **External Navigation (Adyen):** Users can view Adyen data while keeping their Spend Cloud session active in the original tab
 
 ## Testing
-Created `test-navigation-behavior.html` for documentation and testing guidance.
+Created `testing/manual/test-navigation-behavior.html` for documentation and testing guidance.
 
-**Location**: [`/test-navigation-behavior.html`](../test-navigation-behavior.html)
+**Location**: [`testing/manual/test-navigation-behavior.html`](../testing/manual/test-navigation-behavior.html)
 
 ## Next Steps
 1. Test the implementation in a browser with the extension loaded
@@ -56,7 +56,7 @@ Created `test-navigation-behavior.html` for documentation and testing guidance.
 ## Files Modified
 1. `view-entry-card.js` - Changed navigation to same tab
 2. `view-card-book.js` - Changed navigation to same tab
-3. `test-navigation-behavior.html` - Created for testing documentation
+3. `testing/manual/test-navigation-behavior.html` - Created for testing documentation
 
 ## Files Verified (No Changes Needed)
 - `adyen-card.js` - Correctly uses new tab navigation

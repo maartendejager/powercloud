@@ -129,7 +129,7 @@ const buttonConfig = {
 
 ## Links to Related Documentation
 - **Primary Reference**: [`NAVIGATION_BEHAVIOR_IMPLEMENTATION.md`](./NAVIGATION_BEHAVIOR_IMPLEMENTATION.md)
-- **Testing Guide**: [`test-navigation-behavior.html`](../test-navigation-behavior.html)
+- **Testing Guide**: [`test-navigation-behavior.html`](../testing/manual/test-navigation-behavior.html)
 - **Architecture Context**: [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
 
 ## Usage

@@ -2,7 +2,15 @@
 
 This directory contains test files and testing utilities for the PowerCloud extension.
 
-## Testing Framework
+## Directory Structure
+
+### Organized Test Categories
+- **`integration/`** - Integration tests for component interactions and API endpoints
+- **`manual/`** - HTML test pages and manual testing utilities  
+- **`ui/`** - User interface testing files and visual validation
+- **`validation/`** - Validation scripts for specific functionality and bug fixes
+
+### Core Testing Files
 
 ### Core Testing Files
 - **`test-framework.js`** - Main testing framework with utilities for unit and integration tests

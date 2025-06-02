@@ -10,7 +10,7 @@ Successfully integrated the Navigation Behavior Implementation documentation int
 - **Content**: Complete implementation guide for button navigation behavior differentiation
 
 ### Test Documentation
-- **Location**: `test-navigation-behavior.html`
+- **Location**: `testing/manual/test-navigation-behavior.html`
 - **Content**: Interactive guide for testing navigation behavior and understanding implementation
 
 ## Access Points Added
@@ -62,7 +62,7 @@ Added references in two places:
 2. ARCHITECTURE.md → Related Documentation → Navigation Behavior Implementation
 
 ## Test Access
-- Direct link in navigation behavior documentation: `../test-navigation-behavior.html`
+- Direct link in navigation behavior documentation: `../testing/manual/test-navigation-behavior.html`
 - Available in project root for easy testing
 
 ## Benefits
@@ -74,7 +74,7 @@ Added references in two places:
 
 ## Next Steps for Developers
 1. **Read Implementation**: Start with `docs/NAVIGATION_BEHAVIOR_IMPLEMENTATION.md`
-2. **Test Behavior**: Open `test-navigation-behavior.html` in browser
+2. **Test Behavior**: Open `testing/manual/test-navigation-behavior.html` in browser
 3. **Verify Implementation**: Load extension and test on Spend Cloud pages
 4. **Reference Architecture**: Check `ARCHITECTURE.md` for context on overall button system
 

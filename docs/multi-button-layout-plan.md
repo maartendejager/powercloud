@@ -188,7 +188,7 @@ The multi-button layout system has been successfully implemented with the follow
 2. **`/content_scripts/features/view-card-book.js`**: Fixed singleton usage pattern
 3. **`/content_scripts/features/adyen-card.js`**: Fixed singleton usage pattern  
 4. **`/content_scripts/main.js`**: Added PowerCloudUI system initialization
-5. **`/test-button-integration.html`**: Created comprehensive test suite
+5. **`testing/manual/test-button-integration.html`**: Created comprehensive test suite
 
 ### ✅ Ready for Production
 The multi-button layout system is now ready for testing and production use. Both the "View Card Book" and "View in Adyen" features will work together without conflicts, using a shared button container with consistent styling and positioning.
