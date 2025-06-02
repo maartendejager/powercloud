@@ -1,5 +1,12 @@
 /**
- * View Entry Card Feature Module
+ * View Entry Card cardEntryLogger.info('Loading view-entry-card.js...');
+
+// Check if BaseFeature is available
+if (typeof BaseFeature === 'undefined') {
+  cardEntryLogger.error('BaseFeature class not available! Cannot initialize ViewEntryCardFeature');
+} else {
+  cardEntryLogger.info('BaseFeature is available, proceeding with ViewEntryCardFeature');
+}le
  *
  * This module provides functionality for navigating from entry pages to their associated card pages
  * on entry pages at https://[customer-environment].spend.cloud/proactive/kasboek.boekingen/show?id=[entry-id] or
@@ -77,7 +84,7 @@ class ViewEntryCardFeature extends BaseFeature {
    * @param {object} match - The URL match result containing capture groups
    */
   async onInit(match) {
-    console.log('[DEBUG][ViewEntryCard] onInit called with:', { 
+    this.log('ViewEntryCardFeature onInit called', { 
       match, 
       matchType: typeof match,
       url: window.location.href
@@ -88,7 +95,7 @@ class ViewEntryCardFeature extends BaseFeature {
       
       // Validate match data
       if (!match || (Array.isArray(match) && match.length < 3)) {
-        console.error('[DEBUG][ViewEntryCard] Invalid match data:', match);
+        cardEntryLogger.error('Invalid match data:', match);
         throw new Error('Invalid match data for view entry card feature');
       }
 
@@ -992,5 +999,3 @@ if (typeof window !== 'undefined') {
 
   entryCardLogger.info('ViewEntryCardFeature registered in PowerCloudFeatures namespace');
 }
-
-console.log('[DEBUG][ViewEntryCard] Feature registration completed');

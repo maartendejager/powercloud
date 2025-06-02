@@ -439,8 +439,6 @@ static initialize() {
         style.textContent = PowerCloudUIStyles.getBaseStyles();
         document.head.appendChild(style);
     }
-    
-    console.log('[PowerCloudUI] Initialized');
 }
 }
 
@@ -1109,8 +1107,6 @@ class PowerCloudButtonManager {
             
             // Check for visibility settings 
             this.applyVisibilitySettings();
-            
-            console.log('[PowerCloudButtonManager] Initialized successfully');
         } catch (error) {
             console.error('[PowerCloudButtonManager] Failed to initialize:', error);
         }
@@ -1133,8 +1129,6 @@ class PowerCloudButtonManager {
                 this.container.element.className = showButtons ? 
                     'powercloud-button-container powercloud-visible' : 
                     'powercloud-button-container powercloud-hidden';
-                
-                console.log(`[PowerCloudButtonManager] Applied visibility setting: ${showButtons ? 'visible' : 'hidden'}`);
             } else {
                 // Default to visible if no setting available
                 chrome.storage.local.get('showButtons', (result) => {
@@ -1163,7 +1157,6 @@ class PowerCloudButtonManager {
         
         try {
             if (this.buttons.has(buttonId)) {
-                console.log(`[PowerCloudButtonManager] Button '${buttonId}' already exists, returning existing button`);
                 return this.buttons.get(buttonId).button;
             }
             
@@ -1181,7 +1174,6 @@ class PowerCloudButtonManager {
             
             this.features.add(featureId);
             
-            console.log(`[PowerCloudButtonManager] Added button '${buttonId}' for feature '${featureId}'`);
             return button;
         } catch (error) {
             console.error(`[PowerCloudButtonManager] Failed to add button '${buttonId}':`, error);
@@ -1204,7 +1196,6 @@ class PowerCloudButtonManager {
             if (this.buttons.has(fullButtonId)) {
                 this.container.removeButton(fullButtonId);
                 this.buttons.delete(fullButtonId);
-                console.log(`[PowerCloudButtonManager] Removed button '${fullButtonId}'`);
             }
         } else {
             // Remove all buttons for the feature
@@ -1227,7 +1218,6 @@ class PowerCloudButtonManager {
         });
         
         this.features.delete(featureId);
-        console.log(`[PowerCloudButtonManager] Removed ${featureButtons.length} buttons for feature '${featureId}'`);
     }
 
     /**
@@ -1243,8 +1233,6 @@ class PowerCloudButtonManager {
         this.buttons.clear();
         this.features.clear();
         this.initialized = false;
-        
-        console.log('[PowerCloudButtonManager] Cleaned up all buttons');
     }
 
     /**
@@ -1275,7 +1263,6 @@ class PowerCloudButtonManager {
                 'powercloud-button-container powercloud-visible' : 
                 'powercloud-button-container powercloud-hidden';
                 
-            console.log(`[PowerCloudButtonManager] Visibility updated: ${isVisible ? 'visible' : 'hidden'}`);
             return true;
         } catch (error) {
             console.error('[PowerCloudButtonManager] Error updating visibility:', error);

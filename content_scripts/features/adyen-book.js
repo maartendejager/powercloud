@@ -22,14 +22,6 @@ const bookLogger = (() => {
 })();
 
 bookLogger.info('Loading adyen-book.js...');
-bookLogger.info('BaseFeature available', { isAvailable: typeof BaseFeature !== 'undefined' });
-
-// Check if BaseFeature is available
-if (typeof BaseFeature === 'undefined') {
-  bookLogger.error('BaseFeature class not available! Cannot initialize AdyenBookFeature');
-} else {
-  bookLogger.info('BaseFeature is available, proceeding with AdyenBookFeature creation');
-}
 
 /**
  * AdyenBookFeature class extending BaseFeature
@@ -85,12 +77,6 @@ class AdyenBookFeature extends BaseFeature {
     
     // Load feature-specific configuration
     await this.loadFeatureConfig();
-    
-    this.log('Initializing book feature', { 
-      customer: this.customer, 
-      bookId: this.bookId,
-      config: this.config 
-    });
   }
 
   /**
@@ -104,8 +90,6 @@ class AdyenBookFeature extends BaseFeature {
       if (result.adyenBookConfig) {
         this.config = { ...this.config, ...result.adyenBookConfig };
       }
-      
-      this.log('Feature configuration loaded', { config: this.config });
     } catch (error) {
       this.handleError('Failed to load feature configuration', error);
     }
@@ -121,26 +105,15 @@ class AdyenBookFeature extends BaseFeature {
       // Check if buttons should be shown before fetching book details
       const result = await this.getStorageSettings();
       const showButtons = result.showButtons === undefined ? true : result.showButtons;
-      
-      console.log('[DEBUG][AdyenBook] Storage settings retrieved:', { 
-        result, 
-        showButtons,
-        rawShowButtons: result.showButtons 
-      });
 
       if (!showButtons) {
-        console.log('[DEBUG][AdyenBook] Buttons disabled, skipping book feature activation');
-        this.log('Buttons disabled, skipping book feature activation');
         return;
       }
 
-      console.log('[DEBUG][AdyenBook] Buttons enabled, calling fetchBookDetailsAndAddButton...');
       // Fetch book details to determine book type before adding button
       await this.fetchBookDetailsAndAddButton();
-      console.log('[DEBUG][AdyenBook] fetchBookDetailsAndAddButton completed successfully');
       
     } catch (error) {
-      console.error('[DEBUG][AdyenBook] Error in onActivate:', error);
       this.handleError('Failed to activate book feature', error);
     }
   }
@@ -167,25 +140,20 @@ class AdyenBookFeature extends BaseFeature {
    * Fetch book details and add button based on book type with enhanced error handling
    */
   async fetchBookDetailsAndAddButton() {
-    console.log('[DEBUG][AdyenBook] fetchBookDetailsAndAddButton() called!');
     let attempt = 0;
     let lastError = null;
     
     while (attempt < this.config.retryAttempts) {
       try {
         attempt++;
-        console.log(`[DEBUG][AdyenBook] Fetching book details (attempt ${attempt}/${this.config.retryAttempts})`);
-        this.log(`Fetching book details (attempt ${attempt}/${this.config.retryAttempts})`);
         
         const messageToSend = {
           action: "fetchBookDetails",
           customer: this.customer,
           bookId: this.bookId
         };
-        console.log('[DEBUG][AdyenBook] Sending message:', messageToSend);
         
         const response = await this.sendMessageWithTimeout(messageToSend, this.config.timeout);
-        console.log('[DEBUG][AdyenBook] Received response:', response);
 
         if (response && response.success) {
           this.bookType = response.bookType;
@@ -198,49 +166,20 @@ class AdyenBookFeature extends BaseFeature {
           
           this.administrationId = response.administrationId;
           this.balanceAccountReference = response.balanceAccountReference;
-          
-          bookLogger.info('Book API response structure', {
-            hasBalanceAccountId: !!response.balanceAccountId,
-            hasremoteBalanceAccountId: !!response.remoteBalanceAccountId,
-            internalBalanceAccountId: this.balanceAccountId,
-            remoteBalanceAccountId: this.remoteBalanceAccountId,
-            bookType: this.bookType,
-            warning: !this.remoteBalanceAccountId ? 'No Adyen balance account ID found - using internal ID would be incorrect!' : null
-          });
-
-          console.log('[DEBUG][AdyenBook] Checking remoteBalanceAccountId:', {
-            remoteBalanceAccountId: this.remoteBalanceAccountId,
-            hasRemoteBalanceAccountId: !!this.remoteBalanceAccountId,
-            willCreateButton: !!this.remoteBalanceAccountId
-          });
 
           // Don't create button if no Adyen balance account ID
           if (!this.remoteBalanceAccountId) {
-            console.log('[DEBUG][AdyenBook] Skipping button - no remoteBalanceAccountId');
             bookLogger.info('Cannot create Adyen button: No Adyen balance account ID available (this is normal for books without Adyen integration)');
-            bookLogger.info('Internal balance account ID available', { balanceAccountId: this.balanceAccountId });
-            this.log('Skipping button creation - no Adyen balance account ID found');
             return;
           }
-          
-          console.log('[DEBUG][AdyenBook] Checking book type filtering:', {
-            enableBookTypeFiltering: this.config.enableBookTypeFiltering,
-            bookType: this.bookType,
-            supportedBookTypes: this.config.supportedBookTypes,
-            isSupported: this.config.supportedBookTypes.includes(this.bookType)
-          });
           
           // Check if book type is supported
           if (this.config.enableBookTypeFiltering && 
               !this.config.supportedBookTypes.includes(this.bookType)) {
-            console.log('[DEBUG][AdyenBook] Skipping button - book type not supported');
-            this.log(`Book type '${this.bookType}' not supported, skipping button creation`);
             return;
           }
           
-          console.log('[DEBUG][AdyenBook] All checks passed, calling addBookInfoButton()');
           this.addBookInfoButton();
-          console.log('[DEBUG][AdyenBook] addBookInfoButton() call completed');
           
           // Clear any previous errors on success
           this.clearApiError('fetchBookDetails');
@@ -260,15 +199,8 @@ class AdyenBookFeature extends BaseFeature {
           (error.message.includes('not found') || error.message.includes('Not Found')));
         
         if (isNotFoundError) {
-          this.log('Book not found (404) - this is normal, not retrying', {
-            bookId: this.bookId,
-            customer: this.customer,
-            error: error.message
-          });
-          
           // For 404 errors, don't show error message to user, just use fallback
           if (this.config.fallbackToDefaultBehavior) {
-            this.log('Book not found - using fallback behavior without error display');
             this.bookType = 'monetary_account_book';
             this.balanceAccountId = null;
             this.addBookInfoButton();
@@ -280,7 +212,6 @@ class AdyenBookFeature extends BaseFeature {
         
         if (attempt < this.config.retryAttempts) {
           const delay = this.config.retryDelay * attempt; // Exponential backoff
-          this.log(`Retrying in ${delay}ms due to error: ${error.message}`);
           await this.delay(delay);
         }
       }
@@ -291,7 +222,6 @@ class AdyenBookFeature extends BaseFeature {
     
     // Fallback behavior based on configuration
     if (this.config.fallbackToDefaultBehavior) {
-      this.log('Using fallback behavior after API failure');
       this.bookType = 'monetary_account_book';
       this.balanceAccountId = null;
       this.addBookInfoButton();
@@ -385,8 +315,6 @@ class AdyenBookFeature extends BaseFeature {
       const oldestKey = this.apiErrors.keys().next().value;
       this.apiErrors.delete(oldestKey);
     }
-    
-    this.log('API error tracked', errorRecord);
   }
 
   /**
@@ -436,26 +364,14 @@ class AdyenBookFeature extends BaseFeature {
    * Adds a button to view balance account information at Adyen using PowerCloudButtonManager
    */
   addBookInfoButton() {
-    console.log('[DEBUG][AdyenBook] addBookInfoButton() called');
-    console.log('[DEBUG][AdyenBook] Button state check:', {
-      balanceAccountId: this.balanceAccountId,
-      remoteBalanceAccountId: this.remoteBalanceAccountId,
-      shouldUseRemoteId: !!this.remoteBalanceAccountId
-    });
-    
     // Check if button already exists
     if (this.cardButtonCreated) {
-      console.log('[DEBUG][AdyenBook] Button already exists, returning early');
-      this.log('Book info button already exists, skipping creation');
       return;
     }
 
-    console.log('[DEBUG][AdyenBook] No existing button found, proceeding with creation');
-    
     try {
       // Initialize button manager if not already done (same pattern as adyen-card)
       if (!window.PowerCloudUI || !window.PowerCloudButtonManager) {
-        console.error('[DEBUG][AdyenBook] PowerCloudUI or PowerCloudButtonManager not available');
         this.createFallbackButton();
         return;
       }
@@ -483,30 +399,18 @@ class AdyenBookFeature extends BaseFeature {
           disabled: true
         };
       }
-      
-      console.log('[DEBUG][AdyenBook] Button configuration:', buttonConfig);
 
       // Add button using the centralized button manager (same pattern as working features)
       const button = this.buttonManager.addButton('adyen-book', buttonConfig);
       
       if (button) {
         this.cardButtonCreated = true;
-        this.log('Book info button added successfully using PowerCloudButtonManager');
-        console.log('[DEBUG][AdyenBook] Button creation completed successfully using PowerCloudButtonManager');
-        
-        // Verify button is visible
-        setTimeout(() => {
-          console.log('[DEBUG][AdyenBook] Button manager status:', this.buttonManager.getStatus());
-        }, 100);
       } else {
-        console.log('[DEBUG][AdyenBook] Button creation failed, falling back to alternative method');
         this.createFallbackButton();
       }
     } catch (error) {
-      console.error('[DEBUG][AdyenBook] Error creating PowerCloudButtonManager button:', error);
       this.handleError('Failed to create PowerCloudButtonManager button', error);
       // Fallback to basic button creation if PowerCloudButtonManager fails
-      console.log('[DEBUG][AdyenBook] Falling back to basic button creation');
       this.createFallbackButton();
     }
   }
@@ -585,11 +489,6 @@ class AdyenBookFeature extends BaseFeature {
 
     // Add shadow host to the page
     document.body.appendChild(shadowHost);
-    
-    this.log('Fallback book info button added', { 
-      hasBalanceAccount: !!this.balanceAccountId,
-      balanceAccountId: this.balanceAccountId 
-    });
   }
 
   /**
@@ -644,8 +543,6 @@ class AdyenBookFeature extends BaseFeature {
     if (resultHost) {
       resultHost.remove();
     }
-    
-    this.log('Book info button removed');
   }
 
 
@@ -684,11 +581,6 @@ class AdyenBookFeature extends BaseFeature {
 
       // Add to page
       document.body.appendChild(container);
-      
-      this.log('Book info result shown with PowerCloud UI', { 
-        message, 
-        type 
-      });
     }).catch(error => {
       this.handleError('Failed to create PowerCloud UI alert', error);
       // Fallback to basic result display
@@ -743,8 +635,6 @@ class AdyenBookFeature extends BaseFeature {
         resultHost.remove();
       }
     }, 10000);
-    
-    this.log('Fallback book info result shown', { message });
   }
 }
 
@@ -759,58 +649,46 @@ bookLogger.info('Registering adyen-book feature');
 // Register book feature with backward compatibility
 window.PowerCloudFeatures.book = {
   init: async (match) => {
-    console.log('[PowerCloud] adyen-book feature init called with match:', match);
     bookLogger.info('Feature init called', { match });
     
     // Record feature initialization in health dashboard
     if (chrome?.runtime?.sendMessage) {
       chrome.runtime.sendMessage({
-        action: 'recordFeatureEvent',
-        featureName: 'adyenBook',
-        event: 'init',
-        level: 'info',
-        logMessage: 'Adyen Book feature initialization started',
-        data: { 
-          match: match,
-          url: window.location.href,
-          timestamp: Date.now()
+        action: 'recordMetric',
+        metric: {
+          type: 'feature_activation',
+          feature: 'adyen-book',
+          timestamp: Date.now(),
+          details: { customer: match?.[1], bookId: match?.[2] }
         }
-      }).catch(() => {});
+      }).catch(() => {}); // Ignore errors
     }
     
     try {
-      console.log('[DEBUG][AdyenBook] Starting onInit...');
       await adyenBookFeature.onInit(match);
-      console.log('[DEBUG][AdyenBook] onInit completed, starting onActivate...');
       await adyenBookFeature.onActivate();
-      console.log('[DEBUG][AdyenBook] onActivate completed successfully');
       
       // Record successful activation
       if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
-          action: 'recordFeatureEvent',
-          featureName: 'adyenBook',
-          event: 'activate',
-          level: 'info',
-          logMessage: 'Adyen Book feature activated successfully',
-          data: { match: match }
+          action: 'recordMetric',
+          metric: {
+            type: 'feature_success',
+            feature: 'adyen-book',
+            timestamp: Date.now()
+          }
         }).catch(() => {});
       }
     } catch (error) {
-      console.error('[DEBUG][AdyenBook] Error during initialization:', error);
       // Record initialization error in health dashboard
       if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
-          action: 'recordFeatureEvent',
-          featureName: 'adyenBook',
-          event: 'error',
-          level: 'error',
-          logMessage: 'Adyen Book feature initialization failed',
-          data: { 
-            error: error.message,
-            stack: error.stack,
-            match: match,
-            context: 'initialization'
+          action: 'recordMetric',
+          metric: {
+            type: 'feature_error',
+            feature: 'adyen-book',
+            timestamp: Date.now(),
+            error: error.message
           }
         }).catch(() => {});
       }
@@ -825,13 +703,10 @@ window.PowerCloudFeatures.book = {
     // Record feature deactivation in health dashboard
     if (chrome?.runtime?.sendMessage) {
       chrome.runtime.sendMessage({
-        action: 'recordFeatureEvent',
-        featureName: 'adyenBook',
-        event: 'deactivate',
-        level: 'info',
-        logMessage: 'Adyen Book feature cleanup started',
-        data: { 
-          url: window.location.href,
+        action: 'recordMetric',
+        metric: {
+          type: 'feature_deactivation',
+          feature: 'adyen-book',
           timestamp: Date.now()
         }
       }).catch(() => {});
@@ -844,15 +719,12 @@ window.PowerCloudFeatures.book = {
       // Record cleanup error in health dashboard
       if (chrome?.runtime?.sendMessage) {
         chrome.runtime.sendMessage({
-          action: 'recordFeatureEvent',
-          featureName: 'adyenBook',
-          event: 'error',
-          level: 'error',
-          logMessage: 'Adyen Book feature cleanup failed',
-          data: { 
-            error: error.message,
-            stack: error.stack,
-            context: 'cleanup'
+          action: 'recordMetric',
+          metric: {
+            type: 'feature_error',
+            feature: 'adyen-book',
+            timestamp: Date.now(),
+            error: error.message
           }
         }).catch(() => {});
       }

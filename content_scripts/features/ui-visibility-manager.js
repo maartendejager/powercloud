@@ -52,11 +52,8 @@ function initVisibilityManager() {
 function updateButtonVisibility(isVisible) {
   let updated = false;
   
-  console.log(`[UI Visibility] Updating button visibility: ${isVisible ? 'visible' : 'hidden'}`);
-  
   // If hiding buttons completely (isVisible = false), simply call the main cleanup function
   if (!isVisible && typeof window.cleanupButtonContainer === 'function') {
-    console.log('[UI Visibility] Using cleanupButtonContainer for complete removal');
     try {
       // Use the main cleanup function for complete removal
       window.cleanupButtonContainer();
@@ -74,7 +71,6 @@ function updateButtonVisibility(isVisible) {
   if (buttonHost) {
     buttonHost.className = isVisible ? 'powercloud-visible' : 'powercloud-hidden';
     updated = true;
-    console.log('[UI Visibility] Updated legacy shadow host');
   }
   
   // 2. New container (direct element)
@@ -82,7 +78,6 @@ function updateButtonVisibility(isVisible) {
   if (buttonContainer) {
     buttonContainer.className = isVisible ? 'powercloud-button-container powercloud-visible' : 'powercloud-button-container powercloud-hidden';
     updated = true;
-    console.log('[UI Visibility] Updated button container element');
   }
   
   // 3. If PowerCloudButtonManager is available, use its updateVisibility method
@@ -92,14 +87,12 @@ function updateButtonVisibility(isVisible) {
       const managerUpdated = window.PowerCloudButtonManager.instance.updateVisibility(isVisible);
       if (managerUpdated) {
         updated = true;
-        console.log('[UI Visibility] Updated via PowerCloudButtonManager.updateVisibility()');
       }
     } else if (window.PowerCloudButtonManager.instance.container?.element) {
       // Fall back to direct element access if method isn't available
       const managerContainer = window.PowerCloudButtonManager.instance.container.element;
       managerContainer.className = isVisible ? 'powercloud-button-container powercloud-visible' : 'powercloud-button-container powercloud-hidden';
       updated = true;
-      console.log('[UI Visibility] Updated via direct container element access');
     }
   }
   

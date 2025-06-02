@@ -1,7 +1,23 @@
 /**
  * View Card Book Feature Module
  *
- * This module provides functionality for viewing the associated book for a card
+ * This module provides fun  async onInit(match, cardData = null) {
+    this.log('ViewCardBookFeature onInit called', { 
+      hasMatch: !!match, 
+      hasCardData: !!cardData,
+      matchType: typeof match,
+      cardDataType: typeof cardData,
+      url: window.location.href
+    });
+    
+    try {
+      await super.onInit(match);
+      
+      // Validate match data
+      if (!match || (Array.isArray(match) && match.length < 3)) {
+        cardBookLogger.error('Invalid match data:', match);
+        throw new Error('Invalid match data for view card book feature');
+      }ewing the associated book for a card
  * on card pages at https://[customer-environment].spend.cloud/cards/[card-id]/* or
  * https://[customer-environment].dev.spend.cloud/cards/[card-id]/* and other related card pages.
  * 
@@ -22,16 +38,12 @@ const cardBookLogger = (() => {
 })();
 
 cardBookLogger.info('Loading view-card-book.js...');
-cardBookLogger.info('BaseFeature available', { isAvailable: typeof BaseFeature !== 'undefined' });
-console.log('[DEBUG][ViewCardBook] Script loaded and executing');
 
 // Check if BaseFeature is available
 if (typeof BaseFeature === 'undefined') {
   cardBookLogger.error('BaseFeature class not available! Cannot initialize ViewCardBookFeature');
-  console.error('[DEBUG][ViewCardBook] BaseFeature is undefined');
 } else {
   cardBookLogger.info('BaseFeature is available, proceeding with ViewCardBookFeature');
-  console.log('[DEBUG][ViewCardBook] BaseFeature is available');
 }
 
 /**
@@ -70,7 +82,7 @@ class ViewCardBookFeature extends BaseFeature {
    * @param {object} cardData - The card data response from the API
    */
   async onInit(match, cardData) {
-    console.log('[DEBUG][ViewCardBook] onInit called with:', { 
+    this.log('ViewCardBookFeature onInit called', { 
       match, 
       hasCardData: !!cardData,
       matchType: typeof match,
@@ -83,7 +95,7 @@ class ViewCardBookFeature extends BaseFeature {
       
       // Validate match data
       if (!match || (Array.isArray(match) && match.length < 3)) {
-        console.error('[DEBUG][ViewCardBook] Invalid match data:', match);
+        cardBookLogger.error('Invalid match data:', match);
         throw new Error('Invalid match data for view card book feature');
       }
 
@@ -102,7 +114,7 @@ class ViewCardBookFeature extends BaseFeature {
         this.cardId = match[2] || match.cardId;
       }
       
-      console.log('[DEBUG][ViewCardBook] Customer and cardId extracted:', { 
+      cardBookLogger.info('Customer and cardId extracted', { 
         customer: this.customer, 
         cardId: this.cardId,
         extractionSuccessful: !!(this.customer && this.cardId)
@@ -110,19 +122,16 @@ class ViewCardBookFeature extends BaseFeature {
       
       // Verify we have the required data
       if (!this.customer || !this.cardId) {
-        console.error('[DEBUG][ViewCardBook] Failed to extract customer or cardId from match:', match);
+        cardBookLogger.error('Failed to extract customer or cardId from match:', match);
         throw new Error('Failed to extract customer or cardId from match data');
       }
       
       // If card data is available, extract book ID
       if (cardData) {
-        console.log('[DEBUG][ViewCardBook] Card data available, extracting book ID');
-        // Debug log the first part of the card data
-        const cardDataStr = JSON.stringify(cardData).substring(0, 500);
-        console.log(`[DEBUG][ViewCardBook] Card data preview: ${cardDataStr}...`);
+        this.log('Card data available, extracting book ID');
         this.extractBookId(cardData);
       } else {
-        console.warn('[DEBUG][ViewCardBook] No card data provided to extract book ID');
+        this.log('No card data provided, attempting recovery');
         // If no card data provided, try to fetch it (implementation for future)
         this.log('Attempting to recover by looking for data in window');
         // Look for data in window.__INITIAL_STATE__ or other common patterns
@@ -140,7 +149,7 @@ class ViewCardBookFeature extends BaseFeature {
         config: this.config 
       });
       
-      console.log('[DEBUG][ViewCardBook] Initialization complete:', {
+      cardBookLogger.info('Initialization complete', {
         customer: this.customer,
         cardId: this.cardId,
         bookId: this.bookId,
@@ -148,7 +157,7 @@ class ViewCardBookFeature extends BaseFeature {
         hasBookId: !!this.bookId
       });
     } catch (error) {
-      console.error('[DEBUG][ViewCardBook] Error during initialization:', error);
+      cardBookLogger.error('Error during initialization:', error);
       throw error;
     }
   }
@@ -159,13 +168,13 @@ class ViewCardBookFeature extends BaseFeature {
    */
   tryRecoverCardData() {
     try {
-      console.log('[DEBUG][ViewCardBook] Attempting to recover card data from window object');
+      this.log('Attempting to recover card data from window object');
       // Check common patterns for data
       if (window.__INITIAL_STATE__ && window.__INITIAL_STATE__.cards) {
-        console.log('[DEBUG][ViewCardBook] Found __INITIAL_STATE__ with cards data');
+        this.log('Found __INITIAL_STATE__ with cards data');
         const cardData = window.__INITIAL_STATE__.cards.find(c => c.id === this.cardId);
         if (cardData) {
-          console.log('[DEBUG][ViewCardBook] Found card data in window.__INITIAL_STATE__');
+          this.log('Found card data in window.__INITIAL_STATE__');
           this.extractBookId(cardData);
           return;
         }
@@ -176,13 +185,13 @@ class ViewCardBookFeature extends BaseFeature {
       const bookIdMatch = pageSource.match(/"book_id"\s*:\s*"?(\d+)"?/);
       if (bookIdMatch && bookIdMatch[1]) {
         this.bookId = bookIdMatch[1];
-        console.log('[DEBUG][ViewCardBook] Found book ID in page source:', this.bookId);
+        this.log('Found book ID in page source:', this.bookId);
         return;
       }
       
-      console.log('[DEBUG][ViewCardBook] Could not recover card data from alternative sources');
+      this.log('Could not recover card data from alternative sources');
     } catch (error) {
-      console.error('[DEBUG][ViewCardBook] Error trying to recover card data:', error);
+      cardBookLogger.error('Error trying to recover card data:', error);
     }
   }
 
@@ -192,16 +201,11 @@ class ViewCardBookFeature extends BaseFeature {
    */
   extractBookId(cardData) {
     try {
-      console.log('[DEBUG][ViewCardBook] Attempting to extract book ID from card data');
-      
-      // Deep debug logging of the card data structure
-      let pathsToCheck = [];
-      let dataStructure = {};
+      this.log('Attempting to extract book ID from card data');
       
       // Check if response is wrapped in a container
       if (cardData?.success === true && cardData?.data) {
-        console.log('[DEBUG][ViewCardBook] Found success wrapper structure');
-        dataStructure.hasSuccessWrapper = true;
+        this.log('Found success wrapper structure');
         cardData = cardData.data; // Unwrap the actual data
       }
       
@@ -226,40 +230,32 @@ class ViewCardBookFeature extends BaseFeature {
         { path: 'book_id', value: cardData?.book_id }
       ];
       
-      console.log('[DEBUG][ViewCardBook] Card data structure:', dataStructure);
-      console.log('[DEBUG][ViewCardBook] Paths to check for book ID:', pathsToCheck);
-      
       // Try each path in order
       for (const { path, value } of pathsToCheck) {
         if (value) {
           this.bookId = value;
           this.log(`Book ID extracted from card data (${path})`, { bookId: this.bookId });
-          console.log(`[DEBUG][ViewCardBook] Book ID found: ${this.bookId} from path: ${path}`);
           return;
         }
       }
       
       // Special case: if cardData is the full API response, try to check inside it
       if (cardData?.vendor && !this.bookId) {
-        console.log('[DEBUG][ViewCardBook] Found vendor in cardData, checking for books in nested locations');
+        this.log('Found vendor in cardData, checking for books in nested locations');
         
         // Check additional structures
         const bookDataInIncluded = cardData.included?.find(item => item.type === 'books');
         if (bookDataInIncluded) {
           this.bookId = bookDataInIncluded.id;
           this.log('Book ID extracted from included data', { bookId: this.bookId });
-          console.log('[DEBUG][ViewCardBook] Book ID found in included data:', this.bookId);
           return;
         }
       }
 
       // If no book ID is found, dump the structure for debugging
       this.log('No book ID found in card data');
-      console.warn('[DEBUG][ViewCardBook] No book ID could be found in the card data structure');
-      console.log('[DEBUG][ViewCardBook] Full card data for debugging:', JSON.stringify(cardData, null, 2).substring(0, 500) + '...');
     } catch (error) {
       this.handleError('Failed to extract book ID from card data', error);
-      console.error('[DEBUG][ViewCardBook] Error extracting book ID:', error);
     }
   }
 
@@ -286,12 +282,11 @@ class ViewCardBookFeature extends BaseFeature {
     await super.onActivate();
 
     try {
-      console.log('[DEBUG][ViewCardBook] Activating feature with bookId:', this.bookId);
+      this.log('Activating view card book feature', { bookId: this.bookId });
       
       // Check if book ID is available
       if (!this.bookId) {
         this.log('No book ID available, skipping button creation');
-        console.warn('[DEBUG][ViewCardBook] Cannot create button due to missing book ID');
         return;
       }
 
@@ -300,7 +295,6 @@ class ViewCardBookFeature extends BaseFeature {
       
     } catch (error) {
       this.handleError('Failed to activate view card book feature', error);
-      console.error('[DEBUG][ViewCardBook] Activation error:', error);
     }
   }
 
@@ -316,8 +310,6 @@ class ViewCardBookFeature extends BaseFeature {
    * Adds a button to view the card's associated book
    */
   addCardBookButton() {
-    console.log('[DEBUG][ViewCardBook] addCardBookButton called. Button already exists?', this.bookButtonCreated);
-    
     if (this.bookButtonCreated) {
       this.log('Book button already exists, skipping creation');
       return;
@@ -330,23 +322,17 @@ class ViewCardBookFeature extends BaseFeature {
           bookId: this.bookId,
           currentPeriod: this.currentPeriod
         });
-        console.warn('[DEBUG][ViewCardBook] Cannot create button due to missing data:', {
-          hasBookId: !!this.bookId, 
-          bookId: this.bookId, 
-          hasPeriod: !!this.currentPeriod, 
-          period: this.currentPeriod
-        });
         return;
       }
       
-      console.log('[DEBUG][ViewCardBook] Creating button with PowerCloudButtonManager:', {
+      this.log('Creating button with PowerCloudButtonManager', {
         bookId: this.bookId,
         currentPeriod: this.currentPeriod
       });
       
       // Initialize button manager if not already done
       if (!window.PowerCloudUI || !window.PowerCloudButtonManager) {
-        console.error('[DEBUG][ViewCardBook] PowerCloudUI or PowerCloudButtonManager not available');
+        cardBookLogger.error('PowerCloudUI or PowerCloudButtonManager not available');
         this.emergencyShowButton();
         return;
       }
@@ -366,19 +352,12 @@ class ViewCardBookFeature extends BaseFeature {
       if (button) {
         this.bookButtonCreated = true;
         this.log('Card book button added successfully using PowerCloudButtonManager');
-        console.log('[DEBUG][ViewCardBook] Button creation completed successfully using PowerCloudButtonManager');
-        
-        // Verify button is visible
-        setTimeout(() => {
-          console.log('[DEBUG][ViewCardBook] Button manager status:', this.buttonManager.getStatus());
-        }, 100);
       } else {
-        console.warn('[DEBUG][ViewCardBook] Button creation failed, falling back to emergency method');
+        cardBookLogger.warn('Button creation failed, falling back to emergency method');
         this.emergencyShowButton();
       }
     } catch (error) {
       this.handleError('Failed to add card book button', error);
-      console.error('[DEBUG][ViewCardBook] Error during button creation:', error);
     }
   }
 
