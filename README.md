@@ -70,19 +70,43 @@ PowerCloud/
 
 ## Installation
 
-### Development Mode
+This extension can be installed in two ways: manually for development and testing, or from the Chrome Web Store for regular use.
 
-1. Clone this repository or download the source code
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" using the toggle in the top-right corner
-4. Click "Load unpacked" and select the extension directory
-5. The PowerCloud extension should now appear in your browser toolbar
+### Manual Installation (for Development and Testing)
+
+Follow these steps to install the extension on your local machine. This is useful for testing new features or for colleagues who want to use the extension before it's on the Chrome Web Store.
+
+**1. Get the Extension Files**
+
+You have two options:
+
+*   **Download as ZIP (easiest method):**
+    1.  On the GitHub page of this project, click the green `<> Code` button.
+    2.  Select `Download ZIP` from the dropdown menu.
+    3.  Save the ZIP file to your computer.
+    4.  Unzip the file. Remember where you saved the unzipped folder, you'll need it in a moment. The unzipped folder might have a name like `PowerCloud-main`.
+
+*   **Clone the Repository (for developers):**
+    1.  If you have Git installed, you can clone the repository using the command:
+        ```bash
+        git clone https://github.com/your-username/your-repository-name.git
+        ```
+
+**2. Install in Chrome**
+
+1.  Open your Google Chrome browser.
+2.  Navigate to the extensions page by typing `chrome://extensions/` in the address bar and pressing Enter.
+3.  In the top-right corner of the page, turn on **"Developer mode"** using the toggle switch.
+4.  Three new buttons will appear: `Load unpacked`, `Pack extension`, and `Update`. Click on **`Load unpacked`**.
+5.  A file selection dialog will open. Navigate to the folder where you unzipped or cloned the extension files (e.g., `PowerCloud-main`).
+6.  Select the entire folder and click "Select Folder".
+7.  The PowerCloud extension should now appear in your list of extensions and in your browser toolbar (you might need to click the puzzle piece icon to see it).
 
 ### From Chrome Web Store (Coming Soon)
 
-1. Navigate to the Chrome Web Store (link to be added)
-2. Click "Add to Chrome"
-3. Confirm the installation
+1.  Navigate to the Chrome Web Store (link to be added)
+2.  Click "Add to Chrome"
+3.  Confirm the installation
 
 ## Usage
 
