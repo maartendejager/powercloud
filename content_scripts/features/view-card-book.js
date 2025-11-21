@@ -210,7 +210,7 @@ class ViewCardBookFeature extends BaseFeature {
       }
       
       // Build data structure map for debugging
-      dataStructure = {
+      const dataStructure = {
         topLevelKeys: Object.keys(cardData || {}),
         hasData: !!cardData?.data,
         hasAttributes: !!cardData?.attributes || !!cardData?.data?.attributes,
@@ -219,7 +219,7 @@ class ViewCardBookFeature extends BaseFeature {
       };
       
       // Build paths to check for book ID
-      pathsToCheck = [
+      const pathsToCheck = [
         { path: 'data.relationships.books.data[0].id', value: cardData?.data?.relationships?.books?.data?.[0]?.id },
         { path: 'relationships.books.data[0].id', value: cardData?.relationships?.books?.data?.[0]?.id },
         { path: 'data.attributes.books[0].id', value: cardData?.data?.attributes?.books?.[0]?.id },

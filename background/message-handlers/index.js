@@ -42,6 +42,10 @@ export {
   handleGetAuthStatus,
   handleReportAuthError,
   
+  // Message handlers for content scripts
+  handleRecordDebugLog,
+  handleRecordMetric,
+  
   // Utility functions
   initializeHealthMonitoring,
   recordDebugLog,

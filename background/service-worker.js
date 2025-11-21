@@ -38,7 +38,10 @@ import {
   recordDebugLog,
   // Step 3.2 authentication handlers
   handleGetAuthStatus,
-  handleReportAuthError
+  handleReportAuthError,
+  // Content script message handlers
+  handleRecordDebugLog,
+  handleRecordMetric
 } from './message-handlers/index.js';
 
 // Set up message action handlers map for cleaner code
@@ -71,6 +74,9 @@ const messageHandlers = {
   // Step 3.2 authentication handlers
   "getAuthStatus": handleGetAuthStatus,
   "reportAuthError": handleReportAuthError,
+  // Content script message handlers
+  "recordDebugLog": handleRecordDebugLog,
+  "recordMetric": handleRecordMetric,
   // Tab management
   "openTab": handleOpenTab
 };

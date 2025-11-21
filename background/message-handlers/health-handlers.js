@@ -719,6 +719,85 @@ export function handleRecordPerformanceMetric(message, sender, sendResponse) {
 }
 
 /**
+ * Handle recordDebugLog message from content scripts
+ * Wrapper for the recordDebugLog utility function
+ * @param {Object} message - Message object with level, message, and data
+ * @param {Object} sender - Sender information
+ * @param {Function} sendResponse - Response callback
+ */
+export function handleRecordDebugLog(message, sender, sendResponse) {
+  try {
+    const { level, message: logMessage, data } = message;
+    
+    if (!level || !logMessage) {
+      sendResponse({ success: false, error: 'Missing required log data' });
+      return true;
+    }
+    
+    // Call the utility function
+    recordDebugLog(level, logMessage, data || {});
+    
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('[health] Error recording debug log:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+  
+  return true;
+}
+
+/**
+ * Handle recordMetric message from content scripts
+ * Generic metric recording for feature events
+ * @param {Object} message - Message object with metric data
+ * @param {Object} sender - Sender information
+ * @param {Function} sendResponse - Response callback
+ */
+export function handleRecordMetric(message, sender, sendResponse) {
+  try {
+    const { metric } = message;
+    
+    if (!metric || !metric.type || !metric.feature) {
+      sendResponse({ success: false, error: 'Missing required metric data' });
+      return true;
+    }
+    
+    // Map metric type to appropriate logging level
+    const levelMap = {
+      'feature_activation': 'info',
+      'feature_success': 'info',
+      'feature_deactivation': 'info',
+      'feature_error': 'error'
+    };
+    
+    const level = levelMap[metric.type] || 'info';
+    const eventMessage = `Feature ${metric.type.replace('_', ' ')}: ${metric.feature}`;
+    
+    // Record as a feature event
+    recordFeatureEvent(
+      metric.feature, 
+      metric.type, 
+      level, 
+      eventMessage, 
+      {
+        ...metric.details,
+        error: metric.error,
+        timestamp: metric.timestamp,
+        tabId: sender.tab?.id,
+        source: 'content-script'
+      }
+    );
+    
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('[health] Error recording metric:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+  
+  return true;
+}
+
+/**
  * Handle get filtered logs request with enhanced filtering options
  * @param {Object} message - Message object with filtering options
  * @param {Object} sender - Sender information
@@ -1129,23 +1208,35 @@ export function handleReportAuthError(message, sender, sendResponse) {
  * Rotate logs when approaching limits - Step 4.2 enhancement
  */
 function rotateLogs() {
-  const totalLogs = healthData.debugLogs.length + 
-                   Object.values(healthData.logs).reduce((sum, logs) => sum + logs.length, 0);
+  // Safely calculate total logs with null checks
+  const debugLogsCount = healthData.debugLogs?.length || 0;
+  const channelLogsCount = healthData.logChannels 
+    ? Object.values(healthData.logChannels).reduce((sum, channel) => sum + (channel.logs?.length || 0), 0)
+    : 0;
+  const totalLogs = debugLogsCount + channelLogsCount;
   
   if (totalLogs > MAX_LOGS_TOTAL * LOG_ROTATION_THRESHOLD) {
     console.log(`[health] Starting log rotation - current total: ${totalLogs}`);
     
     // Keep most recent logs, remove oldest
-    healthData.debugLogs = healthData.debugLogs.slice(-Math.floor(MAX_DEBUG_LOGS * 0.7));
+    if (healthData.debugLogs) {
+      healthData.debugLogs = healthData.debugLogs.slice(-Math.floor(MAX_DEBUG_LOGS * 0.7));
+    }
     
     // Rotate channel logs
-    Object.keys(healthData.logs).forEach(channel => {
-      const maxForChannel = Math.floor(MAX_LOGS_PER_CHANNEL * 0.7);
-      healthData.logs[channel] = healthData.logs[channel].slice(-maxForChannel);
-    });
+    if (healthData.logChannels) {
+      Object.keys(healthData.logChannels).forEach(channel => {
+        if (healthData.logChannels[channel]?.logs) {
+          const maxForChannel = Math.floor(MAX_LOGS_PER_CHANNEL * 0.7);
+          healthData.logChannels[channel].logs = healthData.logChannels[channel].logs.slice(-maxForChannel);
+        }
+      });
+    }
     
     // Rotate error reports
-    healthData.errorReports = healthData.errorReports.slice(-Math.floor(MAX_ERROR_REPORTS * 0.7));
+    if (healthData.errorReports) {
+      healthData.errorReports = healthData.errorReports.slice(-Math.floor(MAX_ERROR_REPORTS * 0.7));
+    }
     
     console.log(`[health] Log rotation completed`);
   }
@@ -1161,24 +1252,32 @@ function cleanupOldLogs() {
   let cleanedCount = 0;
   
   // Clean debug logs
-  const originalDebugCount = healthData.debugLogs.length;
-  healthData.debugLogs = healthData.debugLogs.filter(log => log.timestamp > cutoffTime);
-  cleanedCount += originalDebugCount - healthData.debugLogs.length;
+  if (healthData.debugLogs) {
+    const originalDebugCount = healthData.debugLogs.length;
+    healthData.debugLogs = healthData.debugLogs.filter(log => log.timestamp > cutoffTime);
+    cleanedCount += originalDebugCount - healthData.debugLogs.length;
+  }
   
-  // Clean channel logs
-  Object.keys(healthData.logs).forEach(channel => {
-    const originalCount = healthData.logs[channel].length;
-    healthData.logs[channel] = healthData.logs[channel].filter(log => log.timestamp > cutoffTime);
-    cleanedCount += originalCount - healthData.logs[channel].length;
-  });
+  // Clean channel logs (fixed: was using healthData.logs, should be logChannels)
+  if (healthData.logChannels) {
+    Object.keys(healthData.logChannels).forEach(channel => {
+      if (healthData.logChannels[channel]?.logs) {
+        const originalCount = healthData.logChannels[channel].logs.length;
+        healthData.logChannels[channel].logs = healthData.logChannels[channel].logs.filter(log => log.timestamp > cutoffTime);
+        cleanedCount += originalCount - healthData.logChannels[channel].logs.length;
+      }
+    });
+  }
   
   // Clean error reports
-  const originalErrorCount = healthData.errorReports.length;
-  healthData.errorReports = healthData.errorReports.filter(report => report.timestamp > cutoffTime);
-  cleanedCount += originalErrorCount - healthData.errorReports.length;
+  if (healthData.errorReports) {
+    const originalErrorCount = healthData.errorReports.length;
+    healthData.errorReports = healthData.errorReports.filter(report => report.timestamp > cutoffTime);
+    cleanedCount += originalErrorCount - healthData.errorReports.length;
+  }
   
   // Clean auth errors
-  if (healthData.authStatus && healthData.authStatus.authErrors) {
+  if (healthData.authStatus?.authErrors) {
     const originalAuthErrorCount = healthData.authStatus.authErrors.length;
     healthData.authStatus.authErrors = healthData.authStatus.authErrors.filter(error => error.timestamp > cutoffTime);
     cleanedCount += originalAuthErrorCount - healthData.authStatus.authErrors.length;
