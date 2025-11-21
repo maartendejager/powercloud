@@ -1,0 +1,34 @@
+# Build output
+dist/
+*.map
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Development tools (preserved but not in production)
+_dev-tools/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+.cache/
+
+# Test outputs
+coverage/
+
+

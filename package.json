@@ -4,6 +4,10 @@
   "type": "module",
   "description": "PowerCloud Chrome Extension for Spend.Cloud automation",
   "scripts": {
+    "build": "node build.js",
+    "build:dev": "node build.js --dev",
+    "build:watch": "node build.js --watch",
+    "clean": "rm -rf dist",
     "test": "node testing/run-all-tests.js",
     "test:unit": "node testing/unit-tests.js",
     "test:integration": "node testing/integration-tests.js",
@@ -12,9 +16,17 @@
     "test:health": "node testing/integration/test-health-api.js",
     "test:404": "node testing/integration/test-404-handling.js",
     "lint": "echo 'ESLint not yet configured for CI' && exit 0",
-    "version:check": "node -e \"const m=require('./manifest.json');const p=require('./package.json');if(m.version!==p.version){console.error('Version mismatch!');process.exit(1)}else{console.log('Versions match:',m.version)}\""
+    "version:check": "node -e \"const m=require('./manifest.json');const p=require('./package.json');if(m.version!==p.version){console.error('Version mismatch!');process.exit(1)}else{console.log('Versions match:',m.version)}\"",
+    "prebuild": "npm run version:check"
   },
-  "keywords": ["chrome-extension", "automation", "spend-cloud"],
+  "keywords": [
+    "chrome-extension",
+    "automation",
+    "spend-cloud"
+  ],
   "author": "PowerCloud Team",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
 }
