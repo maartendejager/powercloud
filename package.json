@@ -1,11 +1,18 @@
 {
   "name": "powercloud-extension",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "PowerCloud Chrome Extension for Spend.Cloud automation",
   "scripts": {
-    "test": "node test-health-api.js",
-    "test-404": "node test-404-handling.js"
+    "test": "node testing/run-all-tests.js",
+    "test:unit": "node testing/unit-tests.js",
+    "test:integration": "node testing/integration-tests.js",
+    "test:features": "node testing/adyen-features-test.js",
+    "test:validation": "node testing/validate-token-terminology.js",
+    "test:health": "node testing/integration/test-health-api.js",
+    "test:404": "node testing/integration/test-404-handling.js",
+    "lint": "echo 'ESLint not yet configured for CI' && exit 0",
+    "version:check": "node -e \"const m=require('./manifest.json');const p=require('./package.json');if(m.version!==p.version){console.error('Version mismatch!');process.exit(1)}else{console.log('Versions match:',m.version)}\""
   },
   "keywords": ["chrome-extension", "automation", "spend-cloud"],
   "author": "PowerCloud Team",

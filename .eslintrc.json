@@ -22,10 +22,6 @@
         "Logger": "readonly",
         "BaseFeature": "readonly",
         "FeatureManager": "readonly",
-        "FeatureValidator": "readonly",
-        "PerformanceMonitor": "readonly",
-        "ErrorTracker": "readonly",
-        "FeatureDebugger": "readonly",
         "SettingsManager": "readonly"
     },
     "rules": {

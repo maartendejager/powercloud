@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PowerCloud",
-  "version": "1.1.0",
+  "version": "1.2.1",
   "description": "A Chrome extension that adds extra functionality on certain pages while logged in and allows making requests to authenticated routes.",
   "permissions": [
     "activeTab",
@@ -35,11 +35,6 @@
         "shared/accessibility-utils.js",
         "shared/responsive-design.js",
         "shared/base-feature.js",
-        "shared/feature-validation.js",
-        "shared/performance-monitor.js",
-        "shared/error-tracker.js",
-        "shared/feature-debugger.js",
-        "shared/feature-validation-manager.js",
         "content_scripts/features/adyen-card.js",
         "content_scripts/features/adyen-book.js",
         "content_scripts/features/adyen-entries.js",
