@@ -510,7 +510,7 @@ class AdyenBookFeature extends BaseFeature {
         return;
       }
 
-      const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/accounts/balance-accounts/${this.remoteBalanceAccountId}`;
+      const adyenUrl = `https://ca-live.adyen.com/ca/ca/accounts/balance-accounts/details.shtml?id=${this.remoteBalanceAccountId}`;
       
       bookLogger.info('Opening Adyen balance account', {
         remoteBalanceAccountId: this.remoteBalanceAccountId,

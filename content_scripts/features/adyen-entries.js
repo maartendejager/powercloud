@@ -18,7 +18,7 @@
  */
 
 // Constants for feature elements
-const ADYEN_TRANSFERS_BASE_URL = 'https://balanceplatform-live.adyen.com/balanceplatform/transfers/';
+const ADYEN_TRANSFERS_BASE_URL = 'https://ca-live.adyen.com/ca/ca/transactions/transfers/details.shtml?id=';
 
 // Initialize logger for this feature
 const entriesLogger = (() => {

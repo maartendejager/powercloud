@@ -1477,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
           resultDiv.textContent = `Non-Adyen card (vendor: ${response.vendor}). Cannot view in Adyen dashboard.`;
           resultDiv.className = 'action-result warning';
         } else if (response.paymentInstrumentId) {
-          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/payment-instruments/${response.paymentInstrumentId}`;
+          const adyenUrl = `https://ca-live.adyen.com/ca/ca/financial-products/payment-instruments/details.shtml?id=${response.paymentInstrumentId}`;
           chrome.tabs.create({ url: adyenUrl });
           resultDiv.textContent = 'Opening card in Adyen dashboard...';
           resultDiv.className = 'action-result success';
@@ -1489,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
       case 'book':
         if (response.balanceAccountId) {
-          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/balance-accounts/${response.balanceAccountId}`;
+          const adyenUrl = `https://ca-live.adyen.com/ca/ca/accounts/balance-accounts/details.shtml?id=${response.balanceAccountId}`;
           chrome.tabs.create({ url: adyenUrl });
           resultDiv.textContent = 'Opening balance account in Adyen dashboard...';
           resultDiv.className = 'action-result success';
@@ -1501,7 +1501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
       case 'entries':
         if (response.remoteTransferId) {
-          const adyenUrl = `https://balanceplatform-live.adyen.com/balanceplatform/transfers/${response.remoteTransferId}`;
+          const adyenUrl = `https://ca-live.adyen.com/ca/ca/transactions/transfers/details.shtml?id=${response.remoteTransferId}`;
           chrome.tabs.create({ url: adyenUrl });
           resultDiv.textContent = 'Opening transfer in Adyen dashboard...';
           resultDiv.className = 'action-result success';
