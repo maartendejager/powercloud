@@ -70,37 +70,114 @@ PowerCloud/
 
 ## Installation
 
-This extension can be installed in two ways: manually for development and testing, or from the Chrome Web Store for regular use.
+The extension can be installed in several ways, depending on your needs.
 
-### Manual Installation (for Development and Testing)
+### Quick Install (Pre-Built Version) ⭐ Recommended for Most Users
 
-Follow these steps to install the extension on your local machine. This is useful for testing new features or for colleagues who want to use the extension before it's on the Chrome Web Store.
+If you just want to **use** the extension (not develop it), use the pre-built version:
 
-**1. Get the Extension Files**
+**1. Download the Pre-Built Extension**
 
-You have two options:
+*   Get the latest release from the [Releases page](../../releases) (look for the `PowerCloud-v1.2.1-dist.zip` file)
+*   Or ask your colleague who built it for the `dist.zip` file
 
-*   **Download as ZIP (easiest method):**
-    1.  On the GitHub page of this project, click the green `<> Code` button.
-    2.  Select `Download ZIP` from the dropdown menu.
-    3.  Save the ZIP file to your computer.
-    4.  Unzip the file. Remember where you saved the unzipped folder, you'll need it in a moment. The unzipped folder might have a name like `PowerCloud-main`.
+**2. Extract the ZIP file**
 
-*   **Clone the Repository (for developers):**
-    1.  If you have Git installed, you can clone the repository using the command:
-        ```bash
-        git clone https://github.com/your-username/your-repository-name.git
-        ```
+*   Unzip the downloaded file to a permanent location (e.g., `~/PowerCloud-Extension/`)
+*   ⚠️ Don't delete this folder after installation - Chrome needs it to stay there!
 
-**2. Install in Chrome**
+**3. Install in Chrome**
 
-1.  Open your Google Chrome browser.
-2.  Navigate to the extensions page by typing `chrome://extensions/` in the address bar and pressing Enter.
-3.  In the top-right corner of the page, turn on **"Developer mode"** using the toggle switch.
-4.  Three new buttons will appear: `Load unpacked`, `Pack extension`, and `Update`. Click on **`Load unpacked`**.
-5.  A file selection dialog will open. Navigate to the folder where you unzipped or cloned the extension files (e.g., `PowerCloud-main`).
-6.  Select the entire folder and click "Select Folder".
-7.  The PowerCloud extension should now appear in your list of extensions and in your browser toolbar (you might need to click the puzzle piece icon to see it).
+1.  Open Chrome and go to `chrome://extensions/`
+2.  Enable **"Developer mode"** (toggle in top-right corner)
+3.  Click **"Load unpacked"**
+4.  Select the `dist/` folder from the extracted files
+5.  Done! The extension is now installed ✨
+
+**Updates:** When a new version is shared, just replace the `dist/` folder and click the reload button in `chrome://extensions/`.
+
+---
+
+### Developer Installation (From Source)
+
+If you want to **modify** or **debug** the extension:
+
+**1. Clone the Repository**
+
+```bash
+git clone https://github.com/your-username/your-repository-name.git
+cd PowerCloud
+```
+
+**2. Choose Your Installation Method**
+
+**Option A: Load Source Directly** (for active development)
+```bash
+# No build needed! Load the project root in Chrome
+# Good for: Making changes and testing immediately
+```
+
+1.  Go to `chrome://extensions/`
+2.  Enable "Developer mode"
+3.  Click "Load unpacked"
+4.  Select the **project root folder** (not `dist/`)
+5.  Extension loaded from source ✅
+
+**Option B: Build and Load** (for testing production version)
+```bash
+# Build optimized version first
+npm install          # First time only
+npm run build        # or 'npm run build:dev' for development
+
+# Then load dist/ folder in Chrome
+```
+
+1.  Go to `chrome://extensions/`
+2.  Enable "Developer mode"  
+3.  Click "Load unpacked"
+4.  Select the **`dist/` folder**
+5.  Extension loaded from build ✅
+
+**Which to use?**
+- **Source**: Active development, need hot-reloading of changes
+- **Build**: Testing the production version before sharing
+
+---
+
+### For Maintainers: Creating a Release
+
+To share with colleagues:
+
+**1. Build the Production Version**
+
+```bash
+npm install          # First time only
+npm run build        # Creates optimized dist/ folder
+```
+
+**2. Create Distribution Package**
+
+```bash
+# From project root
+cd dist
+zip -r ../PowerCloud-v1.2.1-dist.zip .
+cd ..
+
+# Now you have PowerCloud-v1.2.1-dist.zip ready to share!
+```
+
+**3. Share the ZIP**
+
+*   Upload to GitHub Releases
+*   Share via company file sharing
+*   Email to colleagues
+*   Or commit and push (colleagues can clone and load `dist/`)
+
+**Why build?**
+- 40% smaller file size
+- Console logs removed (cleaner)
+- Minified code (faster)
+- Professional distribution
 
 ### From Chrome Web Store (Coming Soon)
 

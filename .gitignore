@@ -7,7 +7,7 @@ node_modules/
 package-lock.json
 
 # Development tools (preserved but not in production)
-_dev-tools/
+dev-tools/
 
 # IDE
 .vscode/

@@ -36,7 +36,7 @@ We successfully completed two major improvement phases for the PowerCloud Extens
 - ✅ Created `CODE_AUDIT.md` - full codebase analysis
 - ✅ Identified 5 unused modules (~60KB, 40% of bundle)
 - ✅ Removed unused modules from manifest.json
-- ✅ Moved to `_dev-tools/` directory for preservation
+- ✅ Moved to `dev-tools/` directory for preservation
 
 **Phase 1 Results:**
 - ✅ 4 new documentation files
@@ -147,7 +147,7 @@ We successfully completed two major improvement phases for the PowerCloud Extens
 ### Phase 2
 6. `build.js` (377 lines)
 7. `BUILD_GUIDE.md` (450+ lines)
-8. `_dev-tools/README.md` (documentation)
+8. `dev-tools/README.md` (documentation)
 9. `PHASE_1_AND_2_COMPLETE.md` (this file)
 
 **Total:** 9 new files, ~2,000+ lines of code/documentation
@@ -185,7 +185,7 @@ npm run lint          # (Placeholder for future)
 - `MODULE_ARCHITECTURE.md` - Explains module pairs
 - `CODE_AUDIT.md` - Code analysis and findings
 - `BUILD_GUIDE.md` - Complete build documentation
-- `_dev-tools/README.md` - Preserved modules info
+- `dev-tools/README.md` - Preserved modules info
 
 ### Updated Documentation
 - `package.json` - New scripts and dependencies

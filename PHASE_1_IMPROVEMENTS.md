@@ -19,6 +19,7 @@
 - ✏️ `manifest.json` - Updated version
 - ✏️ `package.json` - Updated version
 - ➕ Added `npm run version:check` script
+- 📦 Moved unused modules to `dev-tools/` (not `_dev-tools/` - Chrome doesn't allow underscores)
 
 **Impact:** Consistent versioning, easier release management
 

@@ -58,7 +58,7 @@ grep "new PerformanceMonitor" content_scripts/ background/ popup/
 
 **Option B: Move to Development Tools**
 ```
-shared/ → _dev-tools/
+shared/ → dev-tools/
 ```
 Only load via dev build
 
@@ -146,7 +146,7 @@ Some test files exist outside `testing/` directory:
    - Risk: None (not used)
    - Time: 5 minutes
 
-2. ✅ **Move unused modules to `_dev-tools/` directory**
+2. ✅ **Move unused modules to `dev-tools/` directory**
    - Keep them for future use
    - Don't load in production
    - Time: 10 minutes

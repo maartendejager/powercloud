@@ -8,6 +8,7 @@
     "build:dev": "node build.js --dev",
     "build:watch": "node build.js --watch",
     "clean": "rm -rf dist",
+    "package": "bash scripts/package-release.sh",
     "test": "node testing/run-all-tests.js",
     "test:unit": "node testing/unit-tests.js",
     "test:integration": "node testing/integration-tests.js",
