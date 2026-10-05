@@ -510,9 +510,9 @@ class SettingsManager {
     try {
       const hostname = window.location?.hostname || '';
       
-      if (hostname.includes('dev.spend.cloud') || hostname.includes('localhost')) {
+      if (hostname.includes('dev.spend.cloud') || hostname.includes('dev.elari.app') || hostname.includes('localhost')) {
         return 'development';
-      } else if (hostname.includes('test.spend.cloud') || hostname.includes('staging')) {
+      } else if (hostname.includes('test.spend.cloud') || hostname.includes('test.elari.app') || hostname.includes('staging')) {
         return 'testing';
       } else {
         return 'production';

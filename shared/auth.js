@@ -364,7 +364,7 @@ function extractClientEnvironment(url) {
   try {
     // Extract the tenant name from the URL
     // Pattern: https://[tenant-name].spend.cloud/... or https://[tenant-name].dev.spend.cloud/...
-    const match = url.match(/https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud/);
+    const match = url.match(/https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)/);
     return match ? match[1] : 'unknown';
   } catch (e) {
     return 'unknown';

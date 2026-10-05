@@ -1,4 +1,4 @@
-import { isApiRoute } from '../shared/url-patterns-module.js';
+import { isApiRoute, getBaseDomain } from '../shared/url-patterns-module.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Load and set toggle state for showing buttons
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
     
     // Notify all tabs to update button visibility
-    chrome.tabs.query({ url: ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"] }, (tabs) => {
+    chrome.tabs.query({ url: ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*", "*://*.elari.app/*", "*://*.dev.elari.app/*"] }, (tabs) => {
       let updatedTabs = 0;
       
       if (tabs.length === 0) {
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response || !response.authTokens || response.authTokens.length === 0) {
         updateTokenMetrics(0, 0, 0, 0);
         updateTokensOverview('No tokens found', 'warning');
-        tokensList.innerHTML = '<div class="no-tokens-message">No authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.</div>';
+        tokensList.innerHTML = '<div class="no-tokens-message">No authentication tokens captured yet. Browse elari.app or spend.cloud API routes to capture tokens.</div>';
         return;
       }
       
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (apiTokens.length === 0) {
         updateTokenMetrics(0, 0, 0, 0);
         updateTokensOverview('No API tokens found', 'warning');
-        tokensList.innerHTML = '<div class="no-tokens-message">No API authentication tokens captured yet. Browse spend.cloud or dev.spend.cloud API routes to capture tokens.</div>';
+        tokensList.innerHTML = '<div class="no-tokens-message">No API authentication tokens captured yet. Browse elari.app or spend.cloud API routes to capture tokens.</div>';
         return;
       }
       
@@ -1072,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const pageActions = [
         {
           // Card actions
-          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/cards\/([^\/]+)(\/.*|$)/,
           action: () => {
             const customer = RegExp.$1;
             const cardId = RegExp.$2;
@@ -1093,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
           // Book actions
-          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/,
+          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/,
           action: () => {
             const customer = RegExp.$1;
             const bookId = RegExp.$2;
@@ -1114,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         {
           // Entry actions
-          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
+          urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
           action: () => {
             const customer = RegExp.$1;
             const entryId = RegExp.$2;
@@ -1163,17 +1163,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // URL patterns matching those in main.js
     const patterns = {
       card: [
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/, type: 'standard' },
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, type: 'proactive' },
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, type: 'kasboek' }
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/cards\/([^\/]+)(\/.*|$)/, type: 'standard' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/data\.card\/single_card_update\?id=([^&]+)/, type: 'proactive' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.passen\/show\?id=([^&]+)/, type: 'kasboek' }
       ],
       book: [
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/, type: 'kasboek' },
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/book\/([^\/]+)(\/.*|$)/, type: 'adyen' }
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/, type: 'kasboek' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/book\/([^\/]+)(\/.*|$)/, type: 'adyen' }
       ],
       entries: [
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/, type: 'kasboek' },
-        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/entries\/([^\/]+)(\/.*|$)/, type: 'adyen' }
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/, type: 'kasboek' },
+        { pattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/entries\/([^\/]+)(\/.*|$)/, type: 'adyen' }
       ]
     };
 
@@ -1527,10 +1527,11 @@ document.addEventListener('DOMContentLoaded', () => {
           // Determine if this is dev environment
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             const currentUrl = tabs[0]?.url || '';
-            const isDev = currentUrl.includes('.dev.spend.cloud');
+            const baseDomain = getBaseDomain(currentUrl);
+            const isDev = currentUrl.includes(`.dev.${baseDomain}`);
             
             // Construct book URL
-            const baseUrl = `https://${customer}${isDev ? '.dev' : ''}.spend.cloud`;
+            const baseUrl = `https://${customer}${isDev ? '.dev' : ''}.${baseDomain}`;
             const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${bookId}/${currentPeriod}`;
             
             // Open book URL

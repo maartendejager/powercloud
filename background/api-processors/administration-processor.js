@@ -37,12 +37,13 @@ const logger = (() => {
  * @param {string} customer - The customer subdomain
  * @param {string} administrationId - The administration ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} [domain] - Base domain of the requesting tab
  * @param {string} requestId - Optional request ID for tracking
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export function processAdministrationDetailsRequest(customer, administrationId, isDev, requestId, sendResponse) {
+export function processAdministrationDetailsRequest(customer, administrationId, isDev, domain, requestId, sendResponse) {
   // Get administration details using our API module
-  apiGetAdministrationDetails(customer, administrationId, isDev)
+  apiGetAdministrationDetails(customer, administrationId, isDev, domain)
     .then(data => {
       
       // Extract the balance account ID from relationships if available

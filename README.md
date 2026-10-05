@@ -303,6 +303,10 @@ See `shared/base-feature-docs.md` for complete documentation and migration examp
 
 ## Changelog
 
+### 1.3.0 - October 5, 2026
+- **NEW**: Supports the new elari.app domain (including dev.elari.app) alongside spend.cloud
+- Links and API calls stay on the domain you are browsing
+
 ### 1.2.1 - May 25, 2025
 - **IMPROVED**: Enhanced authentication token error handling with user-friendly messages
 - Now shows specific "refresh the page" guidance when expired tokens exist for the current environment

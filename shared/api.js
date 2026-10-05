@@ -169,8 +169,8 @@ async function clearExpiredToken(clientEnvironment, isDev) {
 async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, additionalHeaders = {}) {
   try {
     // Extract client environment and isDev from the endpoint URL
-    const clientEnvironment = endpoint.includes('spend.cloud') ? window.extractClientEnvironment(endpoint) : undefined;
-    const isDev = endpoint.includes('spend.cloud') ? window.isDevelopmentRoute(endpoint) : undefined;
+    const clientEnvironment = window.SUPPORTED_BASE_DOMAINS.some(d => endpoint.includes(d)) ? window.extractClientEnvironment(endpoint) : undefined;
+    const isDev = window.SUPPORTED_BASE_DOMAINS.some(d => endpoint.includes(d)) ? window.isDevelopmentRoute(endpoint) : undefined;
     
     // Get the current authentication token appropriate for this request
     let token = await window.getToken(clientEnvironment, isDev);
@@ -324,10 +324,11 @@ async function del(endpoint, additionalHeaders = {}) {
  * @param {string} customer - The customer subdomain
  * @param {string} path - The API path
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {string} The complete API URL
  */
-function buildApiUrl(customer, path, isDev = false) {
-  return `https://${customer}${isDev ? '.dev' : ''}.spend.cloud/api${path.startsWith('/') ? path : '/' + path}`;
+function buildApiUrl(customer, path, isDev = false, domain = window.getBaseDomain(window.location.href)) {
+  return `https://${customer}${isDev ? '.dev' : ''}.${domain}/api${path.startsWith('/') ? path : '/' + path}`;
 }
 
 /**

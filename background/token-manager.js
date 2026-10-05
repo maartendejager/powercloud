@@ -88,11 +88,11 @@ export function setupWebRequestListener() {
           logger.error('Error handling auth header from web request:', error);
         });
     },
-    { urls: ["*://*.spend.cloud/api/*", "*://*.dev.spend.cloud/api/*"] }, // Monitor both production and dev API routes
+    { urls: ["*://*.spend.cloud/api/*", "*://*.dev.spend.cloud/api/*", "*://*.elari.app/api/*", "*://*.dev.elari.app/api/*"] }, // Monitor both production and dev API routes
     ["requestHeaders", "extraHeaders"]
   );
   
-  logger.info('Web request listener registered for URLs: *://*.spend.cloud/api/*, *://*.dev.spend.cloud/api/*');
+  logger.info('Web request listener registered for URLs: *://*.spend.cloud/api/*, *://*.dev.spend.cloud/api/*, *://*.elari.app/api/*, *://*.dev.elari.app/api/*');
 }
 
 /**

@@ -6,17 +6,40 @@
  */
 
 // Pattern constants
-const DOMAIN_PATTERN = /^https?:\/\/([^\/]+\.spend\.cloud)\//;
-const ANY_SPEND_CLOUD_DOMAIN = /^https?:\/\/[^\/]*\.spend\.cloud\//;
-const API_ROUTE_PATTERN = /^https?:\/\/[^\/]+\.spend\.cloud\/api\//;
+const DOMAIN_PATTERN = /^https?:\/\/([^\/]+\.(?:spend\.cloud|elari\.app))\//;
+const ANY_SPEND_CLOUD_DOMAIN = /^https?:\/\/[^\/]*\.(?:spend\.cloud|elari\.app)\//;
+const API_ROUTE_PATTERN = /^https?:\/\/[^\/]+\.(?:spend\.cloud|elari\.app)\/api\//;
 
 const CARD_PATTERNS = {
-  list: /^https?:\/\/[^\/]+\.spend\.cloud\/administration\/cards(?:\/(?:\?.*)?)?$/,
-  detail: /^https?:\/\/[^\/]+\.spend\.cloud\/administration\/cards\/(\d+)(?:\/(?:\?.*)?)?$/
+  list: /^https?:\/\/[^\/]+\.(?:spend\.cloud|elari\.app)\/administration\/cards(?:\/(?:\?.*)?)?$/,
+  detail: /^https?:\/\/[^\/]+\.(?:spend\.cloud|elari\.app)\/administration\/cards\/(\d+)(?:\/(?:\?.*)?)?$/
 };
 
-const BOOK_PATTERN = /^https?:\/\/[^\/]+\.spend\.cloud\/book\/(\d+)(?:\/(?:\?.*)?)?$/;
-const BOOK_ENTRY_PATTERN = /^https?:\/\/[^\/]+\.spend\.cloud\/book\/(\d+)\/entry\/(\d+)(?:\/(?:\?.*)?)?$/;
+const BOOK_PATTERN = /^https?:\/\/[^\/]+\.(?:spend\.cloud|elari\.app)\/book\/(\d+)(?:\/(?:\?.*)?)?$/;
+const BOOK_ENTRY_PATTERN = /^https?:\/\/[^\/]+\.(?:spend\.cloud|elari\.app)\/book\/(\d+)\/entry\/(\d+)(?:\/(?:\?.*)?)?$/;
+
+/**
+ * Base domains the product is served from. elari.app replaced spend.cloud,
+ * but both remain supported.
+ * @type {string[]}
+ */
+const SUPPORTED_BASE_DOMAINS = ['elari.app', 'spend.cloud'];
+const DEFAULT_BASE_DOMAIN = 'elari.app';
+
+/**
+ * Returns the supported base domain (e.g. 'elari.app') a URL is on, so links
+ * and API calls stay on the domain the user is browsing.
+ * @param {string} url - URL to inspect
+ * @returns {string} The matching base domain, or DEFAULT_BASE_DOMAIN
+ */
+function getBaseDomain(url) {
+  try {
+    const hostname = new URL(url).hostname;
+    return SUPPORTED_BASE_DOMAINS.find(d => hostname === d || hostname.endsWith('.' + d)) || DEFAULT_BASE_DOMAIN;
+  } catch (e) {
+    return DEFAULT_BASE_DOMAIN;
+  }
+}
 
 // Basic extraction functions
 function isApiRoute(url) {
@@ -207,7 +230,11 @@ export {
   BOOK_PATTERN,
   BOOK_ENTRY_PATTERN,
   
+  SUPPORTED_BASE_DOMAINS,
+  DEFAULT_BASE_DOMAIN,
+
   // Basic extraction functions
+  getBaseDomain,
   isApiRoute,
   isSpendCloudDomain,
   extractCustomerDomain,

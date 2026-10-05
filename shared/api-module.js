@@ -7,6 +7,7 @@
 
 // Static imports for service worker compatibility
 import { getToken, extractClientEnvironment, isDevelopmentRoute } from './auth-module.js';
+import { SUPPORTED_BASE_DOMAINS, DEFAULT_BASE_DOMAIN } from './url-patterns-module.js';
 
 // Initialize logger for API module (fallback for service worker context)
 const logger = (() => {
@@ -179,8 +180,8 @@ async function clearExpiredToken(clientEnvironment, isDev) {
 async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, additionalHeaders = {}) {
   try {
     // Extract client environment and isDev from the endpoint URL
-    const clientEnvironment = endpoint.includes('spend.cloud') ? extractClientEnvironment(endpoint) : undefined;
-    const isDev = endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : undefined;
+    const clientEnvironment = SUPPORTED_BASE_DOMAINS.some(d => endpoint.includes(d)) ? extractClientEnvironment(endpoint) : undefined;
+    const isDev = SUPPORTED_BASE_DOMAINS.some(d => endpoint.includes(d)) ? isDevelopmentRoute(endpoint) : undefined;
     
     // Get the current authentication token appropriate for this request
     let token = await getToken(clientEnvironment, isDev);
@@ -306,8 +307,8 @@ async function makeAuthenticatedRequest(endpoint, method = 'GET', body = null, a
             statusCode: response.status,
             statusText: response.statusText,
             timestamp: Date.now(),
-            clientEnvironment: endpoint.includes('spend.cloud') ? extractClientEnvironment(endpoint) : 'unknown',
-            isDev: endpoint.includes('spend.cloud') ? isDevelopmentRoute(endpoint) : false
+            clientEnvironment: SUPPORTED_BASE_DOMAINS.some(d => endpoint.includes(d)) ? extractClientEnvironment(endpoint) : 'unknown',
+            isDev: SUPPORTED_BASE_DOMAINS.some(d => endpoint.includes(d)) ? isDevelopmentRoute(endpoint) : false
           }
         }).catch(() => {});
       }
@@ -401,10 +402,11 @@ async function del(endpoint, additionalHeaders = {}) {
  * @param {string} customer - The customer subdomain
  * @param {string} path - The API path
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {string} The complete API URL
  */
-function buildApiUrl(customer, path, isDev = false) {
-  return `https://${customer}${isDev ? '.dev' : ''}.spend.cloud/api${path.startsWith('/') ? path : '/' + path}`;
+function buildApiUrl(customer, path, isDev = false, domain = DEFAULT_BASE_DOMAIN) {
+  return `https://${customer}${isDev ? '.dev' : ''}.${domain}/api${path.startsWith('/') ? path : '/' + path}`;
 }
 
 /**
@@ -412,9 +414,10 @@ function buildApiUrl(customer, path, isDev = false) {
  * @param {string} customer - The customer subdomain
  * @param {string} cardId - The card ID to fetch
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {Promise<Object>} The card details
  */
-async function getCardDetails(customer, cardId, isDev = false) {
+async function getCardDetails(customer, cardId, isDev = false, domain = DEFAULT_BASE_DOMAIN) {
   if (!customer || !cardId) {
     const errorMsg = 'Invalid parameters for getCardDetails';
     logger.error(errorMsg, { customer, cardId });
@@ -438,7 +441,7 @@ async function getCardDetails(customer, cardId, isDev = false) {
     throw new Error(`Invalid parameters: customer=${customer}, cardId=${cardId}`);
   }
   
-  const url = buildApiUrl(customer, `/cards/${cardId}`, isDev);
+  const url = buildApiUrl(customer, `/cards/${cardId}`, isDev, domain);
   
   try {
     const response = await get(url);
@@ -474,9 +477,10 @@ async function getCardDetails(customer, cardId, isDev = false) {
  * @param {string} customer - The customer subdomain
  * @param {string} bookId - The book ID to fetch
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {Promise<Object>} The book details
  */
-async function getBookDetails(customer, bookId, isDev = false) {
+async function getBookDetails(customer, bookId, isDev = false, domain = DEFAULT_BASE_DOMAIN) {
   if (!customer || !bookId) {
     const errorMsg = 'Invalid parameters for getBookDetails';
     logger.error(errorMsg, { customer, bookId });
@@ -500,7 +504,7 @@ async function getBookDetails(customer, bookId, isDev = false) {
     throw new Error(`Invalid parameters: customer=${customer}, bookId=${bookId}`);
   }
   
-  const url = buildApiUrl(customer, `/books/${bookId}`, isDev);
+  const url = buildApiUrl(customer, `/books/${bookId}`, isDev, domain);
   
   try {
     const response = await get(url);
@@ -536,9 +540,10 @@ async function getBookDetails(customer, bookId, isDev = false) {
  * @param {string} customer - The customer subdomain
  * @param {string} administrationId - The administration ID to fetch
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {Promise<Object>} The administration details
  */
-async function getAdministrationDetails(customer, administrationId, isDev = false) {
+async function getAdministrationDetails(customer, administrationId, isDev = false, domain = DEFAULT_BASE_DOMAIN) {
   if (!customer || !administrationId) {
     const errorMsg = 'Invalid parameters for getAdministrationDetails';
     logger.error(errorMsg, { customer, administrationId });
@@ -563,7 +568,7 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
     throw new Error(`Invalid parameters: customer=${customer}, administrationId=${administrationId}`);
   }
   
-  const url = buildApiUrl(customer, `/administrations/${administrationId}`, isDev);
+  const url = buildApiUrl(customer, `/administrations/${administrationId}`, isDev, domain);
   
   try {
     const response = await get(url);
@@ -600,9 +605,10 @@ async function getAdministrationDetails(customer, administrationId, isDev = fals
  * @param {string} customer - The customer subdomain
  * @param {string} balanceAccountId - The balance account ID to fetch
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {Promise<Object>} The balance account details
  */
-async function getBalanceAccountDetails(customer, balanceAccountId, isDev = false) {
+async function getBalanceAccountDetails(customer, balanceAccountId, isDev = false, domain = DEFAULT_BASE_DOMAIN) {
   if (!customer || !balanceAccountId) {
     const errorMsg = 'Invalid parameters for getBalanceAccountDetails';
     logger.error(errorMsg, { customer, balanceAccountId });
@@ -627,7 +633,7 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
     throw new Error(`Invalid parameters: customer=${customer}, balanceAccountId=${balanceAccountId}`);
   }
   
-  const url = buildApiUrl(customer, `/balance-accounts/${balanceAccountId}`, isDev);
+  const url = buildApiUrl(customer, `/balance-accounts/${balanceAccountId}`, isDev, domain);
   
   try {
     const response = await get(url);
@@ -664,9 +670,10 @@ async function getBalanceAccountDetails(customer, balanceAccountId, isDev = fals
  * @param {string} customer - The customer subdomain
  * @param {string} entryId - The entry ID to fetch
  * @param {boolean} [isDev=false] - Whether to use the development environment
+ * @param {string} [domain] - Base domain, e.g. 'elari.app' or 'spend.cloud'
  * @returns {Promise<Object>} The entry details
  */
-async function getEntryDetails(customer, entryId, isDev = false) {
+async function getEntryDetails(customer, entryId, isDev = false, domain = DEFAULT_BASE_DOMAIN) {
   if (!customer || !entryId) {
     const errorMsg = 'Invalid parameters for getEntryDetails';
     logger.error(errorMsg, { customer, entryId });
@@ -691,7 +698,7 @@ async function getEntryDetails(customer, entryId, isDev = false) {
     throw new Error(`Invalid parameters: customer=${customer}, entryId=${entryId}`);
   }
   
-  const url = buildApiUrl(customer, `/book-entries/${entryId}`, isDev);
+  const url = buildApiUrl(customer, `/book-entries/${entryId}`, isDev, domain);
   
   try {
     console.log('[DEBUG][API] Making getEntryDetails request:', {

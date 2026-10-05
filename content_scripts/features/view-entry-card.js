@@ -747,7 +747,8 @@ class ViewEntryCardFeature extends BaseFeature {
     const devSuffix = isDev ? '.dev' : '';
     
     // Construct the card URL for the single card update page
-    const cardUrl = `https://${this.customer}${devSuffix}.spend.cloud/proactive/data.card/single_card_update?id=${cardId}`;
+    const baseDomain = window.getBaseDomain(window.location.href);
+    const cardUrl = `https://${this.customer}${devSuffix}.${baseDomain}/proactive/data.card/single_card_update?id=${cardId}`;
     
     entryCardLogger.info('Card URL constructed', {
       cardId,

@@ -38,13 +38,14 @@ const logger = (() => {
  * @param {string} customer - The customer subdomain
  * @param {string} bookId - The book ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} [domain] - Base domain of the requesting tab
  * @param {string} requestId - Optional request ID for tracing
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export async function processBookDetailsRequest(customer, bookId, isDev, requestId, sendResponse) {
+export async function processBookDetailsRequest(customer, bookId, isDev, domain, requestId, sendResponse) {
   try {
     // Get book details using our API module
-    const data = await apiGetBookDetails(customer, bookId, isDev);
+    const data = await apiGetBookDetails(customer, bookId, isDev, domain);
     
     logger.debug('Raw API response structure', {
       hasData: !!data?.data,
@@ -142,7 +143,7 @@ export async function processBookDetailsRequest(customer, bookId, isDev, request
       });
       
       try {
-        const balanceAccountData = await apiGetBalanceAccountDetails(customer, balanceAccountId, isDev);
+        const balanceAccountData = await apiGetBalanceAccountDetails(customer, balanceAccountId, isDev, domain);
         
         // Extract the Adyen balance account ID from balance account attributes
         if (balanceAccountData?.data?.attributes?.remoteBalanceAccountId) {

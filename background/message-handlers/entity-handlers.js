@@ -21,6 +21,7 @@ import {
 } from '../api-processors/entry-processor.js';
 import { 
   determineDevelopmentStatus, 
+  determineBaseDomain,
   validateRequiredParams,
   generateRequestId
 } from '../api-processors/utils.js';
@@ -49,14 +50,14 @@ export function handleFetchCardDetails(message, sender, sendResponse) {
   }
   
   // Determine environment and process the request
-  determineDevelopmentStatus(sender)
-    .then(isDev => {
-      processCardDetailsRequest(customer, cardId, isDev, requestId, sendResponse);
+  Promise.all([determineDevelopmentStatus(sender), determineBaseDomain(sender)])
+    .then(([isDev, domain]) => {
+      processCardDetailsRequest(customer, cardId, isDev, domain, requestId, sendResponse);
     })
     .catch(error => {
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
-      processCardDetailsRequest(customer, cardId, false, requestId, sendResponse);
+      processCardDetailsRequest(customer, cardId, false, undefined, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response
@@ -86,14 +87,14 @@ export function handleFetchBookDetails(message, sender, sendResponse) {
   }
   
   // Determine environment and process the request
-  determineDevelopmentStatus(sender)
-    .then(async (isDev) => {
-      await processBookDetailsRequest(customer, bookId, isDev, requestId, sendResponse);
+  Promise.all([determineDevelopmentStatus(sender), determineBaseDomain(sender)])
+    .then(async ([isDev, domain]) => {
+      await processBookDetailsRequest(customer, bookId, isDev, domain, requestId, sendResponse);
     })
     .catch(async (error) => {
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
-      await processBookDetailsRequest(customer, bookId, false, requestId, sendResponse);
+      await processBookDetailsRequest(customer, bookId, false, undefined, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response
@@ -123,14 +124,14 @@ export function handleFetchAdministrationDetails(message, sender, sendResponse) 
   }
   
   // Determine environment and process the request
-  determineDevelopmentStatus(sender)
-    .then(isDev => {
-      processAdministrationDetailsRequest(customer, administrationId, isDev, requestId, sendResponse);
+  Promise.all([determineDevelopmentStatus(sender), determineBaseDomain(sender)])
+    .then(([isDev, domain]) => {
+      processAdministrationDetailsRequest(customer, administrationId, isDev, domain, requestId, sendResponse);
     })
     .catch(error => {
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
-      processAdministrationDetailsRequest(customer, administrationId, false, requestId, sendResponse);
+      processAdministrationDetailsRequest(customer, administrationId, false, undefined, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response
@@ -160,14 +161,14 @@ export function handleFetchBalanceAccountDetails(message, sender, sendResponse) 
   }
   
   // Determine environment and process the request
-  determineDevelopmentStatus(sender)
-    .then(isDev => {
-      processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, requestId, sendResponse);
+  Promise.all([determineDevelopmentStatus(sender), determineBaseDomain(sender)])
+    .then(([isDev, domain]) => {
+      processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, domain, requestId, sendResponse);
     })
     .catch(error => {
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
-      processBalanceAccountDetailsRequest(customer, balanceAccountId, false, requestId, sendResponse);
+      processBalanceAccountDetailsRequest(customer, balanceAccountId, false, undefined, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response
@@ -197,14 +198,14 @@ export function handleFetchEntryDetails(message, sender, sendResponse) {
   }
   
   // Determine environment and process the request
-  determineDevelopmentStatus(sender)
-    .then(isDev => {
-      processEntryDetailsRequest(customer, entryId, isDev, requestId, sendResponse);
+  Promise.all([determineDevelopmentStatus(sender), determineBaseDomain(sender)])
+    .then(([isDev, domain]) => {
+      processEntryDetailsRequest(customer, entryId, isDev, domain, requestId, sendResponse);
     })
     .catch(error => {
       console.error(`Error determining development status (${requestId}):`, error);
       // Default to production if there's an error
-      processEntryDetailsRequest(customer, entryId, false, requestId, sendResponse);
+      processEntryDetailsRequest(customer, entryId, false, undefined, requestId, sendResponse);
     });
   
   return true; // Keep message channel open for async response

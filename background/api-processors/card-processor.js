@@ -37,12 +37,13 @@ const logger = (() => {
  * @param {string} customer - The customer subdomain
  * @param {string} cardId - The card ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} [domain] - Base domain of the requesting tab
  * @param {string} requestId - Optional request ID for tracing
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export function processCardDetailsRequest(customer, cardId, isDev, requestId, sendResponse) {
+export function processCardDetailsRequest(customer, cardId, isDev, domain, requestId, sendResponse) {
   // Get card details using our API module
-  apiGetCardDetails(customer, cardId, isDev)
+  apiGetCardDetails(customer, cardId, isDev, domain)
     .then(data => {
       // Check various possible paths for the Adyen payment instrument ID
       let paymentInstrumentId = null;

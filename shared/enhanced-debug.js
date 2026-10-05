@@ -346,7 +346,7 @@ class ErrorMessageEnhancer {
       'The extension is trying to use an invalid URL pattern for feature activation.',
       [
         'Verify the current page URL matches expected patterns',
-        'Check if you\'re on a supported spend.cloud domain',
+        'Check if you\'re on a supported elari.app or spend.cloud domain',
         'Report this issue if you believe the URL should be supported'
       ]
     );
@@ -371,7 +371,7 @@ class ErrorMessageEnhancer {
       'The extension cannot connect to the required services.',
       [
         'Check your internet connection',
-        'Verify that spend.cloud services are accessible',
+        'Verify that elari.app / spend.cloud services are accessible',
         'Check if corporate firewall is blocking requests',
         'Try again in a few moments'
       ]

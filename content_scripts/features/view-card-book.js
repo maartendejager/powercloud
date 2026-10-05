@@ -415,8 +415,9 @@ class ViewCardBookFeature extends BaseFeature {
       directBtn.addEventListener('click', () => {
         try {
           if (this.bookId && this.currentPeriod) {
-            const isDev = window.location.href.includes('.dev.spend.cloud');
-            const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.spend.cloud`;
+            const baseDomain = window.getBaseDomain(window.location.href);
+            const isDev = window.location.href.includes(`.dev.${baseDomain}`);
+            const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.${baseDomain}`;
             const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${this.bookId}/${this.currentPeriod}`;
             window.open(bookUrl, '_blank');
           } else {
@@ -449,8 +450,9 @@ class ViewCardBookFeature extends BaseFeature {
           inlineBtn.addEventListener('click', () => {
             try {
               if (this.bookId && this.currentPeriod) {
-                const isDev = window.location.href.includes('.dev.spend.cloud');
-                const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.spend.cloud`;
+                const baseDomain = window.getBaseDomain(window.location.href);
+                const isDev = window.location.href.includes(`.dev.${baseDomain}`);
+                const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.${baseDomain}`;
                 const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${this.bookId}/${this.currentPeriod}`;
                 window.open(bookUrl, '_blank');
               } else {
@@ -488,8 +490,9 @@ class ViewCardBookFeature extends BaseFeature {
       }
       
       // Construct the book URL
-      const isDev = window.location.href.includes('.dev.spend.cloud');
-      const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.spend.cloud`;
+      const baseDomain = window.getBaseDomain(window.location.href);
+      const isDev = window.location.href.includes(`.dev.${baseDomain}`);
+      const baseUrl = `https://${this.customer}${isDev ? '.dev' : ''}.${baseDomain}`;
       const bookUrl = `${baseUrl}/proactive/kasboek.boekingen/${this.bookId}/${this.currentPeriod}`;
       
       this.log('Opening card book URL', { url: bookUrl });

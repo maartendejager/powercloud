@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PowerCloud",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "A Chrome extension that adds extra functionality on certain pages while logged in and allows making requests to authenticated routes.",
   "permissions": [
     "activeTab",
@@ -13,7 +13,9 @@
   ],
   "host_permissions": [
     "*://*.spend.cloud/*",
-    "*://*.dev.spend.cloud/*"
+    "*://*.dev.spend.cloud/*",
+    "*://*.elari.app/*",
+    "*://*.dev.elari.app/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -21,7 +23,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"],
+      "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*", "*://*.elari.app/*", "*://*.dev.elari.app/*"],
       "js": [
         "shared/logger.js",
         "shared/enhanced-debug.js",
@@ -55,7 +57,7 @@
         "shared/accessibility-utils.js",
         "shared/responsive-design.js"
       ],
-      "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*"]
+      "matches": ["*://*.spend.cloud/*", "*://*.dev.spend.cloud/*", "*://*.elari.app/*", "*://*.dev.elari.app/*"]
     }
   ],
   "action": {

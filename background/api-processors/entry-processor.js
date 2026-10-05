@@ -38,13 +38,14 @@ const logger = (() => {
  * @param {string} customer - The customer subdomain
  * @param {string} entryId - The entry ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} [domain] - Base domain of the requesting tab
  * @param {string} requestId - Optional request ID for tracing
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export function processEntryDetailsRequest(customer, entryId, isDev, requestId, sendResponse) {
+export function processEntryDetailsRequest(customer, entryId, isDev, domain, requestId, sendResponse) {
   // Get entry details using our API module
   
-  apiGetEntryDetails(customer, entryId, isDev)
+  apiGetEntryDetails(customer, entryId, isDev, domain)
     .then(data => {
       // Extract remoteTransferId from the response data similar to how the content script does it
       let remoteTransferId = null;

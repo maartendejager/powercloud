@@ -77,7 +77,7 @@ if (window.PowerCloudUI) {
 const features = [
   {
     name: 'uiVisibilityManager', // Renamed from tokenDetection
-    urlPattern: /.*\.spend\.cloud.*|.*\.dev\.spend\.cloud.*/,  // Run on all spend.cloud pages (including .dev subdomains)
+    urlPattern: /.*\.(?:spend\.cloud|elari\.app).*|.*\.dev\.(?:spend\.cloud|elari\.app).*/,  // Run on all spend.cloud pages (including .dev subdomains)
     init: function() {
       // Use the init function from ui-visibility-manager.js using the PowerCloudFeatures namespace
       if (window.PowerCloudFeatures?.uiVisibilityManager?.init) {
@@ -107,7 +107,7 @@ const features = [
   },
   {
     name: 'cardInfo',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/cards\/([^\/]+)(\/.*|$)/,
     init: initCardFeature,
     cleanup: function() {
       // Use the card-specific cleanup function from the namespace
@@ -119,7 +119,7 @@ const features = [
   },
   {
     name: 'cardInfoProactive',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: function() {
       // Use the card-specific cleanup function from the namespace
@@ -131,7 +131,7 @@ const features = [
   },
   {
     name: 'cardInfoKasboek',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.passen\/show\?id=([^&]+)/,
     init: initCardFeature,
     cleanup: function() {
       // Use the card-specific cleanup function from the namespace
@@ -143,7 +143,7 @@ const features = [
   },
   {
     name: 'entriesInfo',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
     init: loadEntriesFeature,
     excludes: ['bookInfo'], // Exclude the bookInfo feature when on entry pages
     cleanup: function() {
@@ -156,7 +156,7 @@ const features = [
   },
   {
     name: 'bookInfo',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/,
     init: loadBookFeature,
     cleanup: function() {
       // Use the book-specific cleanup function from the namespace
@@ -168,7 +168,7 @@ const features = [
   },
   {
     name: 'adyenBookInfo',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/book\/([^\/]+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/book\/([^\/]+)(\/.*|$)/,
     init: loadBookFeature,
     cleanup: function() {
       // Use the book-specific cleanup function from the namespace
@@ -179,7 +179,7 @@ const features = [
   },
   {
     name: 'adyenEntriesInfo',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/entries\/([^\/]+)(\/.*|$)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/entries\/([^\/]+)(\/.*|$)/,
     init: loadEntriesFeature,
     cleanup: function() {
       // Use the entries-specific cleanup function from the namespace
@@ -190,7 +190,7 @@ const features = [
   },
   {
     name: 'viewEntryCard',
-    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
+    urlPattern: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/,
     init: loadViewEntryCardFeature,
     excludes: [], // Compatible with existing entry features
     cleanup: function() {

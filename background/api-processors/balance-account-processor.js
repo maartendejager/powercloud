@@ -37,12 +37,13 @@ const logger = (() => {
  * @param {string} customer - The customer subdomain
  * @param {string} balanceAccountId - The balance account ID
  * @param {boolean} isDev - Whether to use the development environment
+ * @param {string} [domain] - Base domain of the requesting tab
  * @param {string} requestId - Optional request ID for tracking
  * @param {function} sendResponse - The function to send the response back to the caller
  */
-export function processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, requestId, sendResponse) {
+export function processBalanceAccountDetailsRequest(customer, balanceAccountId, isDev, domain, requestId, sendResponse) {
   // Get balance account details using our API module
-  apiGetBalanceAccountDetails(customer, balanceAccountId, isDev)
+  apiGetBalanceAccountDetails(customer, balanceAccountId, isDev, domain)
     .then(data => {
       
       // Extract the Adyen balance account ID from attributes if available

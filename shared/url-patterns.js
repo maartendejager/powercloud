@@ -11,19 +11,19 @@
  * development domains (https://[customer].dev.spend.cloud/*)
  * @type {RegExp}
  */
-const DOMAIN_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud/;
+const DOMAIN_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)/;
 
 /**
  * RegExp pattern that matches any spend.cloud or dev.spend.cloud domain
  * @type {RegExp}
  */
-const ANY_SPEND_CLOUD_DOMAIN = /.*\.spend\.cloud.*|.*\.dev\.spend\.cloud.*/;
+const ANY_SPEND_CLOUD_DOMAIN = /.*\.(?:spend\.cloud|elari\.app).*|.*\.dev\.(?:spend\.cloud|elari\.app).*/;
 
 /**
  * RegExp pattern that matches API routes on spend.cloud domains
  * @type {RegExp}
  */
-const API_ROUTE_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/api\//;
+const API_ROUTE_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/api\//;
 
 /**
  * Card-related URL patterns
@@ -31,24 +31,47 @@ const API_ROUTE_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/api\//;
  */
 const CARD_PATTERNS = {
   // Standard card URL
-  standard: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/cards\/([^\/]+)(\/.*|$)/,
+  standard: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/cards\/([^\/]+)(\/.*|$)/,
   // Proactive single card update URL
-  proactive: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
+  proactive: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/data\.card\/single_card_update\?id=([^&]+)/,
   // Kasboek passen show URL
-  kasboek: /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
+  kasboek: /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.passen\/show\?id=([^&]+)/
 };
 
 /**
  * Book-related URL pattern
  * @type {RegExp}
  */
-const BOOK_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/;
+const BOOK_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/(\d+)(\/.*|$)/;
 
 /**
  * Book entry URL pattern for kasboek.boekingen/show?id=
  * @type {RegExp}
  */
-const BOOK_ENTRY_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?spend\.cloud\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/;
+const BOOK_ENTRY_PATTERN = /https:\/\/([^.]+)\.(?:dev\.)?(?:spend\.cloud|elari\.app)\/proactive\/kasboek\.boekingen\/show\?id=([^&]+)/;
+
+/**
+ * Base domains the product is served from. elari.app replaced spend.cloud,
+ * but both remain supported.
+ * @type {string[]}
+ */
+const SUPPORTED_BASE_DOMAINS = ['elari.app', 'spend.cloud'];
+const DEFAULT_BASE_DOMAIN = 'elari.app';
+
+/**
+ * Returns the supported base domain (e.g. 'elari.app') a URL is on, so links
+ * and API calls stay on the domain the user is browsing.
+ * @param {string} url - URL to inspect
+ * @returns {string} The matching base domain, or DEFAULT_BASE_DOMAIN
+ */
+function getBaseDomain(url) {
+  try {
+    const hostname = new URL(url).hostname;
+    return SUPPORTED_BASE_DOMAINS.find(d => hostname === d || hostname.endsWith('.' + d)) || DEFAULT_BASE_DOMAIN;
+  } catch (e) {
+    return DEFAULT_BASE_DOMAIN;
+  }
+}
 
 /**
  * Checks if a URL is an API route
@@ -190,8 +213,8 @@ function validateUrlPattern(pattern) {
     }
     
     // Check for spend.cloud domain specificity
-    if (!patternStr.includes('spend\\.cloud') && !patternStr.includes('spend.cloud')) {
-      result.warnings.push('Pattern does not appear to be spend.cloud specific');
+    if (!SUPPORTED_BASE_DOMAINS.some(d => patternStr.includes(d.replace('.', '\\.')) || patternStr.includes(d))) {
+      result.warnings.push('Pattern does not appear to be elari.app/spend.cloud specific');
     }
     
     // Test the pattern with a sample URL
@@ -238,7 +261,7 @@ function calculatePatternSpecificity(pattern, url = '') {
   score += exactChars * SPECIFICITY_WEIGHTS.LENGTH_BONUS;
   
   // Bonus for specific domain patterns
-  if (patternStr.includes('spend\\.cloud')) {
+  if (SUPPORTED_BASE_DOMAINS.some(d => patternStr.includes(d.replace('.', '\\.')))) {
     score += SPECIFICITY_WEIGHTS.EXACT_MATCH;
   }
   
@@ -429,6 +452,9 @@ if (typeof window !== 'undefined') {
   window.BOOK_ENTRY_PATTERN = BOOK_ENTRY_PATTERN;
   
   // Basic extraction functions
+  window.SUPPORTED_BASE_DOMAINS = SUPPORTED_BASE_DOMAINS;
+  window.DEFAULT_BASE_DOMAIN = DEFAULT_BASE_DOMAIN;
+  window.getBaseDomain = getBaseDomain;
   window.isApiRoute = isApiRoute;
   window.isSpendCloudDomain = isSpendCloudDomain;
   window.extractCustomerDomain = extractCustomerDomain;

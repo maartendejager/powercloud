@@ -4,6 +4,27 @@
  * Common utility functions shared by API processors.
  */
 
+import { SUPPORTED_BASE_DOMAINS, getBaseDomain } from '../../shared/url-patterns-module.js';
+
+/**
+ * Resolves the URL of the tab a request originates from: the sender tab for
+ * content scripts, or the active tab for the popup
+ *
+ * @param {Object} sender - The message sender object
+ * @returns {Promise<string>} - Promise that resolves to the tab URL ('' if unknown)
+ */
+function getRequestTabUrl(sender) {
+  return new Promise((resolve) => {
+    if (sender.tab && sender.tab.url) {
+      resolve(sender.tab.url);
+    } else {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        resolve((tabs[0] && tabs[0].url) || '');
+      });
+    }
+  });
+}
+
 /**
  * Determines if a request should use the development environment
  * based on the sender tab URL or active tab URL
@@ -12,22 +33,20 @@
  * @returns {Promise<boolean>} - Promise that resolves to whether this is a dev environment
  */
 export function determineDevelopmentStatus(sender) {
-  return new Promise((resolve) => {
-    // If request comes from a content script (tab), check the tab URL
-    if (sender.tab && sender.tab.url) {
-      const isDev = sender.tab.url.includes('.dev.spend.cloud');
-      resolve(isDev);
-    } else {
-      // If request comes from popup, check active tab URL first
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        let isDev = false;
-        if (tabs[0] && tabs[0].url) {
-          isDev = tabs[0].url.includes('.dev.spend.cloud');
-        }
-        resolve(isDev);
-      });
-    }
-  });
+  return getRequestTabUrl(sender).then(url =>
+    SUPPORTED_BASE_DOMAINS.some(d => url.includes(`.dev.${d}`))
+  );
+}
+
+/**
+ * Determines the base domain (elari.app or spend.cloud) API requests should
+ * go to, based on the sender tab URL or active tab URL
+ *
+ * @param {Object} sender - The message sender object
+ * @returns {Promise<string>} - Promise that resolves to the base domain
+ */
+export function determineBaseDomain(sender) {
+  return getRequestTabUrl(sender).then(getBaseDomain);
 }
 
 /**
