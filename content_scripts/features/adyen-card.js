@@ -539,7 +539,7 @@ class AdyenCardFeature extends BaseFeature {
       }
 
       if (paymentInstrumentId) {
-        const adyenUrl = `https://ca-live.adyen.com/ca/ca/financial-products/payment-instruments/details.shtml?id=${paymentInstrumentId}`;
+        const adyenUrl = `https://ca-live.adyen.com/ca/ui/financial-products/payment-instruments/${paymentInstrumentId}`;
         
         console.log('[PowerCloud] Opening Adyen URL:', adyenUrl);
         

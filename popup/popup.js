@@ -1477,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
           resultDiv.textContent = `Non-Adyen card (vendor: ${response.vendor}). Cannot view in Adyen dashboard.`;
           resultDiv.className = 'action-result warning';
         } else if (response.paymentInstrumentId) {
-          const adyenUrl = `https://ca-live.adyen.com/ca/ca/financial-products/payment-instruments/details.shtml?id=${response.paymentInstrumentId}`;
+          const adyenUrl = `https://ca-live.adyen.com/ca/ui/financial-products/payment-instruments/${response.paymentInstrumentId}`;
           chrome.tabs.create({ url: adyenUrl });
           resultDiv.textContent = 'Opening card in Adyen dashboard...';
           resultDiv.className = 'action-result success';

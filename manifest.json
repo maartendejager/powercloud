@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PowerCloud",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "A Chrome extension that adds extra functionality on certain pages while logged in and allows making requests to authenticated routes.",
   "permissions": [
     "activeTab",
